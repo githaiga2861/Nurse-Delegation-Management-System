@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA Nurse Delegation Management System</title>
+  <meta name="description" content="Washington State DSHS Nurse Delegation Management System for RNs managing Adult Family Homes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-eyebrow">DSHS Washington State</div>
+      <div class="brand-name">Nurse Delegation<br>Management</div>
+      <div class="brand-sub">Registered Nurse Portal</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Overview</div>
+      <a class="nav-link" data-page="dashboard" href="#dashboard">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>Dashboard
+      </a>
+      <a class="nav-link" data-page="alerts" href="#alerts">
+        <i class="ti ti-bell" aria-hidden="true"></i>Alerts
+        <span class="nav-badge red">5</span>
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Facilities</div>
+      <a class="nav-link" data-page="afhs" href="#afhs">
+        <i class="ti ti-building-hospital" aria-hidden="true"></i>Adult Family Homes
+        <span class="nav-badge blue">8</span>
+      </a>
+      <a class="nav-link" data-page="caregivers" href="#caregivers">
+        <i class="ti ti-users" aria-hidden="true"></i>Caregivers
+      </a>
+      <a class="nav-link" data-page="patients" href="#patients">
+        <i class="ti ti-heart-rate-monitor" aria-hidden="true"></i>Patients
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Delegation</div>
+      <a class="nav-link" data-page="cases" href="#cases">
+        <i class="ti ti-clipboard-list" aria-hidden="true"></i>Delegation Cases
+        <span class="nav-badge amber">3</span>
+      </a>
+      <a class="nav-link" data-page="visits" href="#visits">
+        <i class="ti ti-stethoscope" aria-hidden="true"></i>Nursing Visits
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Documents</div>
+      <a class="nav-link" data-page="forms" href="#forms">
+        <i class="ti ti-file-text" aria-hidden="true"></i>DSHS Forms
+      </a>
+      <a class="nav-link" data-page="archive" href="#archive">
+        <i class="ti ti-archive" aria-hidden="true"></i>Archive
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar avatar-sm avatar-blue">MK</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Margaret Kamau, RN</div>
+        <div style="font-size:10.5px;color:var(--text-3)">Nurse Delegator</div>
+      </div>
+      <button class="btn btn-ghost btn-icon btn-sm" title="Settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
+    </div>
+  </nav>
+
+  <!-- ── Main Area ── -->
+  <div class="main-area">
+
+    <!-- Topbar -->
+    <header class="topbar no-print">
+      <button class="btn btn-ghost btn-icon" id="menu-toggle" title="Toggle sidebar" aria-label="Toggle navigation" style="display:none">
+        <i class="ti ti-menu-2" aria-hidden="true"></i>
+      </button>
+      <div class="topbar-left">
+        <div class="page-title" id="topbar-title">RN Dashboard</div>
+        <div class="page-breadcrumb" id="topbar-sub">King County Region</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-wrap">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <input class="search-input" type="search" placeholder="Search patients, cases, AFHs…" aria-label="Global search" id="global-search">
+        </div>
+        <button class="btn btn-sm" title="Notifications" aria-label="Notifications">
+          <i class="ti ti-bell" aria-hidden="true"></i>
+          <span style="background:var(--red-400);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;margin-left:-2px">5</span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="showNewCaseModal()">
+          <i class="ti ti-plus" aria-hidden="true"></i>New Case
+        </button>
+      </div>
+    </header>
+
+    <!-- Dynamic page content -->
+    <main class="page-content" id="dynamic-page" role="main"></main>
+
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  // Mobile sidebar toggle
+  const menuBtn = document.getElementById('menu-toggle');
+  const sidebar = document.getElementById('sidebar');
+  if (window.innerWidth <= 900) menuBtn.style.display = '';
+  menuBtn?.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  // Hash-based routing
+  function routeFromHash() {
+    const page = location.hash.replace('#','') || 'dashboard';
+    renderPage(page);
+  }
+  window.addEventListener('hashchange', routeFromHash);
+
+  // Override nav links to use hash
+  document.querySelectorAll('[data-page]').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const page = link.dataset.page;
+      history.pushState(null, '', '#' + page);
+      renderPage(page);
+    });
+  });
+
+  // Global search UX
+  document.getElementById('global-search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim().toLowerCase();
+      if (!q) return;
+      // Search patients
+      const pt = DATA.patients.find(p => p.name.toLowerCase().includes(q));
+      if (pt) {
+        const c = DATA.cases.find(x => x.patientId === pt.id);
+        if (c) { e.target.value = ''; showCaseDetail(c.id); return; }
+      }
+      // Search AFHs
+      const afh = DATA.afhs.find(a => a.name.toLowerCase().includes(q));
+      if (afh) { e.target.value = ''; showAFHDetail(afh.id); return; }
+    }
+  });
+</script>
+</body>
+</html>
