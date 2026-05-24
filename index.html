@@ -102,7 +102,7 @@ section{padding:120px 40px}
 .section-tag{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:16px}
 
 /* HERO */
-#hero{padding:180px 40px 120px;position:relative;overflow:hidden}
+#hero{padding:0 40px;position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center}
 .hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at 50% 0%,black 0%,transparent 70%);opacity:0.6}
 .hero-glow{position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,var(--blue-glow),transparent 70%);pointer-events:none}
 .hero-content{position:relative;z-index:1;max-width:1200px;margin:0 auto;text-align:center}
@@ -406,7 +406,6 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
   <div class="nav-cta">
     <button class="btn btn-ghost" onclick="openApp()">Sign In</button>
-    <button class="btn btn-primary" onclick="openApp()">Request Access</button>
   </div>
 </nav>
 
@@ -432,10 +431,6 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
       <button class="btn btn-primary btn-lg" onclick="openApp()">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Open Platform
-      </button>
-      <button class="btn btn-ghost btn-lg">
-        Watch Overview
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 5.5l4 2.5-4 2.5V5.5z" fill="currentColor"/></svg>
       </button>
     </div>
     <!-- DASHBOARD PREVIEW -->
@@ -485,7 +480,47 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
 </section>
 
-<!-- STATS BAR -->
+</div><!-- /hero-content -->
+</section><!-- /hero -->
+</div><!-- /landing -->
+
+<!-- SIGN IN MODAL -->
+<div class="overlay" id="signinModal">
+  <div class="modal" style="width:min(420px,90vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Sign In to DelegateRN</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin-top:2px">Washington State Nurse Delegation Portal</p>
+      </div>
+      <button onclick="closeModal('signinModal')" class="btn btn-ghost btn-sm">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" placeholder="your@email.com" id="signinEmail">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" placeholder="••••••••" id="signinPassword">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" style="accent-color:var(--blue)"> Remember me
+        </label>
+        <a href="#" style="font-size:12px;color:var(--blue);text-decoration:none">Forgot password?</a>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="doSignIn()">
+        Sign In to Platform
+      </button>
+      <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3)">
+        Need access? Contact your administrator.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Placeholder for removed sections -->
+<div style="display:none">
 <div class="stats-bar">
   <div class="stats-bar-inner">
     <div class="stat-item">
@@ -679,50 +714,9 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
 </section>
 
-<!-- FOOTER -->
-<footer>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <div class="nav-logo">
-          <div class="mark">D</div>
-          <div class="name">Delegate<span>RN</span></div>
-        </div>
-        <p>Washington State Nurse Delegation Workflow Management Platform — built for Registered Nurses.</p>
-        <div class="footer-badge" style="margin-top:16px">● DSHS WAC 388-71 Compliant</div>
-      </div>
-      <div class="footer-col">
-        <h5>Platform</h5>
-        <a href="#">RN Dashboard</a>
-        <a href="#">AFH Workspaces</a>
-        <a href="#">Delegation Cases</a>
-        <a href="#">Nursing Visits</a>
-        <a href="#">Documents</a>
-      </div>
-      <div class="footer-col">
-        <h5>Compliance</h5>
-        <a href="#">DSHS Forms</a>
-        <a href="#">WAC 388-71</a>
-        <a href="#">Credential Tracking</a>
-        <a href="#">Signature Workflows</a>
-        <a href="#">Audit History</a>
-      </div>
-      <div class="footer-col">
-        <h5>Support</h5>
-        <a href="#">Documentation</a>
-        <a href="#">Training</a>
-        <a href="#">Contact</a>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2025 DelegateRN. Washington State Nurse Delegation Platform. Not affiliated with DSHS.</p>
-      <p>HIPAA-aware data handling</p>
-    </div>
-  </div>
-</footer>
 </div>
+
+</div><!-- /hidden placeholder -->
 
 <!-- APP SHELL -->
 <div id="app">
@@ -1431,6 +1425,21 @@ function openApp(){
   document.getElementById('app').style.display='block';
   showPage('dashboard');
   window.scrollTo(0,0);
+}
+
+function openSignIn(){
+  document.getElementById('signinModal').classList.add('open');
+}
+
+function doSignIn(){
+  const email = document.getElementById('signinEmail').value.trim();
+  const password = document.getElementById('signinPassword').value;
+  if(!email || !password){
+    alert('Please enter your email and password.');
+    return;
+  }
+  document.getElementById('signinModal').classList.remove('open');
+  openApp();
 }
 
 function openModal(id){
