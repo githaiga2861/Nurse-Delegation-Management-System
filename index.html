@@ -701,7 +701,7 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
         <span class="sidebar-section-label">Workspaces</span>
         <div class="nav-item" onclick="showPage('afh')">
           <svg viewBox="0 0 16 16" fill="none"><path d="M1 14V7.5L8 2l7 5.5V14H1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="5" y="9" width="3" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          AFH Workspaces
+          Facility Management
         </div>
         <div class="nav-item" onclick="showPage('cases')">
           <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.5"/><path d="M5 9h6M5 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -717,11 +717,11 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
         <span class="sidebar-section-label">People</span>
         <div class="nav-item" onclick="showPage('caregivers')">
           <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Caregivers
+          Caregiver Management
         </div>
         <div class="nav-item" onclick="showPage('patients')">
           <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Patients
+          Client Management
         </div>
       </div>
 
@@ -964,25 +964,443 @@ pageRenderers.dashboard = () => `
   </div>
 </div>`;
 
-// AFH
+// FACILITY MANAGEMENT
 pageRenderers.afh = () => `
 <div class="topbar">
-  <div class="topbar-title">AFH Workspaces</div>
+  <div class="topbar-title">Facility Management</div>
   <div class="topbar-actions">
-    <button class="btn btn-primary btn-sm">+ Add AFH Workspace</button>
+    <input class="form-input" style="width:220px;padding:7px 12px;font-size:12px" placeholder="Search facilities…" oninput="filterFacilities(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" onchange="filterFacilitiesByType(this.value)">
+      <option value="">All Types</option>
+      <option>Adult Family Home (AFH)</option>
+      <option>Client Residential Home</option>
+      <option>Assisted Living Facility</option>
+      <option>Group Home</option>
+      <option>Skilled Nursing Facility</option>
+      <option>Other</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openFacilityModal()">+ Register Facility</button>
   </div>
 </div>
 <div class="page-content">
-  <p style="margin-bottom:24px">Each Adult Family Home operates as an isolated workspace — containing its own caregivers, patients, delegation cases, and documents.</p>
-  <div class="empty-state" style="padding:96px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)">
-    <div class="empty-icon" style="width:64px;height:64px">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M2 24V12L14 4l12 8v12H2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="9" y="16" width="5" height="8" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+  <p style="margin-bottom:20px;font-size:13px;color:var(--text3)">Register and manage all facilities where you provide nurse delegation services — Adult Family Homes, client residential locations, and other WA State care settings.</p>
+
+  <!-- Summary stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 16V9L9 3l7 6v7H2z" stroke="var(--blue)" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="stat-val empty" id="fac-total">—</div>
+      <div class="stat-label">Total Facilities</div>
     </div>
-    <h4>No AFH Workspaces Added</h4>
-    <p>Add your first Adult Family Home workspace to begin organizing caregivers, patients, and delegation cases by facility.</p>
-    <button class="btn btn-primary" style="margin-top:20px">+ Add AFH Workspace</button>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="stat-val empty" id="fac-active">—</div>
+      <div class="stat-label">Active AFHs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-dim)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="11" rx="1.5" stroke="var(--purple)" stroke-width="1.5"/><circle cx="9" cy="2.5" r="1.5" stroke="var(--purple)" stroke-width="1.5"/></svg>
+      </div>
+      <div class="stat-val empty" id="fac-residential">—</div>
+      <div class="stat-label">Residential Homes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--amber-dim)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--amber)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="stat-val empty" id="fac-other">—</div>
+      <div class="stat-label">Other Facilities</div>
+    </div>
   </div>
-</div>`;
+
+  <!-- Facility list -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:13px;font-weight:600">Registered Facilities</span>
+      <span class="chip" id="fac-count-chip">0 facilities</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Facility Name</th>
+            <th>Type</th>
+            <th>License / ID</th>
+            <th>Primary Contact</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Clients</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="facilityTableBody">
+          <tr id="facilityEmptyRow">
+            <td colspan="9">
+              <div class="empty-state" style="padding:64px">
+                <div class="empty-icon" style="width:60px;height:60px">
+                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M2 22V11L13 3l11 8v11H2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="8" y="15" width="5" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <h4>No facilities registered</h4>
+                <p>Register your first facility to begin organizing clients and delegation workflows by location.</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openFacilityModal()">+ Register First Facility</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FACILITY MODAL -->
+<div class="overlay" id="facilityModal" style="display:none">
+  <div class="modal" style="width:min(680px,95vw)">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--bg2);z-index:10">
+      <div>
+        <h4 id="facilityModalTitle">Register New Facility</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin-top:2px">Enter all relevant details for this care setting</p>
+      </div>
+      <button onclick="closeFacilityModal()" class="btn btn-ghost btn-sm">✕ Close</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
+
+      <!-- Section: Facility Type -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Facility Type</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="facilityTypeGrid">
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Adult Family Home (AFH)')" data-type="Adult Family Home (AFH)">
+            <div class="fac-type-icon">🏠</div>
+            <div class="fac-type-name">Adult Family Home</div>
+            <div class="fac-type-sub">AFH · DSHS Licensed</div>
+          </div>
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Client Residential Home')" data-type="Client Residential Home">
+            <div class="fac-type-icon">🏡</div>
+            <div class="fac-type-name">Client Residential Home</div>
+            <div class="fac-type-sub">Private / Individual Home</div>
+          </div>
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Assisted Living Facility')" data-type="Assisted Living Facility">
+            <div class="fac-type-icon">🏥</div>
+            <div class="fac-type-name">Assisted Living Facility</div>
+            <div class="fac-type-sub">ALF · Licensed</div>
+          </div>
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Group Home')" data-type="Group Home">
+            <div class="fac-type-icon">🏘️</div>
+            <div class="fac-type-name">Group Home</div>
+            <div class="fac-type-sub">Shared Residential Care</div>
+          </div>
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Skilled Nursing Facility')" data-type="Skilled Nursing Facility">
+            <div class="fac-type-icon">🏨</div>
+            <div class="fac-type-name">Skilled Nursing Facility</div>
+            <div class="fac-type-sub">SNF · Licensed</div>
+          </div>
+          <div class="fac-type-card" onclick="selectFacilityType(this,'Other')" data-type="Other">
+            <div class="fac-type-icon">📍</div>
+            <div class="fac-type-name">Other</div>
+            <div class="fac-type-sub">Specify below</div>
+          </div>
+        </div>
+        <input type="hidden" id="facilityType" value="">
+        <input class="form-input" id="facilityTypeOther" placeholder="Specify facility type…" style="margin-top:10px;display:none">
+      </div>
+
+      <!-- Section: Facility Info -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Facility Information</div>
+        <div class="form-group">
+          <label class="form-label">Facility Name <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="facilityName" placeholder="Full registered facility name">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">DSHS License Number</label>
+            <input class="form-input" id="facilityLicense" placeholder="License / facility ID">
+          </div>
+          <div class="form-group">
+            <label class="form-label">License Expiration Date</label>
+            <input class="form-input" type="date" id="facilityLicenseExp">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facility Status</label>
+          <select class="form-input form-select" id="facilityStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Pending">Pending Review</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section: Address -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Address</div>
+        <div class="form-group">
+          <label class="form-label">Street Address <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="facilityStreet" placeholder="Street address">
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">City <span style="color:var(--red)">*</span></label>
+            <input class="form-input" id="facilityCity" placeholder="City">
+          </div>
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <input class="form-input" value="WA" readonly style="opacity:0.6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ZIP Code</label>
+            <input class="form-input" id="facilityZip" placeholder="ZIP">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">County</label>
+          <select class="form-input form-select" id="facilityCounty">
+            <option value="">Select county…</option>
+            <option>Adams</option><option>Asotin</option><option>Benton</option><option>Chelan</option>
+            <option>Clallam</option><option>Clark</option><option>Columbia</option><option>Cowlitz</option>
+            <option>Douglas</option><option>Ferry</option><option>Franklin</option><option>Garfield</option>
+            <option>Grant</option><option>Grays Harbor</option><option>Island</option><option>Jefferson</option>
+            <option>King</option><option>Kitsap</option><option>Kittitas</option><option>Klickitat</option>
+            <option>Lewis</option><option>Lincoln</option><option>Mason</option><option>Okanogan</option>
+            <option>Pacific</option><option>Pend Oreille</option><option>Pierce</option><option>San Juan</option>
+            <option>Skagit</option><option>Skamania</option><option>Snohomish</option><option>Spokane</option>
+            <option>Stevens</option><option>Thurston</option><option>Wahkiakum</option><option>Walla Walla</option>
+            <option>Whatcom</option><option>Whitman</option><option>Yakima</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section: Primary Contact -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Primary Contact</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Contact Name <span style="color:var(--red)">*</span></label>
+            <input class="form-input" id="facilityContactName" placeholder="Owner / Administrator / Manager">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role / Title</label>
+            <input class="form-input" id="facilityContactRole" placeholder="e.g. Owner, Administrator">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number <span style="color:var(--red)">*</span></label>
+            <input class="form-input" type="tel" id="facilityPhone" placeholder="Primary phone">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alternate Phone</label>
+            <input class="form-input" type="tel" id="facilityPhoneAlt" placeholder="Alternate / cell">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="email" id="facilityEmail" placeholder="Facility email">
+        </div>
+      </div>
+
+      <!-- Section: Additional Staff -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Additional Staff Contacts</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Backup Contact Name</label>
+            <input class="form-input" id="facilityBackupName" placeholder="Backup contact name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Backup Contact Phone</label>
+            <input class="form-input" type="tel" id="facilityBackupPhone" placeholder="Phone number">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Additional Notes</label>
+          <textarea class="form-input" id="facilityNotes" rows="3" placeholder="Entry instructions, access codes, scheduling preferences, special considerations…"></textarea>
+        </div>
+      </div>
+
+      <!-- Section: Capacity -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Capacity & Delegation Info</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Licensed Bed Capacity</label>
+            <input class="form-input" type="number" id="facilityCapacity" placeholder="e.g. 6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Current Client Count</label>
+            <input class="form-input" type="number" id="facilityClientCount" placeholder="Number of current clients">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Delegation Scope Notes</label>
+          <textarea class="form-input" id="facilityDelegationNotes" rows="2" placeholder="Any specific delegation requirements, restrictions, or DSHS notes for this facility…"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="position:sticky;bottom:0;background:var(--bg2)">
+      <button onclick="closeFacilityModal()" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveFacility()">Save Facility</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.fac-type-card{background:var(--bg1);border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:14px 12px;cursor:pointer;transition:all 0.16s;text-align:center}
+.fac-type-card:hover{border-color:var(--border3);background:var(--surface)}
+.fac-type-card.selected{border-color:var(--blue);background:var(--blue-glow)}
+.fac-type-icon{font-size:22px;margin-bottom:8px}
+.fac-type-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.fac-type-sub{font-size:10.5px;color:var(--text3)}
+</style>
+
+<script>
+// ── FACILITY DATA (in-memory; swap .push/.filter for Supabase calls) ──
+window.facilities = window.facilities || [];
+
+function openFacilityModal(editId){
+  clearFacilityForm();
+  document.getElementById('facilityModalTitle').textContent = editId ? 'Edit Facility' : 'Register New Facility';
+  if(editId){
+    const f = window.facilities.find(x=>x.id===editId);
+    if(f) populateFacilityForm(f);
+  }
+  document.getElementById('facilityModal').style.display='flex';
+}
+function closeFacilityModal(){
+  document.getElementById('facilityModal').style.display='none';
+}
+function selectFacilityType(el, type){
+  document.querySelectorAll('.fac-type-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('facilityType').value = type;
+  document.getElementById('facilityTypeOther').style.display = type==='Other' ? 'block' : 'none';
+}
+function clearFacilityForm(){
+  ['facilityType','facilityTypeOther','facilityName','facilityLicense','facilityLicenseExp',
+   'facilityStatus','facilityStreet','facilityCity','facilityZip','facilityCounty',
+   'facilityContactName','facilityContactRole','facilityPhone','facilityPhoneAlt','facilityEmail',
+   'facilityBackupName','facilityBackupPhone','facilityNotes','facilityCapacity',
+   'facilityClientCount','facilityDelegationNotes'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.querySelectorAll('.fac-type-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('facilityTypeOther').style.display='none';
+  document.getElementById('facilityStatus').value='Active';
+}
+function populateFacilityForm(f){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  set('facilityType',f.type); set('facilityName',f.name); set('facilityLicense',f.license);
+  set('facilityLicenseExp',f.licenseExp); set('facilityStatus',f.status);
+  set('facilityStreet',f.street); set('facilityCity',f.city); set('facilityZip',f.zip);
+  set('facilityCounty',f.county); set('facilityContactName',f.contactName);
+  set('facilityContactRole',f.contactRole); set('facilityPhone',f.phone);
+  set('facilityPhoneAlt',f.phoneAlt); set('facilityEmail',f.email);
+  set('facilityBackupName',f.backupName); set('facilityBackupPhone',f.backupPhone);
+  set('facilityNotes',f.notes); set('facilityCapacity',f.capacity);
+  set('facilityClientCount',f.clientCount); set('facilityDelegationNotes',f.delegationNotes);
+  document.querySelectorAll('.fac-type-card').forEach(c=>{
+    if(c.dataset.type===f.type) c.classList.add('selected');
+  });
+  if(f.type==='Other') document.getElementById('facilityTypeOther').style.display='block';
+}
+function saveFacility(){
+  const name = document.getElementById('facilityName').value.trim();
+  const type = document.getElementById('facilityType').value ||
+               document.getElementById('facilityTypeOther').value.trim();
+  const street = document.getElementById('facilityStreet').value.trim();
+  const contactName = document.getElementById('facilityContactName').value.trim();
+  const phone = document.getElementById('facilityPhone').value.trim();
+  if(!name){ alert('Facility name is required.'); return; }
+  if(!type){ alert('Please select a facility type.'); return; }
+  if(!street){ alert('Street address is required.'); return; }
+  if(!contactName){ alert('Primary contact name is required.'); return; }
+  if(!phone){ alert('Primary phone is required.'); return; }
+  const facility = {
+    id: Date.now().toString(),
+    type, name, license: document.getElementById('facilityLicense').value,
+    licenseExp: document.getElementById('facilityLicenseExp').value,
+    status: document.getElementById('facilityStatus').value,
+    street, city: document.getElementById('facilityCity').value,
+    zip: document.getElementById('facilityZip').value,
+    county: document.getElementById('facilityCounty').value,
+    contactName, contactRole: document.getElementById('facilityContactRole').value,
+    phone, phoneAlt: document.getElementById('facilityPhoneAlt').value,
+    email: document.getElementById('facilityEmail').value,
+    backupName: document.getElementById('facilityBackupName').value,
+    backupPhone: document.getElementById('facilityBackupPhone').value,
+    notes: document.getElementById('facilityNotes').value,
+    capacity: document.getElementById('facilityCapacity').value,
+    clientCount: document.getElementById('facilityClientCount').value,
+    delegationNotes: document.getElementById('facilityDelegationNotes').value,
+    clients: 0
+  };
+  // TODO: replace with Supabase insert → supabase.from('facilities').insert(facility)
+  window.facilities.push(facility);
+  closeFacilityModal();
+  renderFacilityTable(window.facilities);
+  updateFacilityStats();
+}
+function renderFacilityTable(list){
+  const tbody = document.getElementById('facilityTableBody');
+  if(!tbody) return;
+  const empty = document.getElementById('facilityEmptyRow');
+  if(!list.length){ if(empty) empty.style.display=''; return; }
+  if(empty) empty.style.display='none';
+  const rows = list.map(f=>`
+    <tr>
+      <td class="name">${f.name}</td>
+      <td><span class="chip">${f.type}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${f.license||'—'}</td>
+      <td>${f.contactName}</td>
+      <td style="font-family:var(--mono);font-size:11.5px">${f.phone}</td>
+      <td style="font-size:12px">${f.street}${f.city?', '+f.city:''}</td>
+      <td style="text-align:center">${f.clients||0}</td>
+      <td><span class="status ${f.status==='Active'?'status-active':f.status==='Inactive'?'status-suspended':'status-pending'}">
+        <span class="status-dot"></span>${f.status}</span></td>
+      <td class="col-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openFacilityModal('${f.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteFacility('${f.id}')" style="color:var(--red);border-color:var(--red)20;margin-left:4px">Delete</button>
+      </td>
+    </tr>`).join('');
+  // Remove old data rows, keep empty row
+  tbody.querySelectorAll('tr:not(#facilityEmptyRow)').forEach(r=>r.remove());
+  tbody.insertAdjacentHTML('afterbegin', rows);
+  document.getElementById('fac-count-chip').textContent = list.length + ' facilit' + (list.length===1?'y':'ies');
+}
+function deleteFacility(id){
+  if(!confirm('Remove this facility?')) return;
+  window.facilities = window.facilities.filter(f=>f.id!==id);
+  renderFacilityTable(window.facilities);
+  updateFacilityStats();
+}
+function filterFacilities(q){
+  const filtered = window.facilities.filter(f=>
+    f.name.toLowerCase().includes(q.toLowerCase()) ||
+    f.contactName.toLowerCase().includes(q.toLowerCase()) ||
+    (f.city||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderFacilityTable(filtered);
+}
+function filterFacilitiesByType(type){
+  const filtered = type ? window.facilities.filter(f=>f.type===type) : window.facilities;
+  renderFacilityTable(filtered);
+}
+function updateFacilityStats(){
+  const total = window.facilities.length;
+  const afh = window.facilities.filter(f=>f.type==='Adult Family Home (AFH)').length;
+  const res = window.facilities.filter(f=>f.type==='Client Residential Home').length;
+  const other = window.facilities.filter(f=>!['Adult Family Home (AFH)','Client Residential Home'].includes(f.type)).length;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  set('fac-total', total||'—'); set('fac-active', afh||'—');
+  set('fac-residential', res||'—'); set('fac-other', other||'—');
+}
+</script>
+`;
 
 // CASES
 pageRenderers.cases = () => `
@@ -1042,89 +1460,821 @@ pageRenderers.cases = () => `
   </div>
 </div>`;
 
-// CAREGIVERS
+// CAREGIVER MANAGEMENT
 pageRenderers.caregivers = () => `
 <div class="topbar">
-  <div class="topbar-title">Caregiver Profiles</div>
+  <div class="topbar-title">Caregiver Management</div>
   <div class="topbar-actions">
-    <input class="form-input" style="width:220px" placeholder="Search caregivers…">
-    <button class="btn btn-primary btn-sm" onclick="openModal('newCaregiverModal')">+ Add Caregiver</button>
+    <input class="form-input" style="width:200px;padding:7px 12px;font-size:12px" placeholder="Search caregivers…" oninput="filterCaregivers(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" onchange="filterCaregiversByStatus(this.value)">
+      <option value="">All Statuses</option>
+      <option>Active</option>
+      <option>Inactive</option>
+      <option>Credential Expired</option>
+      <option>Delegation Ineligible</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openCaregiverModal()">+ Add Caregiver</button>
   </div>
 </div>
 <div class="page-content">
-  <div class="card">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Caregiver</th>
-            <th>Credential</th>
-            <th>Certification #</th>
-            <th>CPR Status</th>
-            <th>Active Cases</th>
-            <th>AFH</th>
-            <th>Competency</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="8">
-              <div class="empty-state" style="padding:56px">
-                <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M2 20c0-4 2.7-7 6-7s6 3 6 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 10l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                <h4>No caregivers on file</h4>
-                <p>Add caregiver profiles to begin tracking credentials, certifications, and delegation assignments.</p>
-                <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openModal('newCaregiverModal')">+ Add Caregiver</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M1 16c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val empty" id="cg-total">—</div><div class="stat-label">Total Caregivers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="stat-val empty" id="cg-active">—</div><div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2 5v4c0 3.5 3 6 7 7 4-1 7-3.5 7-7V5L9 1.5z" stroke="var(--green)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val empty" id="cg-eligible">—</div><div class="stat-label">Delegation Eligible</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--amber)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val empty" id="cg-expiring">—</div><div class="stat-label">Credentials Expiring</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--red-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--red)" stroke-width="1.5"/><path d="M6 12l6-6M6 6l6 6" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val empty" id="cg-expired">—</div><div class="stat-label">Credentials Expired</div>
     </div>
   </div>
-</div>`;
 
-// PATIENTS
+  <!-- Tabs -->
+  <div class="tabs" style="margin-bottom:20px" id="cgTabs">
+    <div class="tab active" onclick="switchCgTab(this,'list')">All Caregivers</div>
+    <div class="tab" onclick="switchCgTab(this,'credential')">Credential Alerts</div>
+    <div class="tab" onclick="switchCgTab(this,'history')">History & Activity</div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="cgTabList">
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <th>Credential Type</th>
+              <th>Cert #</th>
+              <th>Cert Expiry</th>
+              <th>CPR Expiry</th>
+              <th>Assigned Clients</th>
+              <th>Facility</th>
+              <th>Status</th>
+              <th>Delegation</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="caregiverTableBody">
+            <tr id="caregiverEmptyRow">
+              <td colspan="10">
+                <div class="empty-state" style="padding:64px">
+                  <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M2 20c0-4 2.7-7 6-7s6 3 6 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 10l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <h4>No caregivers registered</h4>
+                  <p>Add caregiver profiles to begin tracking credentials and delegation assignments.</p>
+                  <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openCaregiverModal()">+ Add First Caregiver</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREDENTIAL ALERTS TAB -->
+  <div id="cgTabCredential" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Credential & CPR Expiration Alerts</span></div>
+      <div class="empty-state" style="padding:64px" id="cgCredentialEmpty">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <h4>No credential alerts</h4>
+        <p>Expiring and expired credential alerts will appear here automatically.</p>
+      </div>
+      <div id="cgCredentialList" style="display:none;padding:16px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="cgTabHistory" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Caregiver History & Activity Log</span></div>
+      <div class="empty-state" style="padding:64px">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 6v5l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <h4>No activity history yet</h4>
+        <p>Patient assignments, delegation forms, assumptions, rescissions, and medication permissions will be logged here.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CAREGIVER MODAL -->
+<div class="overlay" id="caregiverModal" style="display:none">
+  <div class="modal" style="width:min(680px,95vw)">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--bg2);z-index:10">
+      <div>
+        <h4 id="cgModalTitle">Add Caregiver Profile</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin-top:2px">Register a caregiver for nurse delegation management</p>
+      </div>
+      <button onclick="closeCaregiverModal()" class="btn btn-ghost btn-sm">✕ Close</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Personal Info -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Personal Information</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First Name <span style="color:var(--red)">*</span></label><input class="form-input" id="cgFirst" placeholder="First name"></div>
+          <div class="form-group"><label class="form-label">Last Name <span style="color:var(--red)">*</span></label><input class="form-input" id="cgLast" placeholder="Last name"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Phone Number <span style="color:var(--red)">*</span></label><input class="form-input" type="tel" id="cgPhone" placeholder="Phone number"></div>
+          <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" id="cgEmail" placeholder="Email address"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Home Address</label>
+          <input class="form-input" id="cgAddress" placeholder="Street, City, ZIP">
+        </div>
+      </div>
+
+      <!-- Credentials -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Credential & Certification</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Credential Type <span style="color:var(--red)">*</span></label>
+            <select class="form-input form-select" id="cgCredType">
+              <option value="">Select credential…</option>
+              <option>NAC – Nursing Assistant Certified</option>
+              <option>HCA – Home Care Aide</option>
+              <option>CNA – Certified Nursing Assistant</option>
+              <option>LPN – Licensed Practical Nurse</option>
+              <option>RN – Registered Nurse</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Certification Number</label><input class="form-input" id="cgCertNum" placeholder="Certification #"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Certification Issue Date</label><input class="form-input" type="date" id="cgCertIssued"></div>
+          <div class="form-group"><label class="form-label">Certification Expiry Date <span style="color:var(--red)">*</span></label><input class="form-input" type="date" id="cgCertExpiry"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Training Verification Status</label>
+          <select class="form-input form-select" id="cgTrainingStatus">
+            <option value="">Select status…</option>
+            <option>Verified</option>
+            <option>Pending Verification</option>
+            <option>Not Verified</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CPR -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">CPR Certification</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">CPR Certification Date</label><input class="form-input" type="date" id="cgCprIssued"></div>
+          <div class="form-group"><label class="form-label">CPR Expiration Date <span style="color:var(--red)">*</span></label><input class="form-input" type="date" id="cgCprExpiry"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">CPR Provider / Course Name</label>
+          <input class="form-input" id="cgCprProvider" placeholder="e.g. American Red Cross, AHA">
+        </div>
+      </div>
+
+      <!-- Training Records -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Training Records</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Initial Training Date</label><input class="form-input" type="date" id="cgTrainingDate"></div>
+          <div class="form-group"><label class="form-label">Last In-Service Date</label><input class="form-input" type="date" id="cgInservice"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Training Notes</label>
+          <textarea class="form-input" id="cgTrainingNotes" rows="2" placeholder="Competency assessments, special training, notes…"></textarea>
+        </div>
+      </div>
+
+      <!-- Assignment -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Assignment & Status</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Assigned Facility</label>
+            <select class="form-input form-select" id="cgFacility">
+              <option value="">Select facility…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Caregiver Status</label>
+            <select class="form-input form-select" id="cgStatus">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Delegation Eligibility</label>
+          <select class="form-input form-select" id="cgDelegationEligible">
+            <option value="Eligible">Eligible for Delegation</option>
+            <option value="Ineligible">Not Eligible</option>
+            <option value="Pending">Pending Assessment</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Additional Notes</div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="cgNotes" rows="3" placeholder="Any additional notes about this caregiver…"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="position:sticky;bottom:0;background:var(--bg2)">
+      <button onclick="closeCaregiverModal()" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCaregiver()">Save Caregiver</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.caregivers = window.caregivers || [];
+
+function openCaregiverModal(editId){
+  clearCaregiverForm();
+  document.getElementById('cgModalTitle').textContent = editId ? 'Edit Caregiver' : 'Add Caregiver Profile';
+  // Populate facility dropdown from registered facilities
+  const sel = document.getElementById('cgFacility');
+  sel.innerHTML = '<option value="">Select facility…</option>';
+  (window.facilities||[]).forEach(f=>{
+    sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>');
+  });
+  if(editId){
+    const c = window.caregivers.find(x=>x.id===editId);
+    if(c) populateCaregiverForm(c);
+  }
+  document.getElementById('caregiverModal').style.display='flex';
+}
+function closeCaregiverModal(){ document.getElementById('caregiverModal').style.display='none'; }
+function clearCaregiverForm(){
+  ['cgFirst','cgLast','cgPhone','cgEmail','cgAddress','cgCredType','cgCertNum','cgCertIssued',
+   'cgCertExpiry','cgTrainingStatus','cgCprIssued','cgCprExpiry','cgCprProvider','cgTrainingDate',
+   'cgInservice','cgTrainingNotes','cgFacility','cgStatus','cgDelegationEligible','cgNotes'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cgStatus').value='Active';
+  document.getElementById('cgDelegationEligible').value='Eligible';
+}
+function populateCaregiverForm(c){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  Object.keys(c).forEach(k=>{ try{ set('cg'+k.charAt(0).toUpperCase()+k.slice(1), c[k]); }catch(e){} });
+}
+function saveCaregiver(){
+  const first=document.getElementById('cgFirst').value.trim();
+  const last=document.getElementById('cgLast').value.trim();
+  const phone=document.getElementById('cgPhone').value.trim();
+  const credType=document.getElementById('cgCredType').value;
+  const certExpiry=document.getElementById('cgCertExpiry').value;
+  const cprExpiry=document.getElementById('cgCprExpiry').value;
+  if(!first||!last){ alert('Full name is required.'); return; }
+  if(!phone){ alert('Phone number is required.'); return; }
+  if(!credType){ alert('Credential type is required.'); return; }
+  if(!certExpiry){ alert('Certification expiry date is required.'); return; }
+  if(!cprExpiry){ alert('CPR expiry date is required.'); return; }
+  const facilityId=document.getElementById('cgFacility').value;
+  const facilityName=(window.facilities||[]).find(f=>f.id===facilityId)?.name||'—';
+  const today=new Date(); const exp=new Date(certExpiry); const cprExp=new Date(cprExpiry);
+  const certExpired=exp<today; const cprExpired=cprExp<today;
+  const certExpiring=!certExpired&&(exp-today)<(90*86400000);
+  const cprExpiring=!cprExpired&&(cprExp-today)<(90*86400000);
+  const caregiver={
+    id:Date.now().toString(),
+    first, last, phone,
+    email:document.getElementById('cgEmail').value,
+    address:document.getElementById('cgAddress').value,
+    credType, certNum:document.getElementById('cgCertNum').value,
+    certIssued:document.getElementById('cgCertIssued').value,
+    certExpiry, trainingStatus:document.getElementById('cgTrainingStatus').value,
+    cprIssued:document.getElementById('cgCprIssued').value,
+    cprExpiry, cprProvider:document.getElementById('cgCprProvider').value,
+    trainingDate:document.getElementById('cgTrainingDate').value,
+    inservice:document.getElementById('cgInservice').value,
+    trainingNotes:document.getElementById('cgTrainingNotes').value,
+    facilityId, facilityName,
+    status:document.getElementById('cgStatus').value,
+    delegationEligible:document.getElementById('cgDelegationEligible').value,
+    notes:document.getElementById('cgNotes').value,
+    certExpired, cprExpired, certExpiring, cprExpiring,
+    assignedClients:[], history:[]
+  };
+  // TODO: supabase.from('caregivers').insert(caregiver)
+  window.caregivers.push(caregiver);
+  closeCaregiverModal();
+  renderCaregiverTable(window.caregivers);
+  updateCaregiverStats();
+  renderCredentialAlerts();
+}
+function renderCaregiverTable(list){
+  const tbody=document.getElementById('caregiverTableBody');
+  if(!tbody) return;
+  const empty=document.getElementById('caregiverEmptyRow');
+  if(!list.length){ if(empty) empty.style.display=''; tbody.querySelectorAll('tr:not(#caregiverEmptyRow)').forEach(r=>r.remove()); return; }
+  if(empty) empty.style.display='none';
+  tbody.querySelectorAll('tr:not(#caregiverEmptyRow)').forEach(r=>r.remove());
+  const rows=list.map(c=>{
+    const certClass=c.certExpired?'chip red':c.certExpiring?'chip amber':'chip green';
+    const cprClass=c.cprExpired?'chip red':c.cprExpiring?'chip amber':'chip green';
+    const delClass=c.delegationEligible==='Eligible'?'status-active':c.delegationEligible==='Ineligible'?'status-suspended':'status-pending';
+    return \`<tr>
+      <td class="name">\${c.first} \${c.last}</td>
+      <td style="font-size:12px">\${c.credType}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">\${c.certNum||'—'}</td>
+      <td><span class="\${certClass}" style="font-size:10.5px">\${c.certExpiry||'—'}</span></td>
+      <td><span class="\${cprClass}" style="font-size:10.5px">\${c.cprExpiry||'—'}</span></td>
+      <td style="text-align:center">\${c.assignedClients.length||0}</td>
+      <td style="font-size:12px">\${c.facilityName}</td>
+      <td><span class="status \${c.status==='Active'?'status-active':'status-suspended'}"><span class="status-dot"></span>\${c.status}</span></td>
+      <td><span class="status \${delClass}" style="font-size:10px"><span class="status-dot"></span>\${c.delegationEligible}</span></td>
+      <td class="col-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('\${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteCaregiver('\${c.id}')" style="color:var(--red);border-color:var(--red)20;margin-left:4px">Delete</button>
+      </td>
+    </tr>\`;
+  }).join('');
+  tbody.insertAdjacentHTML('afterbegin',rows);
+}
+function deleteCaregiver(id){
+  if(!confirm('Remove this caregiver?')) return;
+  window.caregivers=window.caregivers.filter(c=>c.id!==id);
+  renderCaregiverTable(window.caregivers);
+  updateCaregiverStats(); renderCredentialAlerts();
+}
+function updateCaregiverStats(){
+  const total=window.caregivers.length;
+  const active=window.caregivers.filter(c=>c.status==='Active').length;
+  const eligible=window.caregivers.filter(c=>c.delegationEligible==='Eligible').length;
+  const expiring=window.caregivers.filter(c=>c.certExpiring||c.cprExpiring).length;
+  const expired=window.caregivers.filter(c=>c.certExpired||c.cprExpired).length;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  set('cg-total',total||'—'); set('cg-active',active||'—'); set('cg-eligible',eligible||'—');
+  set('cg-expiring',expiring||'—'); set('cg-expired',expired||'—');
+}
+function renderCredentialAlerts(){
+  const list=document.getElementById('cgCredentialList');
+  const empty=document.getElementById('cgCredentialEmpty');
+  if(!list) return;
+  const alerts=window.caregivers.filter(c=>c.certExpired||c.cprExpired||c.certExpiring||c.cprExpiring);
+  if(!alerts.length){ list.style.display='none'; if(empty)empty.style.display='flex'; return; }
+  if(empty)empty.style.display='none'; list.style.display='flex';
+  list.innerHTML=alerts.map(c=>\`
+    <div class="alert-card \${c.certExpired||c.cprExpired?'danger':'warn'}">
+      <div class="alert-icon" style="background:\${c.certExpired||c.cprExpired?'var(--red)20':'var(--amber)20'};color:\${c.certExpired||c.cprExpired?'var(--red)':'var(--amber)'};width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:3px">\${c.first} \${c.last}</div>
+        <div style="font-size:11.5px;color:var(--text3)">
+          \${c.certExpired?'<span style="color:var(--red)">Credential EXPIRED: '+c.certExpiry+'</span>':''}
+          \${c.certExpiring&&!c.certExpired?'<span style="color:var(--amber)">Credential expiring: '+c.certExpiry+'</span>':''}
+          \${(c.certExpired||c.certExpiring)&&(c.cprExpired||c.cprExpiring)?' · ':''}
+          \${c.cprExpired?'<span style="color:var(--red)">CPR EXPIRED: '+c.cprExpiry+'</span>':''}
+          \${c.cprExpiring&&!c.cprExpired?'<span style="color:var(--amber)">CPR expiring: '+c.cprExpiry+'</span>':''}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('\${c.id}')">Update</button>
+    </div>\`).join('');
+}
+function filterCaregivers(q){
+  const filtered=window.caregivers.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||c.facilityName.toLowerCase().includes(q.toLowerCase()));
+  renderCaregiverTable(filtered);
+}
+function filterCaregiversByStatus(s){
+  let filtered=window.caregivers;
+  if(s==='Active') filtered=filtered.filter(c=>c.status==='Active');
+  else if(s==='Inactive') filtered=filtered.filter(c=>c.status==='Inactive');
+  else if(s==='Credential Expired') filtered=filtered.filter(c=>c.certExpired||c.cprExpired);
+  else if(s==='Delegation Ineligible') filtered=filtered.filter(c=>c.delegationEligible==='Ineligible');
+  renderCaregiverTable(filtered);
+}
+function switchCgTab(el,tab){
+  document.querySelectorAll('#cgTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['List','Credential','History'].forEach(t=>{ const d=document.getElementById('cgTab'+t); if(d)d.style.display='none'; });
+  const target=document.getElementById('cgTab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(target)target.style.display='block';
+  if(tab==='credential') renderCredentialAlerts();
+}
+</script>
+`;
+
+// CLIENT MANAGEMENT
 pageRenderers.patients = () => `
 <div class="topbar">
-  <div class="topbar-title">Patient Profiles</div>
+  <div class="topbar-title">Client Management</div>
   <div class="topbar-actions">
-    <input class="form-input" style="width:220px" placeholder="Search patients…">
-    <button class="btn btn-primary btn-sm">+ Add Patient</button>
+    <input class="form-input" style="width:200px;padding:7px 12px;font-size:12px" placeholder="Search clients…" oninput="filterClients(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" onchange="filterClientsByFacility(this.value)" id="clientFacilityFilter">
+      <option value="">All Facilities</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openClientModal()">+ Add Client</button>
   </div>
 </div>
 <div class="page-content">
-  <div class="card">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Patient</th>
-            <th>Date of Birth</th>
-            <th>AFH</th>
-            <th>Active Cases</th>
-            <th>Physician</th>
-            <th>Allergies</th>
-            <th>Last Visit</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="8">
-              <div class="empty-state" style="padding:56px">
-                <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-                <h4>No patients on file</h4>
-                <p>Add patient profiles to begin managing delegation cases and nursing visit records.</p>
-                <button class="btn btn-primary btn-sm" style="margin-top:16px">+ Add Patient</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M2 16c0-3.3 3.1-5 7-5s7 1.7 7 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val empty" id="cl-total">—</div><div class="stat-label">Total Clients</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="stat-val empty" id="cl-active">—</div><div class="stat-label">Active Clients</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2 5v4c0 3.5 3 6 7 7 4-1 7-3.5 7-7V5L9 1.5z" stroke="var(--purple)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val empty" id="cl-delegation">—</div><div class="stat-label">With Active Delegation</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--amber)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val empty" id="cl-unlinked">—</div><div class="stat-label">No Caregiver Linked</div>
     </div>
   </div>
-</div>`;
+
+  <!-- Tabs -->
+  <div class="tabs" style="margin-bottom:20px" id="clTabs">
+    <div class="tab active" onclick="switchClTab(this,'list')">All Clients</div>
+    <div class="tab" onclick="switchClTab(this,'care')">Care Plans</div>
+    <div class="tab" onclick="switchClTab(this,'links')">Caregiver Links</div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="clTabList">
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Date of Birth</th>
+              <th>Facility</th>
+              <th>Diagnosis</th>
+              <th>Allergies</th>
+              <th>Physician</th>
+              <th>Assigned Caregiver</th>
+              <th>Delegation Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="clientTableBody">
+            <tr id="clientEmptyRow">
+              <td colspan="9">
+                <div class="empty-state" style="padding:64px">
+                  <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+                  <h4>No clients registered</h4>
+                  <p>Add client profiles to begin managing delegation cases, care plans, and caregiver assignments.</p>
+                  <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openClientModal()">+ Add First Client</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARE PLANS TAB -->
+  <div id="clTabCare" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Client Care Plans</span></div>
+      <div class="empty-state" style="padding:64px">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M12 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-6-6z" stroke="currentColor" stroke-width="1.5"/><path d="M12 3v6h6M7 13h8M7 16h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <h4>No care plans on file</h4>
+        <p>Care plan summaries linked to registered clients will appear here.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAREGIVER LINKS TAB -->
+  <div id="clTabLinks" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Client ↔ Caregiver Relationships</span>
+        <span style="font-size:11.5px;color:var(--text3)">Link clients to registered caregivers</span>
+      </div>
+      <div class="empty-state" style="padding:64px" id="linksEmpty">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <h4>No caregiver links yet</h4>
+        <p>Register clients and caregivers first, then link them here to establish delegation relationships.</p>
+      </div>
+      <div id="linksTable" style="display:none;padding:16px">
+        <table>
+          <thead><tr><th>Client</th><th>Assigned Caregiver</th><th>Facility</th><th>Link Status</th><th></th></tr></thead>
+          <tbody id="linksTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="overlay" id="clientModal" style="display:none">
+  <div class="modal" style="width:min(720px,95vw)">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--bg2);z-index:10">
+      <div>
+        <h4 id="clModalTitle">Add Client Profile</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin-top:2px">Register a client for nurse delegation management</p>
+      </div>
+      <button onclick="closeClientModal()" class="btn btn-ghost btn-sm">✕ Close</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Demographics -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Demographics</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First Name <span style="color:var(--red)">*</span></label><input class="form-input" id="clFirst" placeholder="First name"></div>
+          <div class="form-group"><label class="form-label">Last Name <span style="color:var(--red)">*</span></label><input class="form-input" id="clLast" placeholder="Last name"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Date of Birth <span style="color:var(--red)">*</span></label><input class="form-input" type="date" id="clDob"></div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <select class="form-input form-select" id="clGender">
+              <option value="">Select…</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">DSHS Client ID</label><input class="form-input" id="clDshsId" placeholder="DSHS identifier"></div>
+          <div class="form-group"><label class="form-label">Medicare / Medicaid #</label><input class="form-input" id="clMedicaid" placeholder="Insurance ID"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Home / Current Address</label><input class="form-input" id="clAddress" placeholder="Street, City, ZIP"></div>
+      </div>
+
+      <!-- Facility & Caregiver -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Facility & Caregiver Assignment</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Assigned Facility <span style="color:var(--red)">*</span></label>
+            <select class="form-input form-select" id="clFacility">
+              <option value="">Select facility…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned Caregiver</label>
+            <select class="form-input form-select" id="clCaregiver">
+              <option value="">Select caregiver…</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Client Status</label>
+          <select class="form-input form-select" id="clStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Discharged">Discharged</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Medical Info -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Medical Information</div>
+        <div class="form-group"><label class="form-label">Primary Diagnosis</label><input class="form-input" id="clDiagnosis" placeholder="Primary diagnosis"></div>
+        <div class="form-group"><label class="form-label">Secondary Diagnoses</label><textarea class="form-input" id="clDiagnosisSecondary" rows="2" placeholder="Secondary or comorbid diagnoses…"></textarea></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Known Allergies <span style="color:var(--red)">*</span></label><input class="form-input" id="clAllergies" placeholder="List allergies or enter NKDA"></div>
+      </div>
+
+      <!-- Medications -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Medication Information</div>
+        <div class="form-group"><label class="form-label">Current Medications</label><textarea class="form-input" id="clMedications" rows="3" placeholder="List current medications, dosages, and frequencies…"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Pharmacy Name</label><input class="form-input" id="clPharmacy" placeholder="Pharmacy name"></div>
+          <div class="form-group"><label class="form-label">Pharmacy Phone</label><input class="form-input" type="tel" id="clPharmacyPhone" placeholder="Pharmacy phone"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Medication Notes / PRN Instructions</label><textarea class="form-input" id="clMedNotes" rows="2" placeholder="PRN medications, special instructions…"></textarea></div>
+      </div>
+
+      <!-- Care Plan -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Care Plan</div>
+        <div class="form-group"><label class="form-label">Care Plan Summary</label><textarea class="form-input" id="clCarePlan" rows="3" placeholder="Summary of care plan goals and interventions…"></textarea></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Delegation Requirements</label><textarea class="form-input" id="clDelegationReq" rows="2" placeholder="Specific nursing tasks that require delegation for this client…"></textarea></div>
+      </div>
+
+      <!-- Physician -->
+      <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Physician Information</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Primary Physician <span style="color:var(--red)">*</span></label><input class="form-input" id="clPhysician" placeholder="Physician full name"></div>
+          <div class="form-group"><label class="form-label">Physician Phone</label><input class="form-input" type="tel" id="clPhysicianPhone" placeholder="Physician phone"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Physician / Clinic Address</label><input class="form-input" id="clPhysicianAddress" placeholder="Clinic or office address"></div>
+      </div>
+
+      <!-- Emergency Contacts -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:14px">Emergency Contacts & Guardian</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Emergency Contact Name <span style="color:var(--red)">*</span></label><input class="form-input" id="clEmergencyName" placeholder="Full name"></div>
+          <div class="form-group"><label class="form-label">Relationship</label><input class="form-input" id="clEmergencyRel" placeholder="e.g. Daughter, Son, Spouse"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Emergency Contact Phone <span style="color:var(--red)">*</span></label><input class="form-input" type="tel" id="clEmergencyPhone" placeholder="Phone number"></div>
+          <div class="form-group"><label class="form-label">Legal Guardian / Representative</label><input class="form-input" id="clGuardian" placeholder="Name (if applicable)"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Guardian Phone</label><input class="form-input" type="tel" id="clGuardianPhone" placeholder="Guardian phone"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="position:sticky;bottom:0;background:var(--bg2)">
+      <button onclick="closeClientModal()" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.clients = window.clients || [];
+
+function openClientModal(editId){
+  clearClientForm();
+  document.getElementById('clModalTitle').textContent = editId ? 'Edit Client Profile' : 'Add Client Profile';
+  const facSel=document.getElementById('clFacility');
+  const cgSel=document.getElementById('clCaregiver');
+  facSel.innerHTML='<option value="">Select facility…</option>';
+  cgSel.innerHTML='<option value="">Select caregiver…</option>';
+  (window.facilities||[]).forEach(f=>facSel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));
+  (window.caregivers||[]).filter(c=>c.status==='Active').forEach(c=>cgSel.insertAdjacentHTML('beforeend','<option value="'+c.id+'">'+c.first+' '+c.last+'</option>'));
+  if(editId){const cl=window.clients.find(x=>x.id===editId);if(cl)populateClientForm(cl);}
+  document.getElementById('clientModal').style.display='flex';
+}
+function closeClientModal(){ document.getElementById('clientModal').style.display='none'; }
+function clearClientForm(){
+  ['clFirst','clLast','clDob','clGender','clDshsId','clMedicaid','clAddress','clFacility','clCaregiver',
+   'clStatus','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy',
+   'clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone',
+   'clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian','clGuardianPhone'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('clStatus').value='Active';
+}
+function populateClientForm(cl){
+  const map={clFirst:'first',clLast:'last',clDob:'dob',clGender:'gender',clDshsId:'dshsId',
+    clMedicaid:'medicaid',clAddress:'address',clFacility:'facilityId',clCaregiver:'caregiverId',
+    clStatus:'status',clDiagnosis:'diagnosis',clDiagnosisSecondary:'diagnosisSecondary',
+    clAllergies:'allergies',clMedications:'medications',clPharmacy:'pharmacy',
+    clPharmacyPhone:'pharmacyPhone',clMedNotes:'medNotes',clCarePlan:'carePlan',
+    clDelegationReq:'delegationReq',clPhysician:'physician',clPhysicianPhone:'physicianPhone',
+    clPhysicianAddress:'physicianAddress',clEmergencyName:'emergencyName',clEmergencyRel:'emergencyRel',
+    clEmergencyPhone:'emergencyPhone',clGuardian:'guardian',clGuardianPhone:'guardianPhone'};
+  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=cl[key]||'';});
+}
+function saveClient(){
+  const first=document.getElementById('clFirst').value.trim();
+  const last=document.getElementById('clLast').value.trim();
+  const dob=document.getElementById('clDob').value;
+  const allergies=document.getElementById('clAllergies').value.trim();
+  const physician=document.getElementById('clPhysician').value.trim();
+  const emergencyName=document.getElementById('clEmergencyName').value.trim();
+  const emergencyPhone=document.getElementById('clEmergencyPhone').value.trim();
+  const facilityId=document.getElementById('clFacility').value;
+  if(!first||!last){alert('Client name is required.');return;}
+  if(!dob){alert('Date of birth is required.');return;}
+  if(!facilityId){alert('Facility assignment is required.');return;}
+  if(!allergies){alert('Allergy information is required (enter NKDA if none).');return;}
+  if(!physician){alert('Primary physician is required.');return;}
+  if(!emergencyName||!emergencyPhone){alert('Emergency contact name and phone are required.');return;}
+  const caregiverId=document.getElementById('clCaregiver').value;
+  const facilityName=(window.facilities||[]).find(f=>f.id===facilityId)?.name||'—';
+  const cg=caregiverId?(window.caregivers||[]).find(c=>c.id===caregiverId):null;
+  const caregiverName=cg?cg.first+' '+cg.last:'—';
+  const client={
+    id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,
+    dshsId:document.getElementById('clDshsId').value,medicaid:document.getElementById('clMedicaid').value,
+    address:document.getElementById('clAddress').value,facilityId,facilityName,
+    caregiverId,caregiverName,status:document.getElementById('clStatus').value,
+    diagnosis:document.getElementById('clDiagnosis').value,
+    diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,
+    allergies,medications:document.getElementById('clMedications').value,
+    pharmacy:document.getElementById('clPharmacy').value,
+    pharmacyPhone:document.getElementById('clPharmacyPhone').value,
+    medNotes:document.getElementById('clMedNotes').value,
+    carePlan:document.getElementById('clCarePlan').value,
+    delegationReq:document.getElementById('clDelegationReq').value,
+    physician,physicianPhone:document.getElementById('clPhysicianPhone').value,
+    physicianAddress:document.getElementById('clPhysicianAddress').value,
+    emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,
+    emergencyPhone,guardian:document.getElementById('clGuardian').value,
+    guardianPhone:document.getElementById('clGuardianPhone').value,
+    delegationActive:false
+  };
+  // TODO: supabase.from('clients').insert(client)
+  // Also update caregiver's assignedClients if caregiverId set
+  if(caregiverId){
+    const cg=window.caregivers.find(c=>c.id===caregiverId);
+    if(cg&&!cg.assignedClients.includes(client.id)) cg.assignedClients.push(client.id);
+  }
+  window.clients.push(client);
+  closeClientModal();
+  renderClientTable(window.clients);
+  updateClientStats();
+  refreshClientFacilityFilter();
+  renderLinksTable();
+}
+function renderClientTable(list){
+  const tbody=document.getElementById('clientTableBody');
+  if(!tbody)return;
+  const empty=document.getElementById('clientEmptyRow');
+  if(!list.length){if(empty)empty.style.display='';tbody.querySelectorAll('tr:not(#clientEmptyRow)').forEach(r=>r.remove());return;}
+  if(empty)empty.style.display='none';
+  tbody.querySelectorAll('tr:not(#clientEmptyRow)').forEach(r=>r.remove());
+  const rows=list.map(c=>\`<tr>
+    <td class="name">\${c.first} \${c.last}</td>
+    <td style="font-size:12px;font-family:var(--mono)">\${c.dob||'—'}</td>
+    <td style="font-size:12px">\${c.facilityName}</td>
+    <td style="font-size:12px">\${c.diagnosis||'—'}</td>
+    <td style="font-size:12px">\${c.allergies}</td>
+    <td style="font-size:12px">\${c.physician||'—'}</td>
+    <td style="font-size:12px">\${c.caregiverName}</td>
+    <td><span class="status \${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}"><span class="status-dot"></span>\${c.status}</span></td>
+    <td class="col-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openClientModal('\${c.id}')">Edit</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteClient('\${c.id}')" style="color:var(--red);border-color:var(--red)20;margin-left:4px">Delete</button>
+    </td>
+  </tr>\`).join('');
+  tbody.insertAdjacentHTML('afterbegin',rows);
+}
+function deleteClient(id){
+  if(!confirm('Remove this client?'))return;
+  window.clients=window.clients.filter(c=>c.id!==id);
+  renderClientTable(window.clients);
+  updateClientStats();refreshClientFacilityFilter();renderLinksTable();
+}
+function updateClientStats(){
+  const total=window.clients.length;
+  const active=window.clients.filter(c=>c.status==='Active').length;
+  const delegation=window.clients.filter(c=>c.delegationActive).length;
+  const unlinked=window.clients.filter(c=>!c.caregiverId).length;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  set('cl-total',total||'—');set('cl-active',active||'—');set('cl-delegation',delegation||'—');set('cl-unlinked',unlinked||'—');
+}
+function filterClients(q){
+  const filtered=window.clients.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||c.facilityName.toLowerCase().includes(q.toLowerCase())||(c.diagnosis||'').toLowerCase().includes(q.toLowerCase()));
+  renderClientTable(filtered);
+}
+function filterClientsByFacility(id){
+  const filtered=id?window.clients.filter(c=>c.facilityId===id):window.clients;
+  renderClientTable(filtered);
+}
+function refreshClientFacilityFilter(){
+  const sel=document.getElementById('clientFacilityFilter');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Facilities</option>';
+  (window.facilities||[]).forEach(f=>sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));
+  sel.value=cur;
+}
+function renderLinksTable(){
+  const tbody=document.getElementById('linksTableBody');
+  const empty=document.getElementById('linksEmpty');
+  const table=document.getElementById('linksTable');
+  if(!tbody)return;
+  const linked=window.clients.filter(c=>c.caregiverId);
+  if(!linked.length){if(empty)empty.style.display='flex';if(table)table.style.display='none';return;}
+  if(empty)empty.style.display='none';if(table)table.style.display='block';
+  tbody.innerHTML=linked.map(c=>\`<tr>
+    <td class="name">\${c.first} \${c.last}</td>
+    <td>\${c.caregiverName}</td>
+    <td>\${c.facilityName}</td>
+    <td><span class="status status-active"><span class="status-dot"></span>Linked</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openClientModal('\${c.id}')">Edit Link</button></td>
+  </tr>\`).join('');
+}
+function switchClTab(el,tab){
+  document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['List','Care','Links'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});
+  const target=document.getElementById('clTab'+tab.charAt(0).toUpperCase()+tab.slice(1));
+  if(target)target.style.display='block';
+  if(tab==='links')renderLinksTable();
+}
+// Init client facility filter when page loads
+setTimeout(refreshClientFacilityFilter, 100);
+</script>
+`;
 
 // VISITS
 pageRenderers.visits = () => `
