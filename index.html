@@ -511,9 +511,12 @@ textarea.form-input{resize:vertical;min-height:80px}
 // ── SUPABASE ──────────────────────────────────────
 const SUPA_URL = 'https://uldywugntkykeftuzxys.supabase.co';
 const SUPA_KEY = 'sb_publishable_kCCHxG8VAO_APnGWxCgLDg_Wj6Vxjj7';
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let supa = null;
 let currentUser = null;
 let currentProfile = null;
+function initSupa(){
+  if(!supa && window.supabase) supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+}
 
 // ── DATA ──────────────────────────────────────────
 window.facilities = [];
@@ -539,12 +542,14 @@ function doSignIn(){
 }
 
 async function submitSignIn(){
+  initSupa();
   const email = document.getElementById('siEmail').value.trim();
   const password = document.getElementById('siPassword').value;
   const errEl = document.getElementById('siError');
   const btn = document.getElementById('siBtnSubmit');
   errEl.textContent = '';
   if(!email || !password){ errEl.textContent = 'Please enter your email and password.'; return; }
+  if(!supa){ errEl.textContent = 'Connection error — please refresh the page.'; return; }
   btn.textContent = 'Signing in…';
   btn.disabled = true;
   const { data, error } = await supa.auth.signInWithPassword({ email, password });
@@ -575,7 +580,8 @@ async function submitSignIn(){
 }
 
 async function loadAllData(){
-  if(!currentUser) return;
+  initSupa();
+  if(!currentUser || !supa) return;
   const uid = currentUser.id;
   const [facRes, cgRes, clRes] = await Promise.all([
     supa.from('facilities').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
@@ -895,6 +901,7 @@ function populateFacility(f){
   document.querySelectorAll('[data-type]').forEach(c=>{if(c.dataset.type===f.type)c.style.border='1.5px solid var(--blue)';});
 }
 async function saveFacility(){
+  initSupa();
   const name=document.getElementById('facilityName').value.trim();
   const type=document.getElementById('facilityType').value||document.getElementById('facilityTypeOther').value.trim();
   const street=document.getElementById('facilityStreet').value.trim();
@@ -947,7 +954,8 @@ function renderFacilityTable(list){
 }
 async function deleteFacility(id){
   if(!confirm('Remove this facility?'))return;
-  await supa.from('facilities').delete().eq('id', id);
+  initSupa();
+  if(supa) await supa.from('facilities').delete().eq('id', id);
   window.facilities=window.facilities.filter(f=>f.id!==id);
   renderFacilityTable(window.facilities);
   updateFacilityStats();
@@ -974,7 +982,8 @@ function openCaregiverModal(editId){
   openModal('caregiverModal');
 }
 async function saveCaregiver(){
-  const first=document.getElementById('cgFirst').value.trim(),last=document.getElementById('cgLast').value.trim();
+  initSupa();
+  const first=document.getElementById('cgFirst').value.trim()(),last=document.getElementById('cgLast').value.trim();
   const phone=document.getElementById('cgPhone').value.trim(),credType=document.getElementById('cgCredType').value;
   const certExpiry=document.getElementById('cgCertExpiry').value,cprExpiry=document.getElementById('cgCprExpiry').value;
   if(!first||!last){alert('Full name is required.');return;}
@@ -1033,7 +1042,8 @@ function renderCaregiverTable(list){
 }
 async function deleteCaregiver(id){
   if(!confirm('Remove this caregiver?'))return;
-  await supa.from('caregivers').delete().eq('id', id);
+  initSupa();
+  if(supa) await supa.from('caregivers').delete().eq('id', id);
   window.caregivers=window.caregivers.filter(c=>c.id!==id);
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
@@ -1057,7 +1067,8 @@ function openClientModal(editId){
   if(editId){const cl=window.clients.find(x=>x.id===editId);if(cl){Object.keys(cl).forEach(k=>{const el=document.getElementById('cl'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=cl[k]||'';});}}
   openModal('clientModal');
 }
-function saveClient(){
+async function saveClient(){
+  initSupa();
   const first=document.getElementById('clFirst').value.trim(),last=document.getElementById('clLast').value.trim();
   const dob=document.getElementById('clDob').value,facilityId=document.getElementById('clFacility').value;
   const allergies=document.getElementById('clAllergies').value.trim(),physician=document.getElementById('clPhysician').value.trim();
@@ -1111,7 +1122,8 @@ function renderClientTable(list){
 }
 async function deleteClient(id){
   if(!confirm('Remove this client?'))return;
-  await supa.from('clients').delete().eq('id', id);
+  initSupa();
+  if(supa) await supa.from('clients').delete().eq('id', id);
   window.clients=window.clients.filter(c=>c.id!==id);
   renderClientTable(window.clients);
   updateClientStats();
@@ -1128,7 +1140,8 @@ function switchClTab(el,tab){document.querySelectorAll('#clTabs .tab').forEach(t
 // ── SIGN OUT ──────────────────────────────────────
 async function signOut(){
   if(!confirm('Sign out of DelegateRN?')) return;
-  await supa.auth.signOut();
+  initSupa();
+  if(supa) await supa.auth.signOut();
   currentUser = null; currentProfile = null;
   window.facilities = []; window.caregivers = []; window.clients = [];
   document.getElementById('app').style.display = 'none';
@@ -1142,7 +1155,24 @@ async function signOut(){
 
 // ── INIT ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initSupa();
   document.getElementById('page-dashboard').innerHTML = pageRenderers.dashboard();
+  // restore session if user was already signed in
+  if(supa){
+    supa.auth.getSession().then(({ data }) => {
+      if(data?.session?.user){
+        currentUser = data.session.user;
+        supa.from('profiles').select('*').eq('id', currentUser.id).single().then(({ data: profile }) => {
+          currentProfile = profile;
+          const nameEl = document.getElementById('sidebarUserName');
+          const roleEl = document.getElementById('sidebarUserRole');
+          if(nameEl) nameEl.textContent = profile?.full_name || currentUser.email;
+          if(roleEl) roleEl.textContent = profile?.role || 'Registered Nurse';
+        });
+        loadAllData();
+      }
+    });
+  }
 });
 
 </script>
