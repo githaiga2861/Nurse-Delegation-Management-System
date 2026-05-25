@@ -1112,7 +1112,7 @@ pageRenderers.caregivers = () => {
   </div>
 </div>`;
 };
-
+<script>
 window.caregivers = window.caregivers || [];
 function openCaregiverModal(editId) {
   ['cgFirst','cgLast','cgPhone','cgEmail','cgAddress','cgCredType','cgCertNum','cgCertIssued','cgCertExpiry','cgTrainingStatus','cgCprIssued','cgCprExpiry','cgCprProvider','cgTrainingDate','cgInservice','cgTrainingNotes','cgFacility','cgNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
@@ -1167,6 +1167,7 @@ pageRenderers.patients = () => {
   window.clients = window.clients || [];
   setTimeout(() => { renderClientTable(window.clients); updateClientStats(); refreshClientFilters(); }, 0);
   return `
+  </script>
 <div class="topbar">
   <div class="topbar-title">Client Management</div>
   <div class="topbar-actions">
@@ -1257,7 +1258,7 @@ pageRenderers.patients = () => {
   </div>
 </div>`;
 };
-
+<script>
 window.clients = window.clients || [];
 function openClientModal(editId) {
   ['clFirst','clLast','clDob','clGender','clDshsId','clMedicaid','clAddress','clFacility','clCaregiver','clStatus','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -1304,6 +1305,7 @@ function switchClTab(el,tab){document.querySelectorAll('#clTabs .tab').forEach(t
 
 // VISITS
 pageRenderers.visits = () => `
+</script>
 <div class="topbar">
   <div class="topbar-title">Nursing Visits</div>
   <div class="topbar-actions">
