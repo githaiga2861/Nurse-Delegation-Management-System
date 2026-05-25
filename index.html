@@ -180,6 +180,7 @@ textarea.form-input{resize:vertical;min-height:80px}
   .form-row,.form-row-3{grid-template-columns:1fr}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -287,12 +288,13 @@ textarea.form-input{resize:vertical;min-height:80px}
       </div>
       <div class="sidebar-bottom">
         <div class="avatar-pill">
-          <div class="avatar">RN</div>
+          <div class="avatar" id="sidebarAvatar">RN</div>
           <div class="avatar-info">
-            <div class="avatar-name">Registered Nurse</div>
-            <div class="avatar-role">DelegateRN Platform</div>
+            <div class="avatar-name" id="sidebarUserName">Registered Nurse</div>
+            <div class="avatar-role" id="sidebarUserRole">DelegateRN Platform</div>
           </div>
         </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;font-size:11px;color:var(--text3)" onclick="signOut()">Sign Out</button>
       </div>
     </aside>
 
@@ -316,6 +318,35 @@ textarea.form-input{resize:vertical;min-height:80px}
 <!-- ═══════════════════════════════════════════════
      MODALS
 ═══════════════════════════════════════════════ -->
+
+<!-- Sign In Modal -->
+<div class="overlay" id="signInModal">
+  <div class="modal" style="width:min(440px,92vw)">
+    <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:4px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div class="mark" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">D</div>
+        <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em">Delegate<span style="color:var(--blue)">RN</span></span>
+      </div>
+      <h4 style="margin:0">Sign in to your workspace</h4>
+      <p style="font-size:12px;color:var(--text3);margin:2px 0 0">Washington State Nurse Delegation Platform</p>
+    </div>
+    <div class="modal-body" style="padding:28px 28px 16px">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="siEmail" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')document.getElementById('siPassword').focus()">
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="siPassword" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitSignIn()">
+      </div>
+      <div id="siError" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+    </div>
+    <div class="modal-footer" style="padding:16px 28px 24px;flex-direction:column;gap:0">
+      <button id="siBtnSubmit" class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;justify-content:center" onclick="submitSignIn()">Sign In</button>
+      <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:16px">Access is restricted to authorised RNs only.<br>Contact your system administrator if you need access.</p>
+    </div>
+  </div>
+</div>
 
 <!-- New Case -->
 <div class="overlay" id="newCaseModal">
@@ -477,6 +508,13 @@ textarea.form-input{resize:vertical;min-height:80px}
 ═══════════════════════════════════════════════ -->
 <script>
 
+// ── SUPABASE ──────────────────────────────────────
+const SUPA_URL = 'https://uldywugntkykeftuzxys.supabase.co';
+const SUPA_KEY = 'sb_publishable_kCCHxG8VAO_APnGWxCgLDg_Wj6Vxjj7';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+let currentUser = null;
+let currentProfile = null;
+
 // ── DATA ──────────────────────────────────────────
 window.facilities = [];
 window.caregivers = [];
@@ -492,15 +530,61 @@ function closeModal(id){
   if(el){el.style.display='none';el.classList.remove('open');}
 }
 document.addEventListener('click', e => {
-  if(e.target.classList.contains('overlay')) closeModal(e.target.id);
+  if(e.target.classList.contains('overlay') && e.target.id !== 'signInModal') closeModal(e.target.id);
 });
 
 // ── NAVIGATION ────────────────────────────────────
 function doSignIn(){
+  openModal('signInModal');
+}
+
+async function submitSignIn(){
+  const email = document.getElementById('siEmail').value.trim();
+  const password = document.getElementById('siPassword').value;
+  const errEl = document.getElementById('siError');
+  const btn = document.getElementById('siBtnSubmit');
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Please enter your email and password.'; return; }
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  const { data, error } = await supa.auth.signInWithPassword({ email, password });
+  if(error){
+    errEl.textContent = error.message;
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+    return;
+  }
+  currentUser = data.user;
+  // fetch profile
+  const { data: profile } = await supa.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = profile;
+  closeModal('signInModal');
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  // update sidebar name
+  const nameEl = document.getElementById('sidebarUserName');
+  const roleEl = document.getElementById('sidebarUserRole');
+  if(nameEl) nameEl.textContent = profile?.full_name || email;
+  if(roleEl) roleEl.textContent = profile?.role || 'Registered Nurse';
+  // load data from supabase
+  await loadAllData();
   showPage('dashboard');
   window.scrollTo(0,0);
+  btn.textContent = 'Sign In';
+  btn.disabled = false;
+}
+
+async function loadAllData(){
+  if(!currentUser) return;
+  const uid = currentUser.id;
+  const [facRes, cgRes, clRes] = await Promise.all([
+    supa.from('facilities').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('caregivers').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+  ]);
+  window.facilities = facRes.data || [];
+  window.caregivers = (cgRes.data || []).map(c => ({ ...c, assignedClients: c.assigned_clients || [] }));
+  window.clients    = clRes.data || [];
 }
 
 function showPage(id){
@@ -810,7 +894,7 @@ function populateFacility(f){
   document.getElementById('facilityType').value=f.type;
   document.querySelectorAll('[data-type]').forEach(c=>{if(c.dataset.type===f.type)c.style.border='1.5px solid var(--blue)';});
 }
-function saveFacility(){
+async function saveFacility(){
   const name=document.getElementById('facilityName').value.trim();
   const type=document.getElementById('facilityType').value||document.getElementById('facilityTypeOther').value.trim();
   const street=document.getElementById('facilityStreet').value.trim();
@@ -821,8 +905,32 @@ function saveFacility(){
   if(!street){alert('Street address is required.');return;}
   if(!contactName){alert('Primary contact name is required.');return;}
   if(!phone){alert('Primary phone is required.');return;}
-  const f={id:Date.now().toString(),type,name,license:document.getElementById('facilityLicense').value,licenseExp:document.getElementById('facilityLicenseExp').value,status:document.getElementById('facilityStatus').value,street,city:document.getElementById('facilityCity').value,zip:document.getElementById('facilityZip').value,county:document.getElementById('facilityCounty').value,contactName,contactRole:document.getElementById('facilityContactRole').value,phone,email:document.getElementById('facilityEmail').value,capacity:document.getElementById('facilityCapacity').value,clientCount:document.getElementById('facilityClientCount').value,notes:document.getElementById('facilityNotes').value};
-  window.facilities.push(f);
+  const now = new Date().toISOString();
+  const f={
+    id: Date.now().toString(),
+    user_id: currentUser?.id,
+    type, name,
+    license: document.getElementById('facilityLicense').value,
+    license_exp: document.getElementById('facilityLicenseExp').value,
+    status: document.getElementById('facilityStatus').value,
+    street, city: document.getElementById('facilityCity').value,
+    zip: document.getElementById('facilityZip').value,
+    county: document.getElementById('facilityCounty').value,
+    contact_name: contactName,
+    contact_role: document.getElementById('facilityContactRole').value,
+    phone,
+    email: document.getElementById('facilityEmail').value,
+    capacity: document.getElementById('facilityCapacity').value,
+    client_count: document.getElementById('facilityClientCount').value,
+    notes: document.getElementById('facilityNotes').value,
+    created_at: now, updated_at: now
+  };
+  const { error } = await supa.from('facilities').upsert(f);
+  if(error){ alert('Save failed: ' + error.message); return; }
+  // normalise for local use
+  const local = { ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count };
+  window.facilities = window.facilities.filter(x => x.id !== f.id);
+  window.facilities.unshift(local);
   closeModal('facilityModal');
   renderFacilityTable(window.facilities);
   updateFacilityStats();
@@ -837,7 +945,13 @@ function renderFacilityTable(list){
   const chip=document.getElementById('fac-count-chip');
   if(chip)chip.textContent=list.length+' facilit'+(list.length===1?'y':'ies');
 }
-function deleteFacility(id){if(!confirm('Remove this facility?'))return;window.facilities=window.facilities.filter(f=>f.id!==id);renderFacilityTable(window.facilities);updateFacilityStats();}
+async function deleteFacility(id){
+  if(!confirm('Remove this facility?'))return;
+  await supa.from('facilities').delete().eq('id', id);
+  window.facilities=window.facilities.filter(f=>f.id!==id);
+  renderFacilityTable(window.facilities);
+  updateFacilityStats();
+}
 function filterFacilities(q){renderFacilityTable(window.facilities.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())||(f.city||'').toLowerCase().includes(q.toLowerCase())));}
 function filterFacilitiesByType(t){renderFacilityTable(t?window.facilities.filter(f=>f.type===t):window.facilities);}
 function updateFacilityStats(){
@@ -859,7 +973,7 @@ function openCaregiverModal(editId){
   if(editId){const c=window.caregivers.find(x=>x.id===editId);if(c){['First','Last','Phone','Email','Address','CredType','CertNum','CertIssued','CertExpiry','TrainingStatus','CprIssued','CprExpiry','CprProvider','TrainingDate','Inservice','TrainingNotes'].forEach(k=>{const el=document.getElementById('cg'+k);if(el)el.value=c[k.charAt(0).toLowerCase()+k.slice(1)]||'';});document.getElementById('cgStatus').value=c.status;document.getElementById('cgDelegationEligible').value=c.delegationEligible;document.getElementById('cgFacility').value=c.facilityId||'';}}
   openModal('caregiverModal');
 }
-function saveCaregiver(){
+async function saveCaregiver(){
   const first=document.getElementById('cgFirst').value.trim(),last=document.getElementById('cgLast').value.trim();
   const phone=document.getElementById('cgPhone').value.trim(),credType=document.getElementById('cgCredType').value;
   const certExpiry=document.getElementById('cgCertExpiry').value,cprExpiry=document.getElementById('cgCprExpiry').value;
@@ -871,8 +985,36 @@ function saveCaregiver(){
   const today=new Date(),cExp=new Date(certExpiry),cprExp=new Date(cprExpiry);
   const facilityId=document.getElementById('cgFacility').value;
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
-  const c={id:Date.now().toString(),first,last,phone,email:document.getElementById('cgEmail').value,address:document.getElementById('cgAddress').value,credType,certNum:document.getElementById('cgCertNum').value,certIssued:document.getElementById('cgCertIssued').value,certExpiry,trainingStatus:document.getElementById('cgTrainingStatus').value,cprIssued:document.getElementById('cgCprIssued').value,cprExpiry,cprProvider:document.getElementById('cgCprProvider').value,trainingDate:document.getElementById('cgTrainingDate').value,inservice:document.getElementById('cgInservice').value,trainingNotes:document.getElementById('cgTrainingNotes').value,facilityId,facilityName,status:document.getElementById('cgStatus').value,delegationEligible:document.getElementById('cgDelegationEligible').value,certExpired:cExp<today,cprExpired:cprExp<today,certExpiring:cExp>=today&&(cExp-today)<90*86400000,cprExpiring:cprExp>=today&&(cprExp-today)<90*86400000,assignedClients:[]};
-  window.caregivers.push(c);
+  const now=new Date().toISOString();
+  const row={
+    id: Date.now().toString(),
+    user_id: currentUser?.id,
+    first, last, phone,
+    email: document.getElementById('cgEmail').value,
+    address: document.getElementById('cgAddress').value,
+    cred_type: credType,
+    cert_num: document.getElementById('cgCertNum').value,
+    cert_issued: document.getElementById('cgCertIssued').value,
+    cert_expiry: certExpiry,
+    training_status: document.getElementById('cgTrainingStatus').value,
+    cpr_issued: document.getElementById('cgCprIssued').value,
+    cpr_expiry: cprExpiry,
+    cpr_provider: document.getElementById('cgCprProvider').value,
+    training_date: document.getElementById('cgTrainingDate').value,
+    inservice: document.getElementById('cgInservice').value,
+    training_notes: document.getElementById('cgTrainingNotes').value,
+    facility_id: facilityId,
+    facility_name: facilityName,
+    status: document.getElementById('cgStatus').value,
+    delegation_eligible: document.getElementById('cgDelegationEligible').value,
+    assigned_clients: [],
+    created_at: now, updated_at: now
+  };
+  const { error } = await supa.from('caregivers').upsert(row);
+  if(error){ alert('Save failed: ' + error.message); return; }
+  const c = { ...row, credType: row.cred_type, certNum: row.cert_num, certIssued: row.cert_issued, certExpiry, trainingStatus: row.training_status, cprIssued: row.cpr_issued, cprExpiry, cprProvider: row.cpr_provider, trainingDate: row.training_date, trainingNotes: row.training_notes, facilityId, facilityName, delegationEligible: row.delegation_eligible, certExpired: cExp<today, cprExpired: cprExp<today, certExpiring: cExp>=today&&(cExp-today)<90*86400000, cprExpiring: cprExp>=today&&(cprExp-today)<90*86400000, assignedClients: [] };
+  window.caregivers = window.caregivers.filter(x => x.id !== row.id);
+  window.caregivers.unshift(c);
   closeModal('caregiverModal');
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
@@ -889,7 +1031,13 @@ function renderCaregiverTable(list){
     return `<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td style="font-size:12px">${c.credType}</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.certNum||'—'}</td><td><span class="${cc}" style="font-size:10.5px">${c.certExpiry||'—'}</span></td><td><span class="${cc}" style="font-size:10.5px">${c.cprExpiry||'—'}</span></td><td style="font-size:12px">${c.facilityName}</td><td style="text-align:center">${c.assignedClients.length||0}</td><td><span class="status ${c.status==='Active'?'status-active':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td><td><span class="status ${dc}" style="font-size:10px"><span class="status-dot"></span>${c.delegationEligible}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteCaregiver('${c.id}')" style="color:var(--red)">Delete</button></td></tr>`;
   }).join(''));
 }
-function deleteCaregiver(id){if(!confirm('Remove this caregiver?'))return;window.caregivers=window.caregivers.filter(c=>c.id!==id);renderCaregiverTable(window.caregivers);updateCaregiverStats();}
+async function deleteCaregiver(id){
+  if(!confirm('Remove this caregiver?'))return;
+  await supa.from('caregivers').delete().eq('id', id);
+  window.caregivers=window.caregivers.filter(c=>c.id!==id);
+  renderCaregiverTable(window.caregivers);
+  updateCaregiverStats();
+}
 function updateCaregiverStats(){
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
   s('cg-total',window.caregivers.length||'—');s('cg-active',window.caregivers.filter(c=>c.status==='Active').length||'—');s('cg-eligible',window.caregivers.filter(c=>c.delegationEligible==='Eligible').length||'—');s('cg-expiring',window.caregivers.filter(c=>c.certExpiring||c.cprExpiring).length||'—');s('cg-expired',window.caregivers.filter(c=>c.certExpired||c.cprExpired).length||'—');
@@ -925,8 +1073,28 @@ function saveClient(){
   const cg=window.caregivers.find(c=>c.id===caregiverId);
   const caregiverName=cg?cg.first+' '+cg.last:'—';
   const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};
+  const now2=new Date().toISOString();
+  const row2={
+    id: cl.id, user_id: currentUser?.id,
+    first: cl.first, last: cl.last, dob: cl.dob, gender: cl.gender,
+    dshs_id: cl.dshsId, medicaid: cl.medicaid, address: cl.address,
+    facility_id: cl.facilityId, facility_name: cl.facilityName,
+    caregiver_id: cl.caregiverId, caregiver_name: cl.caregiverName,
+    status: cl.status, diagnosis: cl.diagnosis,
+    diagnosis_secondary: cl.diagnosisSecondary, allergies: cl.allergies,
+    medications: cl.medications, pharmacy: cl.pharmacy,
+    pharmacy_phone: cl.pharmacyPhone, med_notes: cl.medNotes,
+    care_plan: cl.carePlan, delegation_req: cl.delegationReq,
+    physician: cl.physician, physician_phone: cl.physicianPhone,
+    physician_address: cl.physicianAddress, emergency_name: cl.emergencyName,
+    emergency_rel: cl.emergencyRel, emergency_phone: cl.emergencyPhone,
+    guardian: cl.guardian, created_at: now2, updated_at: now2
+  };
+  const { error: clErr } = await supa.from('clients').upsert(row2);
+  if(clErr){ alert('Save failed: ' + clErr.message); return; }
   if(caregiverId){const c=window.caregivers.find(x=>x.id===caregiverId);if(c&&!c.assignedClients.includes(cl.id))c.assignedClients.push(cl.id);}
-  window.clients.push(cl);
+  window.clients = window.clients.filter(x => x.id !== cl.id);
+  window.clients.unshift(cl);
   closeModal('clientModal');
   renderClientTable(window.clients);
   updateClientStats();
@@ -941,13 +1109,36 @@ function renderClientTable(list){
   if(empty)empty.style.display='none';
   tbody.insertAdjacentHTML('afterbegin',list.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td style="font-family:var(--mono);font-size:11.5px">${c.dob||'—'}</td><td style="font-size:12px">${c.facilityName}</td><td style="font-size:12px">${c.diagnosis||'—'}</td><td style="font-size:12px">${c.allergies}</td><td style="font-size:12px">${c.physician||'—'}</td><td style="font-size:12px">${c.caregiverName}</td><td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteClient('${c.id}')" style="color:var(--red)">Delete</button></td></tr>`).join(''));
 }
-function deleteClient(id){if(!confirm('Remove this client?'))return;window.clients=window.clients.filter(c=>c.id!==id);renderClientTable(window.clients);updateClientStats();refreshClientFilters();renderLinksTable();}
+async function deleteClient(id){
+  if(!confirm('Remove this client?'))return;
+  await supa.from('clients').delete().eq('id', id);
+  window.clients=window.clients.filter(c=>c.id!==id);
+  renderClientTable(window.clients);
+  updateClientStats();
+  refreshClientFilters();
+  renderLinksTable();
+}
 function updateClientStats(){const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};s('cl-total',window.clients.length||'—');s('cl-active',window.clients.filter(c=>c.status==='Active').length||'—');s('cl-linked',window.clients.filter(c=>c.caregiverId).length||'—');s('cl-unlinked',window.clients.filter(c=>!c.caregiverId).length||'—');}
 function filterClients(q){renderClientTable(window.clients.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||(c.facilityName||'').toLowerCase().includes(q.toLowerCase())||(c.diagnosis||'').toLowerCase().includes(q.toLowerCase())));}
 function filterClientsByFacility(id){renderClientTable(id?window.clients.filter(c=>c.facilityId===id):window.clients);}
 function refreshClientFilters(){const sel=document.getElementById('clientFacilityFilter');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">All Facilities</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));sel.value=cur;}
 function renderLinksTable(){const body=document.getElementById('clLinksBody');if(!body)return;const linked=window.clients.filter(c=>c.caregiverId);if(!linked.length){body.innerHTML='<div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div>';return;}body.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th></th></tr></thead><tbody>'+linked.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td>${c.caregiverName}</td><td>${c.facilityName}</td><td><span class="status status-active"><span class="status-dot"></span>Linked</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button></td></tr>`).join('')+'</tbody></table></div>';}
 function switchClTab(el,tab){document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Links','Care'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});const d=document.getElementById('clTab'+tab);if(d)d.style.display='block';if(tab==='Links')renderLinksTable();}
+
+// ── SIGN OUT ──────────────────────────────────────
+async function signOut(){
+  if(!confirm('Sign out of DelegateRN?')) return;
+  await supa.auth.signOut();
+  currentUser = null; currentProfile = null;
+  window.facilities = []; window.caregivers = []; window.clients = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('sidebarUserName').textContent = 'Registered Nurse';
+  document.getElementById('sidebarUserRole').textContent = 'DelegateRN Platform';
+  // reset all pages so they re-render fresh on next login
+  document.querySelectorAll('[id^="page-"]').forEach(p => { p.innerHTML=''; p.style.display='none'; });
+  document.getElementById('page-dashboard').style.display='block';
+}
 
 // ── INIT ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
