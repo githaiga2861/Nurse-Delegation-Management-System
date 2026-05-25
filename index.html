@@ -1457,10 +1457,10 @@ function complianceRow(label){
   return `<div class="compliance-item"><span class="compliance-label">${label}</span><div class="compliance-check"></div></div>`;
 }
 function docShell(name,info){
-  return `<div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.45;cursor:not-allowed" title="Coming soon">Generate</button></div>`;
+  return `<div class="doc-card" title="${name}"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.45;cursor:not-allowed" title="Coming soon">Generate</button></div>`;
 }
 function docShellGen(name,info,formId){
-  return `<div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name" style="color:var(--text)">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateModal('${formId}','${name}')">Generate</button></div>`;
+  return `<div class="doc-card" style="border-color:var(--blue-dim)" title="${name}"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name" style="color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateModal('${formId}','${name}')">Generate</button></div>`;
 }
 // ── PAGE RENDERERS ────────────────────────────────
 const pageRenderers = {};
