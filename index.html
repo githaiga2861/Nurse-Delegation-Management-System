@@ -518,26 +518,137 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
-<!-- New Case -->
+<!-- New Case Modal -->
 <div class="overlay" id="newCaseModal">
-  <div class="modal">
-    <div class="modal-header"><h4>New Delegation Case</h4><button onclick="closeModal('newCaseModal')" class="btn btn-ghost btn-sm">✕</button></div>
+  <div class="modal" style="width:min(700px,95vw)">
+    <div class="modal-header">
+      <div><h4 id="newCaseModalTitle">New Delegation Case</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Set up a new case — assign client, caregiver, tasks, and consent requirements</p></div>
+      <button onclick="closeModal('newCaseModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
     <div class="modal-body">
-      <div class="form-row" style="margin-bottom:16px">
-        <div class="form-group" style="margin:0"><label class="form-label">Adult Family Home</label><select class="form-input form-select"><option>Select AFH…</option></select></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Case Type</label><select class="form-input form-select"><option>Select type…</option></select></div>
+      <input type="hidden" id="ncEditId">
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Assignment</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Client *</label><select class="form-input form-select" id="ncClient" onchange="onNcClientChange(this)"><option value="">Select client…</option></select></div>
+          <div class="form-group"><label class="form-label">Caregiver *</label><select class="form-input form-select" id="ncCaregiver"><option value="">Select caregiver…</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Facility *</label><select class="form-input form-select" id="ncFacility"><option value="">Select facility…</option></select></div>
+          <div class="form-group"><label class="form-label">Assigned RN</label><input class="form-input" id="ncRn" placeholder="RN name"></div>
+        </div>
       </div>
-      <div class="form-row" style="margin-bottom:16px">
-        <div class="form-group" style="margin:0"><label class="form-label">Assigned Caregiver</label><select class="form-input form-select"><option>Select caregiver…</option></select></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Patient</label><select class="form-input form-select"><option>Select patient…</option></select></div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Case Details</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Start Date *</label><input type="date" class="form-input" id="ncStartDate"></div>
+          <div class="form-group"><label class="form-label">Reassessment Due Date</label><input type="date" class="form-input" id="ncReassessDate"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Initial Status</label><select class="form-input form-select" id="ncStatus"><option value="Draft">Draft</option><option value="Pending Consent">Pending Consent</option><option value="Active">Active</option></select></div>
+          <div class="form-group"><label class="form-label">Supervision Frequency</label><select class="form-input form-select" id="ncSupervision"><option value="">Select…</option><option>Weekly</option><option>Every 2 Weeks</option><option>Monthly</option><option>Every 3 Months</option><option>PRN Only</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Initial Notes</label><textarea class="form-input" id="ncNotes" rows="3" placeholder="Initial clinical notes, rationale for delegation…"></textarea></div>
       </div>
-      <div class="form-group"><label class="form-label">Initial Notes</label><textarea class="form-input" rows="3" placeholder="Enter any initial case notes…"></textarea></div>
-      <div class="form-row">
-        <div class="form-group" style="margin:0"><label class="form-label">Start Date</label><input type="date" class="form-input"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Initial Status</label><select class="form-input form-select"><option>Draft</option><option>Pending Consent</option></select></div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Delegated Tasks</div>
+        <div id="ncTasksContainer">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Add one or more nursing tasks being delegated in this case.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addNcTaskRow()" style="margin-top:8px">+ Add Task</button>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Consent Requirements</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="ncConsentClient" style="accent-color:var(--blue)"> Client consent required</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="ncConsentGuardian" style="accent-color:var(--blue)"> Guardian consent required</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="ncConsentCaregiver" style="accent-color:var(--blue)" checked> Caregiver signature required</label>
+        </div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:12px">Nursing Instructions (optional — can add after)</div>
+        <div class="form-group"><label class="form-label">Step-by-step task instructions</label><textarea class="form-input" id="ncInstructions" rows="3" placeholder="Write step-by-step instructions for the caregiver…"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Precautions</label><textarea class="form-input" id="ncPrecautions" rows="2" placeholder="Safety precautions and contraindications…"></textarea></div>
+          <div class="form-group"><label class="form-label">Escalation Rules</label><textarea class="form-input" id="ncEscalation" rows="2" placeholder="When to call RN, HCP, or 911…"></textarea></div>
+        </div>
       </div>
     </div>
-    <div class="modal-footer"><button onclick="closeModal('newCaseModal')" class="btn btn-ghost">Cancel</button><button class="btn btn-primary">Create Case</button></div>
+    <div class="modal-footer">
+      <button onclick="closeModal('newCaseModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCase()">Create Case</button>
+    </div>
+  </div>
+</div>
+
+<!-- Case Task Modal -->
+<div class="overlay" id="caseTaskModal">
+  <div class="modal" style="width:min(560px,95vw)">
+    <div class="modal-header">
+      <div><h4 id="taskModalTitle">Add Delegated Task</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Define the nursing task, status, and instructions</p></div>
+      <button onclick="closeModal('caseTaskModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="taskEditId">
+      <input type="hidden" id="taskCaseId">
+      <div class="form-group"><label class="form-label">Task Name *</label><input class="form-input" id="taskName" placeholder="e.g. Insulin Administration, Blood Glucose Monitoring"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Task Type</label><select class="form-input form-select" id="taskType"><option value="">Select…</option><option>Medication Administration</option><option>PRN Medication</option><option>Wound Care</option><option>Blood Glucose Monitoring</option><option>Insulin Administration</option><option>Catheter Care</option><option>Tube Feeding</option><option>Oxygen Administration</option><option>Other</option></select></div>
+        <div class="form-group"><label class="form-label">Task Status</label><select class="form-input form-select" id="taskStatus"><option value="Active">Active</option><option value="Reassessment Due">Reassessment Due</option><option value="Paused / Suspended">Paused / Suspended</option><option value="Requires Retraining">Requires Retraining</option><option value="Discontinued">Discontinued</option><option value="Archived">Archived</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Exact Nursing Instructions *</label><textarea class="form-input" id="taskInstructions" rows="4" placeholder="Step-by-step instructions in simple language the caregiver can follow…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Precautions</label><textarea class="form-input" id="taskPrecautions" rows="2" placeholder="Safety precautions, contraindications…"></textarea></div>
+        <div class="form-group"><label class="form-label">Safety Thresholds</label><textarea class="form-input" id="taskThresholds" rows="2" placeholder="e.g. BG < 70 or > 300 — call RN immediately"></textarea></div>
+      </div>
+      <div class="form-group"><label class="form-label">Escalation Rules</label><textarea class="form-input" id="taskEscalation" rows="2" placeholder="When to escalate — call RN, HCP, or 911…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Instruction Version</label><input class="form-input" id="taskVersion" placeholder="e.g. v1.0" value="v1.0"></div>
+        <div class="form-group"><label class="form-label">Last Updated</label><input type="date" class="form-input" id="taskUpdatedDate"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('caseTaskModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCaseTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nursing Visit Modal -->
+<div class="overlay" id="visitLogModal">
+  <div class="modal" style="width:min(620px,95vw)">
+    <div class="modal-header">
+      <div><h4 id="visitModalTitle">Log Nursing Visit</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Record supervision visit, competency review, and follow-up plan</p></div>
+      <button onclick="closeModal('visitLogModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="visitCaseId">
+      <input type="hidden" id="visitEditId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Visit Date *</label><input type="date" class="form-input" id="visitDate"></div>
+        <div class="form-group"><label class="form-label">Visit Type</label><select class="form-input form-select" id="visitType"><option value="Supervision">Supervision Visit</option><option value="Competency Reassessment">Competency Reassessment</option><option value="Initial Delegation">Initial Delegation Visit</option><option value="PRN">PRN / Unscheduled</option><option value="Annual Review">Annual Review</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Caregiver Performance</label><select class="form-input form-select" id="visitPerformance"><option value="">Select…</option><option value="Satisfactory">Satisfactory — competency confirmed</option><option value="Needs Improvement">Needs Improvement</option><option value="Unsatisfactory">Unsatisfactory — retraining required</option><option value="Not Observed">Not Observed this visit</option></select></div>
+        <div class="form-group"><label class="form-label">Client Stability</label><select class="form-input form-select" id="visitStability"><option value="">Select…</option><option value="Stable">Stable</option><option value="Improving">Improving</option><option value="Declining">Declining — reassess delegation</option><option value="Hospitalized">Hospitalized</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Visit Observations / Notes *</label><textarea class="form-input" id="visitNotes" rows="4" placeholder="Document what was observed, assessed, and discussed during this visit…"></textarea></div>
+      <div class="form-group"><label class="form-label">Competency Areas Reviewed</label><textarea class="form-input" id="visitCompetency" rows="2" placeholder="Which tasks / skills were reviewed and how the caregiver performed…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Follow-up Plan</label><textarea class="form-input" id="visitFollowup" rows="2" placeholder="Next steps, scheduled follow-up actions, referrals…"></textarea></div>
+        <div class="form-group"><label class="form-label">Next Visit Due</label><input type="date" class="form-input" id="visitNextDue"></div>
+      </div>
+      <div class="form-group"><label class="form-label">RN Signature (print name)</label><input class="form-input" id="visitRnSig" placeholder="RN full name as signature"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('visitLogModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveVisitLog()">Save Visit Record</button>
+    </div>
   </div>
 </div>
 
@@ -757,6 +868,10 @@ async function submitSignIn(){
     const roleEl = document.getElementById('sidebarUserRole');
     if(nameEl) nameEl.textContent = currentProfile?.full_name || email;
     if(roleEl) roleEl.textContent = currentProfile?.role || 'Registered Nurse';
+    // Load cases data
+    loadCasesFromSupabase().then(()=>{
+      if(document.getElementById('page-cases')&&document.getElementById('page-cases').style.display!=='none'){updateCaseStats();renderCasesView();}
+    });
     // Refresh whichever page is currently visible with the loaded data
     const activePage = document.querySelector('[id^="page-"]:not([style*="none"])');
     if(activePage){
@@ -894,28 +1009,55 @@ pageRenderers.afh = () => {
 </div>`;
 };
 
-pageRenderers.cases = () => `
+pageRenderers.cases = () => {
+  setTimeout(()=>{ renderCasesView(); updateCaseStats(); }, 0);
+  return `
 <div class="topbar">
   <div class="topbar-title">Delegation Cases</div>
   <div class="topbar-actions">
-    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px"><option>All Statuses</option><option>Draft</option><option>Pending Consent</option><option>Active</option><option>Requires Reassessment</option><option>Suspended</option><option>Closed</option></select>
-    <button class="btn btn-primary btn-sm" onclick="openModal('newCaseModal')">+ New Case</button>
+    <input class="form-input" style="width:200px;padding:8px 14px;font-size:13px" placeholder="Search cases…" oninput="filterCases(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px" onchange="filterCasesByStatus(this.value)" id="caseStatusFilter"><option value="">All Statuses</option><option>Draft</option><option>Pending Consent</option><option>Active</option><option>Requires Reassessment</option><option>Suspended</option><option>Closed</option></select>
+    <button class="btn btn-primary btn-sm" onclick="openNewCaseModal()">+ New Case</button>
   </div>
 </div>
 <div class="page-content">
-  <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:nowrap;align-items:center">
-    <span class="status status-draft"><span class="status-dot"></span>Draft</span>
-    <span class="status status-pending"><span class="status-dot"></span>Pending Consent</span>
-    <span class="status status-active"><span class="status-dot"></span>Active</span>
-    <span class="status status-reassess"><span class="status-dot"></span>Requires Reassessment</span>
-    <span class="status status-suspended"><span class="status-dot"></span>Suspended</span>
-    <span class="status status-closed"><span class="status-dot"></span>Closed</span>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:28px">
+    <div class="stat-card"><div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="12" rx="1.5" stroke="var(--blue)" stroke-width="1.5"/><path d="M5 5V4a3 3 0 0 1 8 0v1" stroke="var(--blue)" stroke-width="1.5"/></svg></div><div class="stat-val empty" id="cs-total">—</div><div class="stat-label">Total Cases</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cs-active">—</div><div class="stat-label">Active</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--amber)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cs-pending">—</div><div class="stat-label">Pending Consent</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--purple)" stroke-width="1.5"/><path d="M9 5v4l3 3" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cs-reassess">—</div><div class="stat-label">Need Reassessment</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--red-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--red)" stroke-width="1.5"/><path d="M6 12l6-6M6 6l6 6" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cs-suspended">—</div><div class="stat-label">Suspended</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--bg3)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="6" width="14" height="11" rx="1.5" stroke="var(--text3)" stroke-width="1.5"/><path d="M1 6h16M6 9h6" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cs-closed">—</div><div class="stat-label">Closed</div></div>
   </div>
-  <div class="card"><div class="table-wrap"><table>
-    <thead><tr><th>Case ID</th><th>Patient</th><th>Caregiver</th><th>AFH</th><th>Status</th><th>Tasks</th><th>Last Updated</th><th></th></tr></thead>
-    <tbody><tr><td colspan="8"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases</h4><p>Create your first delegation case to begin workflow management.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openModal('newCaseModal')">+ Create Case</button></div></td></tr></tbody>
-  </table></div></div>
+  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:nowrap;align-items:center">
+    <span class="label" style="margin-right:4px">Filter:</span>
+    <span class="status status-draft" style="cursor:pointer" onclick="filterCasesByStatus('')"><span class="status-dot"></span>All</span>
+    <span class="status status-draft" style="cursor:pointer" onclick="filterCasesByStatus('Draft')"><span class="status-dot"></span>Draft</span>
+    <span class="status status-pending" style="cursor:pointer" onclick="filterCasesByStatus('Pending Consent')"><span class="status-dot"></span>Pending</span>
+    <span class="status status-active" style="cursor:pointer" onclick="filterCasesByStatus('Active')"><span class="status-dot"></span>Active</span>
+    <span class="status status-reassess" style="cursor:pointer" onclick="filterCasesByStatus('Requires Reassessment')"><span class="status-dot"></span>Reassessment</span>
+    <span class="status status-suspended" style="cursor:pointer" onclick="filterCasesByStatus('Suspended')"><span class="status-dot"></span>Suspended</span>
+    <span class="status status-closed" style="cursor:pointer" onclick="filterCasesByStatus('Closed')"><span class="status-dot"></span>Closed</span>
+  </div>
+  <div id="casesListView">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Delegation Cases</span><span class="chip" id="cases-count-chip">0 cases</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Case ID</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th>Active Tasks</th><th>Consent</th><th>Supervision</th><th>Reassess Due</th><th>Updated</th><th></th></tr></thead>
+        <tbody id="casesTableBody">
+          <tr id="casesEmptyRow"><td colspan="11"><div class="empty-state" style="padding:56px">
+            <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div>
+            <h4>No delegation cases</h4>
+            <p>Create your first delegation case to begin tracking workflow, consent, tasks, and compliance.</p>
+            <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openNewCaseModal()">+ Create Case</button>
+          </div></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div id="caseDetailView" style="display:none"></div>
 </div>`;
+};
 
 pageRenderers.caregivers = () => {
   setTimeout(()=>{ renderCaregiverTable(window.caregivers); updateCaregiverStats(); },0);
@@ -1129,6 +1271,636 @@ pageRenderers.archive = () => `
   </div>
   <div class="card"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="7" width="16" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h18M8 7V5a3 3 0 0 1 6 0v2M8 13h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>Archive is empty</h4><p>Closed, rescinded, and historical delegation cases will be stored here for long-term records retention.</p></div></div>
 </div>`;
+
+// ── DELEGATION CASES ──────────────────────────────
+window.delegationCases = [];
+
+function openNewCaseModal(editId){
+  ['ncEditId','ncRn','ncNotes','ncInstructions','ncPrecautions','ncEscalation'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ncClient','ncCaregiver','ncFacility'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    if(id==='ncClient'){sel.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>sel.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+    else if(id==='ncCaregiver'){sel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>sel.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+    else if(id==='ncFacility'){sel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend',`<option value="${f.id}">${f.name}</option>`));}
+  });
+  document.getElementById('ncStatus').value='Draft';
+  document.getElementById('ncStartDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ncTasksContainer').innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Add one or more nursing tasks being delegated in this case.</div>';
+  document.getElementById('ncConsentClient').checked=false;
+  document.getElementById('ncConsentGuardian').checked=false;
+  document.getElementById('ncConsentCaregiver').checked=true;
+  document.getElementById('ncReassessDate').value='';
+  document.getElementById('ncSupervision').value='';
+  document.getElementById('ncModalTitle')||document.getElementById('newCaseModalTitle')&&(document.getElementById('newCaseModalTitle').textContent=editId?'Edit Delegation Case':'New Delegation Case');
+  if(editId){
+    const c=window.delegationCases.find(x=>x.id===editId);
+    if(c){
+      document.getElementById('ncEditId').value=c.id;
+      document.getElementById('ncClient').value=c.clientId||'';
+      document.getElementById('ncCaregiver').value=c.caregiverId||'';
+      document.getElementById('ncFacility').value=c.facilityId||'';
+      document.getElementById('ncRn').value=c.rnName||'';
+      document.getElementById('ncStartDate').value=c.startDate||'';
+      document.getElementById('ncReassessDate').value=c.reassessDate||'';
+      document.getElementById('ncStatus').value=c.status||'Draft';
+      document.getElementById('ncSupervision').value=c.supervision||'';
+      document.getElementById('ncNotes').value=c.notes||'';
+      document.getElementById('ncInstructions').value=c.instructions||'';
+      document.getElementById('ncPrecautions').value=c.precautions||'';
+      document.getElementById('ncEscalation').value=c.escalation||'';
+      document.getElementById('ncConsentClient').checked=!!c.consentClient;
+      document.getElementById('ncConsentGuardian').checked=!!c.consentGuardian;
+      document.getElementById('ncConsentCaregiver').checked=!!c.consentCaregiver;
+    }
+  }
+  openModal('newCaseModal');
+}
+
+function onNcClientChange(sel){
+  const c=window.clients.find(x=>x.id===sel.value);
+  if(!c)return;
+  if(c.caregiverId)document.getElementById('ncCaregiver').value=c.caregiverId;
+  if(c.facilityId)document.getElementById('ncFacility').value=c.facilityId;
+  if(currentProfile?.full_name)document.getElementById('ncRn').value=currentProfile.full_name;
+}
+
+function addNcTaskRow(){
+  const ct=document.getElementById('ncTasksContainer');
+  const idx=ct.querySelectorAll('.nc-task-row').length;
+  ct.insertAdjacentHTML('beforeend',`<div class="nc-task-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <input class="form-input" placeholder="Task name (e.g. Insulin Administration)" style="flex:2">
+    <select class="form-input form-select" style="flex:1"><option value="">Type…</option><option>Medication Administration</option><option>PRN Medication</option><option>Wound Care</option><option>Blood Glucose Monitoring</option><option>Insulin Administration</option><option>Catheter Care</option><option>Tube Feeding</option><option>Oxygen Administration</option><option>Other</option></select>
+    <button class="btn btn-ghost btn-sm" style="color:var(--red);flex-shrink:0" onclick="this.parentElement.remove()">✕</button>
+  </div>`);
+}
+
+async function saveCase(){
+  initSupa();
+  const clientId=document.getElementById('ncClient').value;
+  const caregiverId=document.getElementById('ncCaregiver').value;
+  const facilityId=document.getElementById('ncFacility').value;
+  const startDate=document.getElementById('ncStartDate').value;
+  if(!clientId){alert('Please select a client.');return;}
+  if(!caregiverId){alert('Please select a caregiver.');return;}
+  if(!startDate){alert('Start date is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const cg=window.caregivers.find(x=>x.id===caregiverId);
+  const fac=window.facilities.find(x=>x.id===facilityId);
+  // Collect tasks from modal task rows
+  const taskRows=[...document.querySelectorAll('.nc-task-row')];
+  const tasks=taskRows.map((row,i)=>{
+    const inputs=row.querySelectorAll('input,select');
+    return {id:'t'+Date.now()+i,name:inputs[0]?.value||'',type:inputs[1]?.value||'',status:'Active',instructions:'',precautions:'',thresholds:'',escalation:'',version:'v1.0',updatedDate:startDate,history:[]};
+  }).filter(t=>t.name.trim());
+  const editId=document.getElementById('ncEditId').value;
+  const now=new Date().toISOString();
+  const caseObj={
+    id: editId||('case-'+Date.now()),
+    user_id: currentUser?.id,
+    clientId, clientName: cl?`${cl.first} ${cl.last}`:'—',
+    caregiverId, caregiverName: cg?`${cg.first} ${cg.last}`:'—',
+    facilityId, facilityName: fac?.name||'—',
+    rnName: document.getElementById('ncRn').value||(currentProfile?.full_name||''),
+    startDate, reassessDate: document.getElementById('ncReassessDate').value,
+    status: document.getElementById('ncStatus').value,
+    supervision: document.getElementById('ncSupervision').value,
+    notes: document.getElementById('ncNotes').value,
+    instructions: document.getElementById('ncInstructions').value,
+    precautions: document.getElementById('ncPrecautions').value,
+    escalation: document.getElementById('ncEscalation').value,
+    consentClient: document.getElementById('ncConsentClient').checked,
+    consentGuardian: document.getElementById('ncConsentGuardian').checked,
+    consentCaregiver: document.getElementById('ncConsentCaregiver').checked,
+    consentClientSigned: false, consentGuardianSigned: false, consentCaregiverSigned: false,
+    tasks: tasks, visits: [], timeline: [{date:now,action:'Case created',by:currentProfile?.full_name||'RN'}],
+    created_at: now, updated_at: now
+  };
+  if(editId){
+    const existing=window.delegationCases.find(x=>x.id===editId);
+    if(existing){caseObj.tasks=existing.tasks;caseObj.visits=existing.visits;caseObj.timeline=existing.timeline;caseObj.timeline.push({date:now,action:'Case updated',by:currentProfile?.full_name||'RN'});caseObj.consentClientSigned=existing.consentClientSigned;caseObj.consentGuardianSigned=existing.consentGuardianSigned;caseObj.consentCaregiverSigned=existing.consentCaregiverSigned;}
+    window.delegationCases=window.delegationCases.filter(x=>x.id!==editId);
+  }
+  if(tasks.length) caseObj.tasks=[...(editId?(window.delegationCases.find(x=>x.id===editId)?.tasks||[]):[]),...tasks.filter(t=>!(window.delegationCases.find(x=>x.id===editId)?.tasks||[]).find(e=>e.name===t.name))];
+  if(supa&&currentUser){
+    const row={id:caseObj.id,user_id:caseObj.user_id,client_id:caseObj.clientId,client_name:caseObj.clientName,caregiver_id:caseObj.caregiverId,caregiver_name:caseObj.caregiverName,facility_id:caseObj.facilityId,facility_name:caseObj.facilityName,rn_name:caseObj.rnName,start_date:caseObj.startDate,reassess_date:caseObj.reassessDate,status:caseObj.status,supervision:caseObj.supervision,notes:caseObj.notes,instructions:caseObj.instructions,precautions:caseObj.precautions,escalation:caseObj.escalation,consent_client:caseObj.consentClient,consent_guardian:caseObj.consentGuardian,consent_caregiver:caseObj.consentCaregiver,consent_client_signed:caseObj.consentClientSigned,consent_guardian_signed:caseObj.consentGuardianSigned,consent_caregiver_signed:caseObj.consentCaregiverSigned,tasks:JSON.stringify(caseObj.tasks),visits:JSON.stringify(caseObj.visits),timeline:JSON.stringify(caseObj.timeline),created_at:caseObj.created_at,updated_at:caseObj.updated_at};
+    await supa.from('delegation_cases').upsert(row);
+  }
+  window.delegationCases.unshift(caseObj);
+  closeModal('newCaseModal');
+  updateCaseStats();
+  renderCasesView();
+}
+
+function renderCasesView(list){
+  const all=list||window.delegationCases;
+  const tbody=document.getElementById('casesTableBody');
+  const empty=document.getElementById('casesEmptyRow');
+  if(!tbody)return;
+  tbody.querySelectorAll('tr:not(#casesEmptyRow)').forEach(r=>r.remove());
+  const chip=document.getElementById('cases-count-chip');
+  if(chip)chip.textContent=all.length+' case'+(all.length===1?'':'s');
+  if(!all.length){if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  tbody.insertAdjacentHTML('afterbegin',all.map(c=>{
+    const activeTasks=(c.tasks||[]).filter(t=>t.status==='Active').length;
+    const totalTasks=(c.tasks||[]).length;
+    const consentTotal=[c.consentClient,c.consentGuardian,c.consentCaregiver].filter(Boolean).length;
+    const consentSigned=[c.consentClientSigned,c.consentGuardianSigned,c.consentCaregiverSigned].filter(Boolean).length;
+    const consentColor=consentSigned===consentTotal&&consentTotal>0?'var(--green)':consentSigned>0?'var(--amber)':'var(--text3)';
+    const lastVisit=(c.visits||[]).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    const reassessOverdue=c.reassessDate&&new Date(c.reassessDate)<new Date();
+    const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+    return `<tr style="cursor:pointer" onclick="openCaseDetail('${c.id}')">
+      <td style="font-family:var(--mono);font-size:10.5px;color:var(--text3)">${c.id.substring(0,12)}…</td>
+      <td style="font-weight:600;color:var(--text)">${c.clientName}</td>
+      <td style="font-size:12.5px">${c.caregiverName}</td>
+      <td style="font-size:12px;color:var(--text3)">${c.facilityName}</td>
+      <td><span class="status ${statusMap[c.status]||'status-draft'}"><span class="status-dot"></span>${c.status}</span></td>
+      <td style="font-size:12px">${activeTasks}/${totalTasks} active</td>
+      <td style="font-size:12px"><span style="color:${consentColor}">${consentSigned}/${consentTotal} signed</span></td>
+      <td style="font-size:12px">${lastVisit?new Date(lastVisit.date).toLocaleDateString('en-US'):'—'}</td>
+      <td style="font-size:12px"><span style="${reassessOverdue?'color:var(--red);font-weight:600':''}">${c.reassessDate||'—'}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.updated_at?new Date(c.updated_at).toLocaleDateString('en-US'):'—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openNewCaseModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="event.stopPropagation();deleteCase('${c.id}')">Delete</button></td>
+    </tr>`;
+  }).join(''));
+}
+
+function updateCaseStats(){
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
+  s('cs-total',window.delegationCases.length||'—');
+  s('cs-active',window.delegationCases.filter(c=>c.status==='Active').length||'—');
+  s('cs-pending',window.delegationCases.filter(c=>c.status==='Pending Consent').length||'—');
+  s('cs-reassess',window.delegationCases.filter(c=>c.status==='Requires Reassessment').length||'—');
+  s('cs-suspended',window.delegationCases.filter(c=>c.status==='Suspended').length||'—');
+  s('cs-closed',window.delegationCases.filter(c=>c.status==='Closed').length||'—');
+}
+
+function filterCases(q){
+  renderCasesView(window.delegationCases.filter(c=>
+    c.clientName.toLowerCase().includes(q.toLowerCase())||
+    c.caregiverName.toLowerCase().includes(q.toLowerCase())||
+    c.facilityName.toLowerCase().includes(q.toLowerCase())
+  ));
+}
+
+function filterCasesByStatus(s){
+  const sel=document.getElementById('caseStatusFilter');
+  if(sel)sel.value=s;
+  renderCasesView(s?window.delegationCases.filter(c=>c.status===s):window.delegationCases);
+}
+
+async function deleteCase(id){
+  if(!confirm('Permanently delete this delegation case and all its tasks, visits, and history?'))return;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').delete().eq('id',id);
+  window.delegationCases=window.delegationCases.filter(c=>c.id!==id);
+  updateCaseStats();
+  renderCasesView();
+}
+
+function openCaseDetail(id){
+  const c=window.delegationCases.find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('casesListView').style.display='none';
+  const detail=document.getElementById('caseDetailView');
+  detail.style.display='block';
+  detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+function closeCaseDetail(){
+  document.getElementById('caseDetailView').style.display='none';
+  document.getElementById('casesListView').style.display='block';
+}
+
+function buildCaseDetailHtml(c){
+  const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+  const activeTasks=(c.tasks||[]).filter(t=>t.status==='Active').length;
+  const consentItems=[
+    {label:'Client consent',req:c.consentClient,signed:c.consentClientSigned,key:'consentClientSigned'},
+    {label:'Guardian consent',req:c.consentGuardian,signed:c.consentGuardianSigned,key:'consentGuardianSigned'},
+    {label:'Caregiver signature',req:c.consentCaregiver,signed:c.consentCaregiverSigned,key:'consentCaregiverSigned'},
+  ].filter(x=>x.req);
+  const visits=(c.visits||[]).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const timeline=(c.timeline||[]).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const taskStatusMap={'Active':'status-active','Reassessment Due':'status-reassess','Paused / Suspended':'status-suspended','Requires Retraining':'status-pending','Discontinued':'status-closed','Archived':'status-closed'};
+
+  return `
+  <!-- Topbar override for detail -->
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+    <button class="btn btn-ghost btn-sm" onclick="closeCaseDetail()">← Back to Cases</button>
+    <div style="flex:1">
+      <div style="font-size:18px;font-weight:700;color:var(--text);line-height:1.1">${c.clientName}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${c.id}</div>
+    </div>
+    <span class="status ${statusMap[c.status]||'status-draft'}" style="font-size:12px"><span class="status-dot"></span>${c.status}</span>
+    <button class="btn btn-ghost btn-sm" onclick="openNewCaseModal('${c.id}')">Edit Case</button>
+    <button class="btn btn-primary btn-sm" onclick="openGenerateFromCase('${c.id}')">Generate Form</button>
+  </div>
+
+  <!-- COMMAND CENTER — OVERVIEW GRID -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="label" style="margin-bottom:8px">Assigned Caregiver</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">${c.caregiverName}</div>
+      <div style="font-size:11px;color:var(--text3)">${c.facilityName}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" style="margin-bottom:8px">Case Timeline</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px">Started: ${c.startDate||'—'}</div>
+      <div style="font-size:11px;color:${c.reassessDate&&new Date(c.reassessDate)<new Date()?'var(--red)':'var(--text3)'}">Reassess: ${c.reassessDate||'Not set'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" style="margin-bottom:8px">Active Tasks</div>
+      <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:2px">${activeTasks}<span style="font-size:13px;color:var(--text3);font-weight:400"> / ${(c.tasks||[]).length}</span></div>
+      <div style="font-size:11px;color:var(--text3)">tasks active</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" style="margin-bottom:8px">Consent Status</div>
+      ${consentItems.map(ci=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text2)">${ci.label}</span>
+          <span style="font-size:10px;font-weight:600;color:${ci.signed?'var(--green)':'var(--amber)'}">${ci.signed?'✓ Signed':'Pending'}</span>
+        </div>`).join('')}
+      ${consentItems.length===0?'<span style="font-size:11px;color:var(--text3)">No consent requirements set</span>':''}
+    </div>
+  </div>
+
+  <!-- DETAIL TABS -->
+  <div class="tabs" id="caseDetailTabs" style="margin-bottom:20px">
+    <div class="tab active" onclick="switchCaseTab(this,'Tasks')">Delegated Tasks</div>
+    <div class="tab" onclick="switchCaseTab(this,'Instructions')">Nursing Instructions</div>
+    <div class="tab" onclick="switchCaseTab(this,'Consent')">Consent &amp; Signatures</div>
+    <div class="tab" onclick="switchCaseTab(this,'Forms')">Form Generation</div>
+    <div class="tab" onclick="switchCaseTab(this,'Visits')">Supervision Visits</div>
+    <div class="tab" onclick="switchCaseTab(this,'Timeline')">Audit Trail</div>
+  </div>
+
+  <!-- TAB: TASKS -->
+  <div id="caseTabTasks">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Delegated Tasks</span>
+        <button class="btn btn-primary btn-sm" onclick="openTaskModal('${c.id}')">+ Add Task</button>
+      </div>
+      ${(c.tasks||[]).length===0?`<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 5V4a4 4 0 0 1 8 0v1" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No tasks added</h4><p>Add the nursing tasks being delegated in this case.</p></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Task Name</th><th>Type</th><th>Status</th><th>Version</th><th>Last Updated</th><th>Instructions</th><th></th></tr></thead>
+        <tbody>${(c.tasks||[]).map(t=>`<tr>
+          <td style="font-weight:600;color:var(--text)">${t.name}</td>
+          <td style="font-size:12px;color:var(--text3)">${t.type||'—'}</td>
+          <td><span class="status ${taskStatusMap[t.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${t.status}</span></td>
+          <td style="font-family:var(--mono);font-size:11px">${t.version||'v1.0'}</td>
+          <td style="font-size:11px;color:var(--text3)">${t.updatedDate||'—'}</td>
+          <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.instructions||'—'}</td>
+          <td style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" onclick="openTaskModal('${c.id}','${t.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="archiveTask('${c.id}','${t.id}')" style="color:var(--text3)">Archive</button><button class="btn btn-ghost btn-sm" onclick="suspendTask('${c.id}','${t.id}')" style="color:var(--amber)">Pause</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>
+
+  <!-- TAB: INSTRUCTIONS -->
+  <div id="caseTabInstructions" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Nursing Instructions Engine</span><button class="btn btn-ghost btn-sm" onclick="openNewCaseModal('${c.id}')">Edit Instructions</button></div>
+      <div class="card-body">
+        ${(c.tasks||[]).map(t=>`
+        <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border);last-child:{border:none}">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${t.name}</span>
+            <span class="status ${taskStatusMap[t.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${t.status}</span>
+            <span style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto">${t.version||'v1.0'} · ${t.updatedDate||''}</span>
+          </div>
+          ${t.instructions?`<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">Step-by-step instructions</div><div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;color:var(--text2);white-space:pre-wrap">${t.instructions}</div></div>`:''}
+          ${t.precautions?`<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">Precautions</div><div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--amber)">${t.precautions}</div></div>`:''}
+          ${t.thresholds?`<div style="margin-bottom:10px"><div class="label" style="margin-bottom:4px">Safety thresholds</div><div style="background:var(--red-dim);border:1px solid #e0525230;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--red)">${t.thresholds}</div></div>`:''}
+          ${t.escalation?`<div><div class="label" style="margin-bottom:4px">Escalation rules</div><div style="background:var(--purple-dim);border:1px solid #8b6ef530;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--purple)">${t.escalation}</div></div>`:''}
+        </div>`).join('')}
+        ${(c.tasks||[]).length===0?'<div style="color:var(--text3);font-size:13px">No tasks with instructions yet. Add tasks to this case first.</div>':''}
+        ${c.instructions?`<div style="margin-top:16px"><div class="label" style="margin-bottom:8px">Case-level instructions</div><div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);white-space:pre-wrap">${c.instructions}</div></div>`:''}
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CONSENT -->
+  <div id="caseTabConsent" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Consent &amp; Signature Tracking</span></div>
+      <div class="card-body">
+        ${consentItems.length===0?'<p style="color:var(--text3);font-size:13px">No consent requirements set for this case. Edit the case to configure required consent.</p>'
+        :consentItems.map(ci=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${ci.label}</div>
+            <div style="font-size:11px;color:var(--text3)">Required for this delegation case</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;font-weight:600;color:${ci.signed?'var(--green)':'var(--amber)'}">${ci.signed?'✓ Signed &amp; Filed':'⚠ Pending Signature'}</span>
+            ${!ci.signed?`<button class="btn btn-primary btn-sm" onclick="markConsentSigned('${c.id}','${ci.key}')">Mark Signed</button>`:`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="markConsentUnsigned('${c.id}','${ci.key}')">Undo</button>`}
+          </div>
+        </div>`).join('')}
+        <div style="margin-top:20px;padding:16px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <div class="label" style="margin-bottom:10px">Upload Signed Consent Documents</div>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Upload signed copies directly from the Documents section, or use the button below to go there now.</p>
+          <button class="btn btn-ghost btn-sm" onclick="showPage('documents');setTimeout(()=>docsShowTab('Signed'),100)">Go to Signed Documents →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: FORMS -->
+  <div id="caseTabForms" style="display:none">
+    <p style="font-size:13px;color:var(--text3);margin-bottom:20px">Generate DSHS forms pre-filled with this case's client, caregiver, and instruction data. No re-entry needed.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+      <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name">DSHS 13-678 — Nursing Instructions</div><div class="doc-info">Auto-fill with case tasks &amp; instructions</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase('${c.id}','form-13678')">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Consent for Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">PRN Medication Form</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Assumption of Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Rescinding Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Change in Medical Orders</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Nursing Visit Form</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+    </div>
+    <div style="margin-top:28px">
+      <div class="label" style="margin-bottom:14px">Previously Generated for this Case</div>
+      ${(window.formDrafts||[]).filter(d=>d.client_id===c.clientId).length===0
+        ?'<p style="font-size:13px;color:var(--text3)">No forms generated yet for this client. Click Generate above to begin.</p>'
+        :`<div style="display:grid;gap:10px">${(window.formDrafts||[]).filter(d=>d.client_id===c.clientId).map(d=>`
+          <div class="doc-card">
+            <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div>
+            <div class="doc-meta"><div class="doc-name">${d.form_name}</div><div class="doc-info">${new Date(d.created_at).toLocaleDateString('en-US')} · ${d.status}</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="printDraft('${d.id}')">Print</button>
+          </div>`).join('')}</div>`}
+    </div>
+  </div>
+
+  <!-- TAB: VISITS -->
+  <div id="caseTabVisits" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Supervision Visit History</span>
+        <button class="btn btn-primary btn-sm" onclick="openVisitModal('${c.id}')">+ Log Visit</button>
+      </div>
+      ${visits.length===0?`<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 2v2M14 2v2M2 8h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No visits logged</h4><p>Log your first supervision visit to begin tracking caregiver competency and client stability.</p></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Type</th><th>Caregiver Performance</th><th>Client Stability</th><th>Next Visit Due</th><th>RN</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${visits.map(v=>`<tr>
+          <td style="font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--text)">${new Date(v.date).toLocaleDateString('en-US')}</td>
+          <td style="font-size:12px">${v.type}</td>
+          <td><span class="status ${v.performance==='Satisfactory'?'status-active':v.performance==='Unsatisfactory'?'status-suspended':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${v.performance||'—'}</span></td>
+          <td><span class="status ${v.stability==='Stable'||v.stability==='Improving'?'status-active':v.stability==='Declining'||v.stability==='Hospitalized'?'status-suspended':'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${v.stability||'—'}</span></td>
+          <td style="font-size:11.5px;font-family:var(--mono)">${v.nextDue||'—'}</td>
+          <td style="font-size:12px">${v.rnSig||'—'}</td>
+          <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.notes||'—'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="deleteVisit('${c.id}','${v.id}')">Delete</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>
+
+  <!-- TAB: TIMELINE / AUDIT -->
+  <div id="caseTabTimeline" style="display:none">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Audit Trail — Full Case History</span><span class="chip">${timeline.length} events</span></div>
+      <div class="card-body">
+        ${timeline.length===0?'<p style="color:var(--text3);font-size:13px">No history recorded yet.</p>'
+        :timeline.map(t=>`
+        <div style="display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="flex-shrink:0;width:110px;font-family:var(--mono);font-size:10.5px;color:var(--text3);padding-top:2px">${new Date(t.date).toLocaleDateString('en-US')}</div>
+          <div style="width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:6px"></div>
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--text)">${t.action}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">By: ${t.by||'RN'}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+function switchCaseTab(el,tab){
+  document.querySelectorAll('#caseDetailTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['Tasks','Instructions','Consent','Forms','Visits','Timeline'].forEach(t=>{
+    const d=document.getElementById('caseTab'+t);if(d)d.style.display='none';
+  });
+  const d=document.getElementById('caseTab'+tab);if(d)d.style.display='block';
+}
+
+function openTaskModal(caseId,taskId){
+  document.getElementById('taskCaseId').value=caseId;
+  document.getElementById('taskEditId').value=taskId||'';
+  ['taskName','taskInstructions','taskPrecautions','taskThresholds','taskEscalation','taskVersion'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('taskType').value='';
+  document.getElementById('taskStatus').value='Active';
+  document.getElementById('taskVersion').value='v1.0';
+  document.getElementById('taskUpdatedDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('taskModalTitle').textContent=taskId?'Edit Task':'Add Delegated Task';
+  if(taskId){
+    const c=window.delegationCases.find(x=>x.id===caseId);
+    const t=(c?.tasks||[]).find(x=>x.id===taskId);
+    if(t){
+      document.getElementById('taskName').value=t.name||'';
+      document.getElementById('taskType').value=t.type||'';
+      document.getElementById('taskStatus').value=t.status||'Active';
+      document.getElementById('taskInstructions').value=t.instructions||'';
+      document.getElementById('taskPrecautions').value=t.precautions||'';
+      document.getElementById('taskThresholds').value=t.thresholds||'';
+      document.getElementById('taskEscalation').value=t.escalation||'';
+      document.getElementById('taskVersion').value=t.version||'v1.0';
+      document.getElementById('taskUpdatedDate').value=t.updatedDate||'';
+    }
+  }
+  openModal('caseTaskModal');
+}
+
+async function saveCaseTask(){
+  const caseId=document.getElementById('taskCaseId').value;
+  const taskId=document.getElementById('taskEditId').value;
+  const name=document.getElementById('taskName').value.trim();
+  if(!name){alert('Task name is required.');return;}
+  const c=window.delegationCases.find(x=>x.id===caseId);
+  if(!c){closeModal('caseTaskModal');return;}
+  const now=new Date().toISOString();
+  const task={
+    id: taskId||('task-'+Date.now()),
+    name, type: document.getElementById('taskType').value,
+    status: document.getElementById('taskStatus').value,
+    instructions: document.getElementById('taskInstructions').value,
+    precautions: document.getElementById('taskPrecautions').value,
+    thresholds: document.getElementById('taskThresholds').value,
+    escalation: document.getElementById('taskEscalation').value,
+    version: document.getElementById('taskVersion').value||'v1.0',
+    updatedDate: document.getElementById('taskUpdatedDate').value,
+    history: taskId?(c.tasks.find(t=>t.id===taskId)?.history||[]):[],
+    createdAt: taskId?(c.tasks.find(t=>t.id===taskId)?.createdAt||now):now
+  };
+  if(taskId){
+    const old=c.tasks.find(t=>t.id===taskId);
+    if(old)task.history.push({date:now,action:`Updated to ${task.version}`,by:currentProfile?.full_name||'RN'});
+    c.tasks=c.tasks.map(t=>t.id===taskId?task:t);
+  } else {
+    c.tasks.push(task);
+  }
+  c.timeline.push({date:now,action:`Task ${taskId?'updated':'added'}: ${name}`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').update({tasks:JSON.stringify(c.tasks),timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  closeModal('caseTaskModal');
+  // Re-render detail
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none'){detail.innerHTML=buildCaseDetailHtml(c);switchCaseTab(document.querySelector('#caseDetailTabs .tab'),'Tasks');}
+}
+
+async function archiveTask(caseId,taskId){
+  if(!confirm('Archive this task? It will be hidden from active view but kept for history.'))return;
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  const t=c.tasks.find(x=>x.id===taskId);if(!t)return;
+  t.status='Archived';
+  const now=new Date().toISOString();
+  c.timeline.push({date:now,action:`Task archived: ${t.name}`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').update({tasks:JSON.stringify(c.tasks),timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none')detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+async function suspendTask(caseId,taskId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  const t=c.tasks.find(x=>x.id===taskId);if(!t)return;
+  t.status=t.status==='Paused / Suspended'?'Active':'Paused / Suspended';
+  const now=new Date().toISOString();
+  c.timeline.push({date:now,action:`Task ${t.status}: ${t.name}`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').update({tasks:JSON.stringify(c.tasks),timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none')detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+async function markConsentSigned(caseId,key){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  c[key]=true;
+  const now=new Date().toISOString();
+  const labelMap={consentClientSigned:'Client consent signed',consentGuardianSigned:'Guardian consent signed',consentCaregiverSigned:'Caregiver signature obtained'};
+  c.timeline.push({date:now,action:labelMap[key]||'Consent updated',by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser){const upd={updated_at:now,timeline:JSON.stringify(c.timeline)};upd[key.replace(/([A-Z])/g,m=>'_'+m.toLowerCase())]=true;await supa.from('delegation_cases').update(upd).eq('id',caseId);}
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none')detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+async function markConsentUnsigned(caseId,key){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  c[key]=false;
+  c.updated_at=new Date().toISOString();
+  initSupa();
+  if(supa&&currentUser){const upd={updated_at:c.updated_at};upd[key.replace(/([A-Z])/g,m=>'_'+m.toLowerCase())]=false;await supa.from('delegation_cases').update(upd).eq('id',caseId);}
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none')detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+function openVisitModal(caseId,visitId){
+  document.getElementById('visitCaseId').value=caseId;
+  document.getElementById('visitEditId').value=visitId||'';
+  ['visitDate','visitNotes','visitCompetency','visitFollowup','visitNextDue','visitRnSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('visitType').value='Supervision';
+  document.getElementById('visitPerformance').value='';
+  document.getElementById('visitStability').value='';
+  document.getElementById('visitDate').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name)document.getElementById('visitRnSig').value=currentProfile.full_name;
+  document.getElementById('visitModalTitle').textContent=visitId?'Edit Visit Record':'Log Nursing Visit';
+  openModal('visitLogModal');
+}
+
+async function saveVisitLog(){
+  const caseId=document.getElementById('visitCaseId').value;
+  const visitId=document.getElementById('visitEditId').value;
+  const date=document.getElementById('visitDate').value;
+  const notes=document.getElementById('visitNotes').value.trim();
+  if(!date){alert('Visit date is required.');return;}
+  if(!notes){alert('Visit notes are required.');return;}
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  const now=new Date().toISOString();
+  const visit={
+    id: visitId||('visit-'+Date.now()),
+    date, type: document.getElementById('visitType').value,
+    performance: document.getElementById('visitPerformance').value,
+    stability: document.getElementById('visitStability').value,
+    notes, competency: document.getElementById('visitCompetency').value,
+    followup: document.getElementById('visitFollowup').value,
+    nextDue: document.getElementById('visitNextDue').value,
+    rnSig: document.getElementById('visitRnSig').value,
+    createdAt: now
+  };
+  if(visitId){c.visits=c.visits.map(v=>v.id===visitId?visit:v);}
+  else{c.visits.push(visit);}
+  c.timeline.push({date:now,action:`Supervision visit logged: ${new Date(date).toLocaleDateString('en-US')} — ${visit.type}`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').update({visits:JSON.stringify(c.visits),timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  closeModal('visitLogModal');
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none'){detail.innerHTML=buildCaseDetailHtml(c);const tabs=document.querySelectorAll('#caseDetailTabs .tab');if(tabs[4])switchCaseTab(tabs[4],'Visits');}
+}
+
+async function deleteVisit(caseId,visitId){
+  if(!confirm('Remove this visit record?'))return;
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  c.visits=c.visits.filter(v=>v.id!==visitId);
+  const now=new Date().toISOString();
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser)await supa.from('delegation_cases').update({visits:JSON.stringify(c.visits),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none')detail.innerHTML=buildCaseDetailHtml(c);
+}
+
+function openGenerateFromCase(caseId,formId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    docsShowTab('All');
+    openGenerateModal(formId||'form-13678','13-678, Nurse Delegation: Instructions for Nursing Task');
+    // Pre-select client and caregiver
+    setTimeout(()=>{
+      const cs=document.getElementById('genClient');
+      if(cs)cs.value=c.clientId||'';
+      const cgs=document.getElementById('genCaregiver');
+      if(cgs)cgs.value=c.caregiverId||'';
+      // Pre-fill task instructions from first active task
+      const firstTask=(c.tasks||[]).find(t=>t.status==='Active');
+      if(firstTask){
+        const dt=document.getElementById('genDelegatedTask');if(dt)dt.value=firstTask.name;
+        const st=document.getElementById('genSteps');if(st)st.value=firstTask.instructions||'';
+        const wr=document.getElementById('genWhatRnd');if(wr)wr.value=firstTask.escalation||'';
+      }
+    },200);
+  },100);
+}
+
+async function loadCasesFromSupabase(){
+  initSupa();
+  if(!supa||!currentUser)return;
+  const {data}=await supa.from('delegation_cases').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  window.delegationCases=(data||[]).map(row=>({
+    ...row,
+    clientId: row.client_id, clientName: row.client_name,
+    caregiverId: row.caregiver_id, caregiverName: row.caregiver_name,
+    facilityId: row.facility_id, facilityName: row.facility_name,
+    rnName: row.rn_name, startDate: row.start_date,
+    reassessDate: row.reassess_date, consentClient: row.consent_client,
+    consentGuardian: row.consent_guardian, consentCaregiver: row.consent_caregiver,
+    consentClientSigned: row.consent_client_signed,
+    consentGuardianSigned: row.consent_guardian_signed,
+    consentCaregiverSigned: row.consent_caregiver_signed,
+    tasks: typeof row.tasks==='string'?JSON.parse(row.tasks||'[]'):row.tasks||[],
+    visits: typeof row.visits==='string'?JSON.parse(row.visits||'[]'):row.visits||[],
+    timeline: typeof row.timeline==='string'?JSON.parse(row.timeline||'[]'):row.timeline||[]
+  }));
+}
 
 // ── WA STATE ZIP → COUNTY MAP ─────────────────────
 const WA_ZIP_COUNTY = {
@@ -1944,6 +2716,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const roleEl = document.getElementById('sidebarUserRole');
       if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
       if(roleEl) roleEl.textContent = currentProfile?.role || 'Registered Nurse';
+      loadCasesFromSupabase();
       showPage('dashboard');
     });
   });
