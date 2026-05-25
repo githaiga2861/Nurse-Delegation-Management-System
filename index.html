@@ -1208,7 +1208,7 @@ function openCaregiverModal(editId){
 }
 async function saveCaregiver(){
   initSupa();
-  const first=document.getElementById('cgFirst').value.trim()(),last=document.getElementById('cgLast').value.trim();
+  const first=document.getElementById('cgFirst').value.trim(),last=document.getElementById('cgLast').value.trim();
   const phone=document.getElementById('cgPhone').value.trim(),credType=document.getElementById('cgCredType').value;
   const certExpiry=document.getElementById('cgCertExpiry').value,cprExpiry=document.getElementById('cgCprExpiry').value;
   if(!first||!last){alert('Full name is required.');return;}
