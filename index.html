@@ -720,6 +720,273 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- 13-680 Nurse Delegation: Rescinding Delegation Modal -->
+<div class="overlay" id="generate13680Modal">
+  <div class="modal" style="width:min(720px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Generate 13-680 — Nurse Delegation: Rescinding Delegation</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill from client &amp; caregiver data — up to 10 caregivers per form</p>
+      </div>
+      <button onclick="closeModal('generate13680Modal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--red-dim);border:1px solid #e0525230;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--red)">
+        ⚠ This form permanently rescinds nurse delegation. Ensure all required parties have been notified before generating.
+      </div>
+
+      <!-- Fields 1–4 Header -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Client &amp; Setting — Fields 1–4</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">1. Client Name *</label><select class="form-input form-select" id="rsc_client" onchange="onRscClientChange(this)"><option value="">Select client…</option></select></div>
+          <div class="form-group"><label class="form-label">2. ACES Client ID Number</label><input class="form-input" id="rsc_acesId" placeholder="Auto-fills from client profile"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">3. Date of Birth</label><input class="form-input" type="date" id="rsc_dob"></div>
+          <div class="form-group"><label class="form-label">4. Setting</label><select class="form-input form-select" id="rsc_setting"><option value="AFH">AFH — Adult Family Home</option><option value="ALF">ALF — Assisted Living Facility</option><option value="DDA">DDA Program</option><option value="In-home">In-home</option></select></div>
+        </div>
+      </div>
+
+      <!-- Fields 5–6 Facility -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Facility — Fields 5–6</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">5. Facility or Program Name</label><input class="form-input" id="rsc_facilityName" placeholder="Auto-fills from client facility"></div>
+          <div class="form-group"><label class="form-label">6. Telephone Number</label><input class="form-input" id="rsc_facilityPhone" placeholder="Facility phone number"></div>
+        </div>
+      </div>
+
+      <!-- Field 7 Reason -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:10px">7. Reason for Rescinding — Check All That Apply</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rA" style="accent-color:var(--red)"> A. Client died</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rE" style="accent-color:var(--red)"> E. NA not competent</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rB" style="accent-color:var(--red)"> B. Client's condition no longer stable and predictable</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rF" style="accent-color:var(--red)"> F. NA not willing</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rC" style="accent-color:var(--red)"> C. Frequent staff turnover</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rG" style="accent-color:var(--red)"> G. NA credential expired</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rD" style="accent-color:var(--red)"> D. Client / authorized representative requested</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rH" style="accent-color:var(--red)"> H. NA no longer working with client</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rI" style="accent-color:var(--red)"> I. Client safety compromised</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="rsc_rJ" style="accent-color:var(--red)"> J. Rescinding facility including clients and nurse assistant</label>
+        </div>
+        <div class="form-group" style="margin-top:10px;margin-bottom:0">
+          <label class="form-label">K. Other — specify</label>
+          <input class="form-input" id="rsc_rK" placeholder="Specify other reason…">
+        </div>
+      </div>
+
+      <!-- Fields 8–10 Caregivers table -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:10px">Fields 8–10 — Caregivers, Medications / Treatments Rescinded &amp; Notes (up to 10)</div>
+        <div id="rsc_caregiversContainer">
+          <!-- rows injected by JS -->
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addRscCaregiverRow()" style="margin-top:8px">+ Add Caregiver Row</button>
+      </div>
+
+      <!-- Fields 11–13 Case Manager -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Case Manager Notification — Fields 11–13</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">11. Name of Case Manager Notified</label><input class="form-input" id="rsc_caseManager" placeholder="Case manager name (if notified)"></div>
+          <div class="form-group"><label class="form-label">13. Date of Notification</label><input class="form-input" type="date" id="rsc_notifyDate"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">12. Method of Notification</label>
+          <div style="display:flex;gap:16px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="rsc_notifyMethod" value="Telephone" id="rsc_notifyTel" style="accent-color:var(--blue)"> Telephone</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="rsc_notifyMethod" value="Email" id="rsc_notifyEmail" style="accent-color:var(--blue)"> Email</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Field 14 Alternative Plan -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">14. Alternative Plan for Continuing the Task *</label>
+          <textarea class="form-input" id="rsc_altPlan" rows="3" placeholder="Describe how the client's needs will continue to be met after rescinding…"></textarea>
+        </div>
+      </div>
+
+      <!-- Fields 15–16 Signature -->
+      <div>
+        <div class="label" style="margin-bottom:12px">Fields 15–16 — RND Signature &amp; Date</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">15. RND Signature (print name)</label><input class="form-input" id="rsc_rndSig" placeholder="RN full name as signature"></div>
+          <div class="form-group"><label class="form-label">16. Date of Rescinding</label><input class="form-input" type="date" id="rsc_date"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generate13680Modal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="rsc_submitBtn" class="btn btn-primary btn-sm" style="background:var(--red)" onclick="submitGenerate13680()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
+<!-- 13-681 Nurse Delegation: Change in Medical Orders Modal -->
+<div class="overlay" id="generate13681Modal">
+  <div class="modal" style="width:min(740px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Generate 13-681 — Nurse Delegation: Change in Medical / Treatment Orders</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill from client data — documents new or changed orders and nursing tasks</p>
+      </div>
+      <button onclick="closeModal('generate13681Modal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue)">
+        ℹ️ Select a client — header fields auto-populate. Complete the order change details below. Fields 22–30 (Optional Task Sheet) are only required if this form is also used as a task sheet.
+      </div>
+
+      <!-- Fields 1–4 -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Client &amp; Setting — Fields 1–4</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">1. Client Name *</label><select class="form-input form-select" id="chg_client" onchange="onChgClientChange(this)"><option value="">Select client…</option></select></div>
+          <div class="form-group"><label class="form-label">2. ACES ID Number</label><input class="form-input" id="chg_acesId" placeholder="Auto-fills from client profile"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">3. Date of Birth</label><input class="form-input" type="date" id="chg_dob"></div>
+          <div class="form-group"><label class="form-label">4. Setting</label><select class="form-input form-select" id="chg_setting"><option value="AFH">AFH — Adult Family Home</option><option value="ALF">ALF — Assisted Living Facility</option><option value="DDA">DDA Program</option><option value="In-home">In-home</option></select></div>
+        </div>
+      </div>
+
+      <!-- Fields 5–10 Notification & Order Details -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Order Notification — Fields 5–10</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">5. Date RND Was Notified *</label><input class="form-input" type="date" id="chg_notifyDate"></div>
+          <div class="form-group"><label class="form-label">6. By Whom (name &amp; title)</label><input class="form-input" id="chg_byWhom" placeholder="Name and title of person who notified RND"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">7. Changes in Order(s) — Check All That Apply</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_newMed" style="accent-color:var(--blue)"> New medication</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_changeMed" style="accent-color:var(--blue)"> Change in a delegated medication</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_newTask" style="accent-color:var(--blue)"> New nursing task</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_changeTask" style="accent-color:var(--blue)"> Change in a nursing task</label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">8. How Was the Change Received?</label>
+            <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="chg_received" value="Written" style="accent-color:var(--blue)"> Written</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="chg_received" value="Faxed" style="accent-color:var(--blue)"> Faxed</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="chg_received" value="Verbal" id="chg_receivedVerbal" style="accent-color:var(--blue)" onchange="onChgVerbalToggle()"> Verbal</label>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">9. Effective Date of Change</label><input class="form-input" type="date" id="chg_effectiveDate"></div>
+        </div>
+        <div id="chg_verbalSection" style="display:none;background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:12px 14px;margin-top:4px">
+          <div class="label" style="margin-bottom:8px;color:var(--amber)">10. Verbal Order Verification (required when verbal was selected)</div>
+          <div class="form-row-3">
+            <div class="form-group"><label class="form-label">Name of Person Providing Verification</label><input class="form-input" id="chg_verifyName" placeholder="Full name"></div>
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="chg_verifyTitle" placeholder="MD, ARNP, PA…"></div>
+            <div class="form-group"><label class="form-label">Date of Verification</label><input class="form-input" type="date" id="chg_verifyDate"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Field 11 Nursing Tasks -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">11. Nursing Task(s)</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_taskNewSheet" style="accent-color:var(--blue)"> New task(s) sheet required</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_taskUpdated" style="accent-color:var(--blue)"> Current task(s) sheet(s) updated</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" id="chg_taskNoChange" style="accent-color:var(--blue)"> No change to task(s) sheet(s)</label>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Nursing Task / Order Description</label><textarea class="form-input" id="chg_taskOrder" rows="2" placeholder="Describe the nursing task or order…"></textarea></div>
+      </div>
+
+      <!-- Fields 12–21 Medication -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">Fields 12–21 — Medication Details <span style="font-size:10px;color:var(--text3);font-weight:400">(complete only if a medication is involved)</span></div>
+        <div style="display:flex;gap:16px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="chg_medIs" value="New" style="accent-color:var(--blue)"> 12. This medication is: <strong style="margin-left:4px">New</strong></label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="chg_medIs" value="Changed" style="accent-color:var(--blue)"> <strong>Changed</strong></label>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">13. Date Ordered</label><input class="form-input" type="date" id="chg_dateOrdered"></div>
+          <div class="form-group"><label class="form-label">14. Name of Medication</label><input class="form-input" id="chg_medName" placeholder="Medication name"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">15. Start Date</label><input class="form-input" type="date" id="chg_startDate"></div>
+          <div class="form-group"><label class="form-label">16. Stop Date (if applicable)</label><input class="form-input" type="date" id="chg_stopDate"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">17. Strength / Dose</label><input class="form-input" id="chg_dose" placeholder="e.g. 10mg"></div>
+          <div class="form-group"><label class="form-label">18. Medication Frequency</label><input class="form-input" id="chg_frequency" placeholder="e.g. Once daily, BID"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">19. Route</label><input class="form-input" id="chg_route" placeholder="e.g. PO, Topical, Supp, Drops"></div>
+          <div class="form-group"><label class="form-label">20. Not to Exceed</label><input class="form-input" id="chg_notExceed" placeholder="e.g. 3 doses per 24 hours"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">21. Reason for Medication</label><input class="form-input" id="chg_medReason" placeholder="Reason the client takes this medication"></div>
+      </div>
+
+      <!-- Fields 22–30 Optional Task Sheet -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div class="label">Fields 22–30 — Optional Task Sheet</div>
+          <span style="font-size:10px;padding:2px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:99px;color:var(--text3)">Complete only if using this form as a task sheet</span>
+        </div>
+        <div class="form-group"><label class="form-label">22. Steps to Perform the New Task</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <input type="checkbox" id="chg_teachingAid" style="accent-color:var(--blue)">
+            <label style="font-size:11px;color:var(--text2);cursor:pointer" for="chg_teachingAid">Check if teaching aid attached</label>
+          </div>
+          <textarea class="form-input" id="chg_steps" rows="3" placeholder="Step-by-step instructions for performing the new task…"></textarea>
+        </div>
+        <div class="form-group"><label class="form-label">23. Expected Outcome of Delegated Task</label><textarea class="form-input" id="chg_expectedOutcome" rows="2" placeholder="Anticipated outcome…"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">24. RND Name (print)</label><input class="form-input" id="chg_rndName" placeholder="RN full name"></div>
+          <div class="form-group"><label class="form-label">25. Telephone Number</label><input class="form-input" id="chg_rndPhone" placeholder="RN phone number"></div>
+        </div>
+        <div class="form-group"><label class="form-label">26. What to Report to RND</label><textarea class="form-input" id="chg_whatRnd" rows="2" placeholder="Symptoms / side effects to report to RND…"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">27. Health Care Provider</label><input class="form-input" id="chg_hcpName" placeholder="Physician / provider name"></div>
+          <div class="form-group"><label class="form-label">28. Telephone Number</label><input class="form-input" id="chg_hcpPhone" placeholder="Provider phone"></div>
+        </div>
+        <div class="form-group"><label class="form-label">29. What to Report to Health Care Provider</label><textarea class="form-input" id="chg_whatHcp" rows="2" placeholder="Symptoms / side effects to report to HCP…"></textarea></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">30. What to Report to Emergency Services (911)</label><textarea class="form-input" id="chg_whatEmergency" rows="2" placeholder="Signs and symptoms requiring 911 call…"></textarea></div>
+      </div>
+
+      <!-- Fields 31–32 Delegation Decision -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:10px">Fields 31–32 — Select Only One</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 14px;background:var(--green-dim);border:1px solid #2dba7a30;border-radius:var(--radius-sm)">
+            <input type="radio" name="chg_delegation" value="immediate" id="chg_delegateImmediate" style="accent-color:var(--green);margin-top:2px">
+            <span><strong style="color:var(--green)">31. Delegate Immediately.</strong> No site visit required. The above order and instructions have been communicated to the delegated Long Term Care Worker(s) (LTCW) and this form should be added to the client's chart.</span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 14px;background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm)">
+            <input type="radio" name="chg_delegation" value="site_visit" id="chg_delegateSiteVisit" style="accent-color:var(--amber);margin-top:2px">
+            <span><strong style="color:var(--amber)">32. A site visit is required</strong> for training or assessment prior to delegation. The LTCW(s) may not perform the task until the site visit is completed.</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Fields 33–34 Signature -->
+      <div>
+        <div class="label" style="margin-bottom:12px">Fields 33–34 — RND Signature &amp; Date</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">33. RND Signature (print name)</label><input class="form-input" id="chg_rndSig" placeholder="RN full name as signature"></div>
+          <div class="form-group"><label class="form-label">34. Date</label><input class="form-input" type="date" id="chg_date"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generate13681Modal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="chg_submitBtn" class="btn btn-primary btn-sm" onclick="submitGenerate13681()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
@@ -1440,8 +1707,8 @@ pageRenderers.documents = () => {
       ${docShell('Consent for Delegation','DSHS · Not yet generated')}
       ${docShellGen('13-678A, Nurse Delegation: PRN Medication','DSHS 13-678A · Rev. 07/2023','form-13678a')}
       ${docShell('Assumption of Delegation','DSHS · Not yet generated')}
-      ${docShell('Rescinding Delegation','DSHS · Not yet generated')}
-      ${docShell('Change in Medical Orders','DSHS · Not yet generated')}
+      ${docShellGen('13-680, Nurse Delegation: Rescinding Delegation','DSHS 13-680 · Rev. 09/2021','form-13680')}
+      ${docShellGen('13-681, Nurse Delegation: Change in Medical Orders','DSHS 13-681 · Rev. 02/2022','form-13681')}
       ${docShell('Request for Additional Unit','DSHS · Not yet generated')}
       ${docShellGen('14-484, Nurse Delegation: Nursing Visit','DSHS 14-484 · Rev. 07/2023','form-14484')}
       ${docShell('Billing Form','DSHS · Not yet generated')}
@@ -1895,8 +2162,8 @@ function buildCaseDetailHtml(c){
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💊</div><div class="doc-meta"><div class="doc-name">13-678A, Nurse Delegation: PRN Medication</div><div class="doc-info">Auto-fill with client PRN medication data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13678a('${c.id}')">Generate</button></div>
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏥</div><div class="doc-meta"><div class="doc-name">14-484, Nurse Delegation: Nursing Visit</div><div class="doc-info">Auto-fill with case tasks, caregiver &amp; visit data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase14484('${c.id}')">Generate</button></div>
       <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Assumption of Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
-      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Rescinding Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
-      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Change in Medical Orders</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🚫</div><div class="doc-meta"><div class="doc-name">13-680, Nurse Delegation: Rescinding Delegation</div><div class="doc-info">Auto-fill with client, caregiver &amp; reason data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13680('${c.id}')">Generate</button></div>
+      <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name">13-681, Nurse Delegation: Change in Medical Orders</div><div class="doc-info">Auto-fill with client, order &amp; task change data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13681('${c.id}')">Generate</button></div>
       <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Nursing Visit Form</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
     </div>
     <div style="margin-top:28px">
@@ -3154,6 +3421,8 @@ let generateFormId='', generateFormName='';
 function openGenerateModal(formId, formName){
   if(formId==='form-13678a'){ open13678aModal(); return; }
   if(formId==='form-14484'){ open14484Modal(); return; }
+  if(formId==='form-13680'){ open13680Modal(); return; }
+  if(formId==='form-13681'){ open13681Modal(); return; }
   generateFormId=formId; generateFormName=formName;
   // populate selects
   const cs=document.getElementById('genClient'),cgs=document.getElementById('genCaregiver');
@@ -3292,6 +3561,10 @@ function printDraft(id){
     printWin.document.write(build13678aPrintHtml(fd,d));
   } else if(d.form_id==='form-14484'){
     printWin.document.write(build14484PrintHtml(fd,d));
+  } else if(d.form_id==='form-13680'){
+    printWin.document.write(build13680PrintHtml(fd,d));
+  } else if(d.form_id==='form-13681'){
+    printWin.document.write(build13681PrintHtml(fd,d));
   } else {
     printWin.document.write(build13678PrintHtml(fd,d));
   }
@@ -3846,6 +4119,583 @@ async function deleteSignedDoc(id){
   if(supa&&currentUser) await supa.from('signed_documents').delete().eq('id',id);
   window.signedDocs=(window.signedDocs||[]).filter(x=>x.id!==id);
   renderSignedTable(window.signedDocs);
+}
+
+// ── 13-680 RESCINDING DELEGATION ─────────────────
+function open13680Modal(){
+  const cs=document.getElementById('rsc_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['rsc_acesId','rsc_dob','rsc_facilityName','rsc_facilityPhone','rsc_caseManager','rsc_altPlan','rsc_rndSig','rsc_rK'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('rsc_setting').value='AFH';
+  document.getElementById('rsc_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rsc_notifyDate').value='';
+  ['rsc_rA','rsc_rB','rsc_rC','rsc_rD','rsc_rE','rsc_rF','rsc_rG','rsc_rH','rsc_rI','rsc_rJ'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  document.querySelectorAll('input[name="rsc_notifyMethod"]').forEach(r=>r.checked=false);
+  document.getElementById('rsc_caregiversContainer').innerHTML='';
+  addRscCaregiverRow(); addRscCaregiverRow();
+  if(currentProfile?.full_name)document.getElementById('rsc_rndSig').value=currentProfile.full_name;
+  openModal('generate13680Modal');
+}
+
+function onRscClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const acesEl=document.getElementById('rsc_acesId');if(acesEl)acesEl.value=cl.acesId||cl.dshsId||'';
+  const dobEl=document.getElementById('rsc_dob');if(dobEl)dobEl.value=cl.dob||'';
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  if(fac){
+    const fn=document.getElementById('rsc_facilityName');if(fn)fn.value=fac.name||'';
+    const fp=document.getElementById('rsc_facilityPhone');if(fp)fp.value=fac.phone||'';
+    const settingEl=document.getElementById('rsc_setting');
+    if(settingEl){
+      if(fac.type.includes('Adult Family'))settingEl.value='AFH';
+      else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
+      else if(fac.type.includes('Residential'))settingEl.value='In-home';
+      else settingEl.value='AFH';
+    }
+  }
+  // pre-fill first caregiver row
+  const cg=window.caregivers.find(c=>c.id===cl.caregiverId);
+  if(cg){
+    const ct=document.getElementById('rsc_caregiversContainer');
+    const first=ct?.querySelector('.rsc-cg-name');
+    if(first)first.value=`${cg.first} ${cg.last}`;
+    const firstMed=ct?.querySelector('.rsc-cg-med');
+    // pre-fill medications/treatments from active case tasks
+    const activeCase=window.delegationCases.find(c=>c.clientId===cl.id&&c.status==='Active');
+    if(activeCase&&firstMed){
+      const tasks=(activeCase.tasks||[]).filter(t=>t.status==='Active').map(t=>t.name).join(', ');
+      firstMed.value=tasks;
+    }
+  }
+}
+
+let rscCgCount=0;
+function addRscCaregiverRow(){
+  rscCgCount++;
+  const ct=document.getElementById('rsc_caregiversContainer');if(!ct)return;
+  const idx=ct.children.length+1;
+  ct.insertAdjacentHTML('beforeend',`
+  <div style="display:grid;grid-template-columns:2fr 3fr 2fr auto;gap:8px;align-items:center;margin-bottom:8px;padding:8px 10px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+    <div><div class="label" style="margin-bottom:3px">${idx}. Caregiver Name</div><input class="form-input rsc-cg-name" placeholder="Full name" style="font-size:12px"></div>
+    <div><div class="label" style="margin-bottom:3px">Medications / Treatments Rescinded</div><input class="form-input rsc-cg-med" placeholder="Medication or treatment name" style="font-size:12px"></div>
+    <div><div class="label" style="margin-bottom:3px">Notes</div><input class="form-input rsc-cg-notes" placeholder="Notes" style="font-size:12px"></div>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:0 4px;align-self:flex-end;margin-bottom:4px">✕</button>
+  </div>`);
+}
+
+function collectRscCaregivers(){
+  const ct=document.getElementById('rsc_caregiversContainer');if(!ct)return[];
+  return [...ct.querySelectorAll('div[style*="grid"]')].map((row,i)=>{
+    const name=row.querySelector('.rsc-cg-name')?.value||'';
+    const med=row.querySelector('.rsc-cg-med')?.value||'';
+    const notes=row.querySelector('.rsc-cg-notes')?.value||'';
+    return {num:i+1,name,med,notes};
+  }).filter(r=>r.name.trim()||r.med.trim());
+}
+
+function getRscReasons(){
+  const reasons=[];
+  const map={rsc_rA:'A. Client died',rsc_rB:'B. Client\'s condition no longer stable and predictable',rsc_rC:'C. Frequent staff turnover',rsc_rD:'D. Client / authorized representative requested',rsc_rE:'E. NA not competent',rsc_rF:'F. NA not willing',rsc_rG:'G. NA credential expired',rsc_rH:'H. NA no longer working with client',rsc_rI:'I. Client safety compromised',rsc_rJ:'J. Rescinding facility including clients and nurse assistant'};
+  Object.entries(map).forEach(([id,label])=>{if(document.getElementById(id)?.checked)reasons.push(label);});
+  const k=document.getElementById('rsc_rK')?.value.trim();
+  if(k)reasons.push('K. Other: '+k);
+  return reasons;
+}
+
+async function submitGenerate13680(){
+  const clientId=document.getElementById('rsc_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const altPlan=document.getElementById('rsc_altPlan').value.trim();
+  if(!altPlan){alert('Alternative Plan (Field 14) is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const notifyMethod=document.querySelector('input[name="rsc_notifyMethod"]:checked')?.value||'';
+  const caregivers=collectRscCaregivers();
+  const reasons=getRscReasons();
+
+  const formData={
+    clientName: cl?`${cl.last}, ${cl.first}`:'',
+    acesId: document.getElementById('rsc_acesId').value||cl?.acesId||cl?.dshsId||'',
+    dob: document.getElementById('rsc_dob').value||cl?.dob||'',
+    setting: document.getElementById('rsc_setting').value,
+    facilityName: document.getElementById('rsc_facilityName').value||fac?.name||'',
+    facilityPhone: document.getElementById('rsc_facilityPhone').value||fac?.phone||'',
+    reasons, caregivers,
+    caseManager: document.getElementById('rsc_caseManager').value,
+    notifyMethod,
+    notifyDate: document.getElementById('rsc_notifyDate').value,
+    altPlan,
+    rndSig: document.getElementById('rsc_rndSig').value,
+    rescindDate: document.getElementById('rsc_date').value,
+    rndName: currentProfile?.full_name||currentUser?.email||'',
+  };
+
+  const btn=document.getElementById('rsc_submitBtn');
+  btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={
+    id: Date.now().toString(), user_id: currentUser?.id,
+    form_id: 'form-13680', form_name: '13-680, Nurse Delegation: Rescinding Delegation',
+    client_id: clientId, client_name: cl?`${cl.first} ${cl.last}`:'—',
+    caregiver_id: cl?.caregiverId||null,
+    caregiver_name: caregivers[0]?.name||'—',
+    facility_id: cl?.facilityId||null, facility_name: fac?.name||'—',
+    form_data: formData, status: 'Draft — Printed, Awaiting Signature',
+    created_at: now, updated_at: now
+  };
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13680Modal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert(`✅ 13-680 Rescinding Delegation saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+}
+
+function openGenerateFromCase13680(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13680Modal();
+    setTimeout(()=>{
+      const cs=document.getElementById('rsc_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onRscClientChange(cs);}
+    },200);
+  },100);
+}
+
+function build13680PrintHtml(fd,draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const chk=v=>v?'☑':'☐';
+  const reasons=fd.reasons||[];
+  const cgs=fd.caregivers||[];
+  // pad to 10 rows
+  const rows=Array.from({length:10},(_,i)=>cgs[i]||{num:i+1,name:'',med:'',notes:''});
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 13-680 — ${esc(draft.client_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
+  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:2px}
+  .doc-sub{font-size:8.5pt;font-weight:bold;text-align:center;margin-bottom:1px;letter-spacing:0.03em}
+  table{width:100%;border-collapse:collapse}
+  td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
+  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.04em}
+  .fv{font-size:8.5pt;min-height:13px;display:block}
+  .sig-row td{height:36px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:22px}
+  .reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;font-size:8pt;padding:3px 4px}
+  .reason-item{display:flex;align-items:flex-start;gap:3px}
+  .footer-area{font-size:7.5pt;margin-top:5px;display:flex;justify-content:space-between}
+  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 5px}
+  @media print{body{padding:0.35in 0.4in} @page{size:letter portrait;margin:0}}
+</style>
+</head><body>
+
+<div class="doc-title">Nurse Delegation: Rescinding Delegation</div>
+
+<table style="margin-bottom:0">
+  <tr>
+    <td colspan="2" style="width:38%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:20%"><span class="fl">2. ACES Client ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:20%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:22%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="3"><span class="fl">5. Facility or Program Name</span><span class="fv">${esc(fd.facilityName)}</span></td>
+    <td colspan="2"><span class="fl">6. Telephone Number</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <span class="fl">7. Reason for Rescinding (Check all that apply)</span>
+      <div class="reason-grid">
+        ${[
+          ['A. Client died','A. Client died'],
+          ['E. NA not competent','E. NA not competent'],
+          ['B. Client\'s condition no longer stable and predictable','B. Client\'s condition is no longer stable and predictable'],
+          ['F. NA not willing','F. NA not willing'],
+          ['C. Frequent staff turnover','C. Frequent staff turnover'],
+          ['G. NA credential expired','G. NA credential expired'],
+          ['D. Client / authorized representative requested','D. Client / authorized representative requested'],
+          ['H. NA no longer working with client','H. NA No longer working with client'],
+          ['I. Client safety compromised','I. Client safety compromised'],
+          ['J. Rescinding facility including clients and nurse assistant','J. Rescinding facility including clients and nurse assistant'],
+        ].map(([key,label])=>`<div class="reason-item">${reasons.some(r=>r.startsWith(key.charAt(0)))?'☑':'☐'} ${esc(label)}</div>`).join('')}
+      </div>
+      <div style="margin-top:4px;font-size:8pt">${chk(reasons.some(r=>r.startsWith('K.')))} K. Other (specify): <span style="border-bottom:1px solid #000;display:inline-block;min-width:300px">${esc(reasons.find(r=>r.startsWith('K.'))||'').replace('K. Other: ','')}</span></div>
+    </td>
+  </tr>
+  <tr>
+    <td style="width:6%;background:#d9d9d9"></td>
+    <td style="width:30%;background:#d9d9d9;font-weight:bold;font-size:8pt">8. NAMES OF CAREGIVERS</td>
+    <td style="width:32%;background:#d9d9d9;font-weight:bold;font-size:8pt" colspan="2">9. MEDICATIONS AND TREATMENTS RESCINDED</td>
+    <td style="width:32%;background:#d9d9d9;font-weight:bold;font-size:8pt">10. NOTES</td>
+  </tr>
+  ${rows.map((r,i)=>`
+  <tr>
+    <td style="text-align:right;font-size:8pt;color:#555">${i+1})</td>
+    <td><span class="fv">${esc(r.name)}</span></td>
+    <td colspan="2"><span class="fv">${esc(r.med)}</span></td>
+    <td><span class="fv">${esc(r.notes)}</span></td>
+  </tr>`).join('')}
+  <tr>
+    <td colspan="3"><span class="fl">11. Name of Case Manager Notified</span><span class="fv">${esc(fd.caseManager)}</span></td>
+    <td><span class="fl">12. Method of Notification</span>
+      <span class="fv" style="display:flex;gap:10px">
+        ${fd.notifyMethod==='Telephone'?'☑':'☐'} Telephone &nbsp; ${fd.notifyMethod==='Email'?'☑':'☐'} Email
+      </span>
+    </td>
+    <td><span class="fl">13. Date</span><span class="fv">${esc(fd.notifyDate)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">14. Alternative Plan for Continuing the Task</span><span class="fv" style="white-space:pre-wrap;min-height:32px">${esc(fd.altPlan)}</span></td>
+  </tr>
+  <tr class="sig-row">
+    <td colspan="3"><span class="fl">15. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
+    <td colspan="2"><span class="fl">16. Date</span><span class="fv sig-line">${esc(fd.rescindDate)}</span></td>
+  </tr>
+</table>
+
+<div style="border:1px solid #000;padding:6px 8px;margin-top:5px;font-size:7.5pt;line-height:1.55">
+  <strong>Instructions for Completing Nurse Delegation: Rescinding Delegation</strong> All fields are required unless indicated <strong>"OPTIONAL".</strong><br>
+  <strong>Client Name:</strong> Enter ND client's name (last name, first name). &nbsp;
+  <strong>ACES Client ID Number:</strong> Enter the client's ACES ID number. &nbsp;
+  <strong>3. Date of Birth:</strong> Enter ND client's date of birth (month, day, and year). &nbsp;
+  <strong>4. Setting:</strong> Enter client's setting "AFH", "ALF", DDA Program, or "In-home". &nbsp;
+  <strong>5. Facility or Program Name:</strong> Enter name of facility/program contact. &nbsp;
+  <strong>6. Telephone Number:</strong> Enter telephone number of facility/program contact including area code. &nbsp;
+  <strong>7. Reason for Rescinding:</strong> Mark the boxes next to the reason for rescinding. Mark all that apply. &nbsp;
+  <strong>8. Names of Caregivers:</strong> Enter name of individual caregiver rescinded. &nbsp;
+  <strong>9. Medications and treatments rescinded:</strong> Enter name of individual medication or treatment. &nbsp;
+  <strong>10. Notes:</strong> List notes related to rescinded tasks. &nbsp;
+  <strong>11. Name of Case Manager Notified:</strong> Enter case manager name, if notified. &nbsp;
+  <strong>12. Method of notification:</strong> Identify method of notification to case manager. &nbsp;
+  <strong>13. Date:</strong> Enter date the case manager was notified. &nbsp;
+  <strong>14. Alternative Plan for Continuing the Task:</strong> Describe how client's needs will continue to be met. &nbsp;
+  <strong>15. and 16. RND Signature and Date:</strong> Sign and date your signature. The date the form is signed is the date of rescinding.
+</div>
+
+<div class="footer-area" style="margin-top:6px">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:7.5pt">
+  <span><strong>DSHS 13-680 (REV. 09/2021)</strong></span>
+  <span><strong>NURSE DELEGATION: RESCINDING DELEGATION</strong> &nbsp;&nbsp; Page 1 of 2</span>
+</div>
+
+</body></html>`;
+}
+
+// ── 13-681 CHANGE IN MEDICAL ORDERS ──────────────
+function open13681Modal(){
+  const cs=document.getElementById('chg_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['chg_acesId','chg_dob','chg_byWhom','chg_effectiveDate','chg_verifyName','chg_verifyTitle','chg_verifyDate','chg_taskOrder','chg_dateOrdered','chg_medName','chg_startDate','chg_stopDate','chg_dose','chg_frequency','chg_route','chg_notExceed','chg_medReason','chg_steps','chg_expectedOutcome','chg_rndName','chg_rndPhone','chg_whatRnd','chg_hcpName','chg_hcpPhone','chg_whatHcp','chg_whatEmergency','chg_rndSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('chg_setting').value='AFH';
+  document.getElementById('chg_notifyDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('chg_date').value=new Date().toISOString().split('T')[0];
+  ['chg_newMed','chg_changeMed','chg_newTask','chg_changeTask','chg_taskNewSheet','chg_taskUpdated','chg_taskNoChange','chg_teachingAid'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  document.querySelectorAll('input[name="chg_received"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[name="chg_medIs"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[name="chg_delegation"]').forEach(r=>r.checked=false);
+  document.getElementById('chg_verbalSection').style.display='none';
+  if(currentProfile?.full_name){document.getElementById('chg_rndName').value=currentProfile.full_name;document.getElementById('chg_rndSig').value=currentProfile.full_name;}
+  if(currentProfile?.phone)document.getElementById('chg_rndPhone').value=currentProfile.phone;
+  openModal('generate13681Modal');
+}
+
+function onChgClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const acesEl=document.getElementById('chg_acesId');if(acesEl)acesEl.value=cl.acesId||cl.dshsId||'';
+  const dobEl=document.getElementById('chg_dob');if(dobEl)dobEl.value=cl.dob||'';
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  const settingEl=document.getElementById('chg_setting');
+  if(settingEl&&fac){
+    if(fac.type.includes('Adult Family'))settingEl.value='AFH';
+    else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
+    else if(fac.type.includes('Residential'))settingEl.value='In-home';
+  }
+  // pre-fill HCP from physician
+  const hcpEl=document.getElementById('chg_hcpName');if(hcpEl)hcpEl.value=cl.physician||'';
+  const hcpPhEl=document.getElementById('chg_hcpPhone');if(hcpPhEl)hcpPhEl.value=cl.physicianPhone||'';
+  // pre-fill task order from active case
+  const activeCase=window.delegationCases.find(c=>c.clientId===cl.id&&c.status==='Active');
+  if(activeCase){
+    const taskEl=document.getElementById('chg_taskOrder');
+    if(taskEl){const tasks=(activeCase.tasks||[]).filter(t=>t.status==='Active').map(t=>t.name).join(', ');taskEl.value=tasks;}
+  }
+}
+
+function onChgVerbalToggle(){
+  const v=document.querySelector('input[name="chg_received"]:checked')?.value==='Verbal';
+  document.getElementById('chg_verbalSection').style.display=v?'block':'none';
+}
+
+async function submitGenerate13681(){
+  const clientId=document.getElementById('chg_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const notifyDate=document.getElementById('chg_notifyDate').value;
+  if(!notifyDate){alert('Date RND Was Notified (Field 5) is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const receivedMethod=document.querySelector('input[name="chg_received"]:checked')?.value||'';
+  const medIs=document.querySelector('input[name="chg_medIs"]:checked')?.value||'';
+  const delegationChoice=document.querySelector('input[name="chg_delegation"]:checked')?.value||'';
+
+  const formData={
+    clientName: cl?`${cl.last}, ${cl.first}`:'',
+    acesId: document.getElementById('chg_acesId').value||cl?.acesId||cl?.dshsId||'',
+    dob: document.getElementById('chg_dob').value||cl?.dob||'',
+    setting: document.getElementById('chg_setting').value,
+    notifyDate, byWhom: document.getElementById('chg_byWhom').value,
+    orderChanges:{newMed:document.getElementById('chg_newMed').checked,changeMed:document.getElementById('chg_changeMed').checked,newTask:document.getElementById('chg_newTask').checked,changeTask:document.getElementById('chg_changeTask').checked},
+    receivedMethod,
+    effectiveDate: document.getElementById('chg_effectiveDate').value,
+    verifyName: document.getElementById('chg_verifyName').value,
+    verifyTitle: document.getElementById('chg_verifyTitle').value,
+    verifyDate: document.getElementById('chg_verifyDate').value,
+    taskNewSheet: document.getElementById('chg_taskNewSheet').checked,
+    taskUpdated: document.getElementById('chg_taskUpdated').checked,
+    taskNoChange: document.getElementById('chg_taskNoChange').checked,
+    taskOrder: document.getElementById('chg_taskOrder').value,
+    medIs, dateOrdered: document.getElementById('chg_dateOrdered').value,
+    medName: document.getElementById('chg_medName').value,
+    startDate: document.getElementById('chg_startDate').value,
+    stopDate: document.getElementById('chg_stopDate').value,
+    dose: document.getElementById('chg_dose').value,
+    frequency: document.getElementById('chg_frequency').value,
+    route: document.getElementById('chg_route').value,
+    notExceed: document.getElementById('chg_notExceed').value,
+    medReason: document.getElementById('chg_medReason').value,
+    teachingAid: document.getElementById('chg_teachingAid').checked,
+    steps: document.getElementById('chg_steps').value,
+    expectedOutcome: document.getElementById('chg_expectedOutcome').value,
+    rndName: document.getElementById('chg_rndName').value||currentProfile?.full_name||'',
+    rndPhone: document.getElementById('chg_rndPhone').value||currentProfile?.phone||'',
+    whatRnd: document.getElementById('chg_whatRnd').value,
+    hcpName: document.getElementById('chg_hcpName').value||cl?.physician||'',
+    hcpPhone: document.getElementById('chg_hcpPhone').value||cl?.physicianPhone||'',
+    whatHcp: document.getElementById('chg_whatHcp').value,
+    whatEmergency: document.getElementById('chg_whatEmergency').value,
+    delegateImmediately: delegationChoice==='immediate',
+    siteVisitRequired: delegationChoice==='site_visit',
+    rndSig: document.getElementById('chg_rndSig').value,
+    signDate: document.getElementById('chg_date').value,
+  };
+
+  const btn=document.getElementById('chg_submitBtn');
+  btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={
+    id: Date.now().toString(), user_id: currentUser?.id,
+    form_id: 'form-13681', form_name: '13-681, Nurse Delegation: Change in Medical Orders',
+    client_id: clientId, client_name: cl?`${cl.first} ${cl.last}`:'—',
+    caregiver_id: cl?.caregiverId||null, caregiver_name: cg?`${cg.first} ${cg.last}`:'—',
+    facility_id: cl?.facilityId||null, facility_name: fac?.name||'—',
+    form_data: formData, status: 'Draft — Printed, Awaiting Signature',
+    created_at: now, updated_at: now
+  };
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13681Modal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert(`✅ 13-681 Change in Medical Orders saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+}
+
+function openGenerateFromCase13681(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13681Modal();
+    setTimeout(()=>{
+      const cs=document.getElementById('chg_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onChgClientChange(cs);}
+    },200);
+  },100);
+}
+
+function build13681PrintHtml(fd,draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const chk=v=>v?'☑':'☐';
+  const oc=fd.orderChanges||{};
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 13-681 — ${esc(draft.client_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
+  .doc-title{font-size:11.5pt;font-weight:bold;text-align:center;margin-bottom:2px}
+  table{width:100%;border-collapse:collapse}
+  td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
+  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.04em}
+  .fv{font-size:8.5pt;min-height:13px;display:block}
+  .sig-row td{height:36px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:22px}
+  .footer-area{font-size:7.5pt;margin-top:5px;display:flex;justify-content:space-between}
+  .instructions-box{border:1px solid #000;padding:6px 8px;margin-top:4px;font-size:7.5pt;line-height:1.5}
+  @media print{body{padding:0.35in 0.4in} @page{size:letter portrait;margin:0}}
+</style>
+</head><body>
+
+<div class="doc-title">Nurse Delegation: Change in Medical / Treatment Orders</div>
+
+<table style="margin-bottom:0">
+  <tr>
+    <td colspan="2" style="width:35%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:20%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:27%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="2"><span class="fl">5. Date RND Was Notified</span><span class="fv">${esc(fd.notifyDate)}</span></td>
+    <td colspan="2"><span class="fl">6. By Whom</span><span class="fv">${esc(fd.byWhom)}</span></td>
+    <td>
+      <span class="fl">7. Changes in Order(s)</span>
+      <span class="fv" style="font-size:8pt;line-height:1.7">
+        ${chk(oc.newMed)} New med. &nbsp; ${chk(oc.changeMed)} Change in a delegated med<br>
+        ${chk(oc.newTask)} New nursing task &nbsp; ${chk(oc.changeTask)} Change in a nursing task
+      </span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3">
+      <span class="fl">8. How Was the Change Received?</span>
+      <span class="fv" style="display:flex;gap:10px;font-size:8pt">
+        ${chk(fd.receivedMethod==='Written')} Written &nbsp; ${chk(fd.receivedMethod==='Faxed')} Faxed &nbsp; ${chk(fd.receivedMethod==='Verbal')} Verbal
+      </span>
+    </td>
+    <td colspan="2"><span class="fl">9. Effective Date of Change</span><span class="fv">${esc(fd.effectiveDate)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <span class="fl">10. Only Complete if Number 7 Was a Verbal Order</span>
+      <span class="fv" style="display:flex;gap:16px;font-size:8.5pt">
+        <span><span style="font-size:7pt;font-weight:bold">Name of Person Providing Verification</span><br>${esc(fd.verifyName)}</span>
+        <span><span style="font-size:7pt;font-weight:bold">Title</span><br>${esc(fd.verifyTitle)}</span>
+        <span><span style="font-size:7pt;font-weight:bold">Date of Verification</span><br>${esc(fd.verifyDate)}</span>
+      </span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <span class="fl">11. Nursing Task(s)</span>
+      <span class="fv" style="font-size:8pt;line-height:1.7">
+        ${chk(fd.taskNewSheet)} New task(s) sheet required &nbsp;
+        ${chk(fd.taskUpdated)} Current task(s) sheet(s) updated &nbsp;
+        ${chk(fd.taskNoChange)} No change to task(s) sheet(s)
+      </span>
+      <span style="font-size:7pt;font-weight:bold;display:block;margin-top:4px">NURSING TASK / ORDER</span>
+      <span class="fv" style="white-space:pre-wrap">${esc(fd.taskOrder)}</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <span class="fl">12. This Medication Is:</span>
+      <span class="fv" style="font-size:8pt">${chk(fd.medIs==='New')} New &nbsp;&nbsp; ${chk(fd.medIs==='Changed')} Changed</span>
+    </td>
+  </tr>
+  <tr>
+    <td><span class="fl">13. Date Ordered</span><span class="fv">${esc(fd.dateOrdered)}</span></td>
+    <td><span class="fl">14. Name of Medication</span><span class="fv">${esc(fd.medName)}</span></td>
+    <td><span class="fl">15. Start Date</span><span class="fv">${esc(fd.startDate)}</span></td>
+    <td colspan="2"><span class="fl">16. Stop Date (if applicable)</span><span class="fv">${esc(fd.stopDate)}</span></td>
+  </tr>
+  <tr>
+    <td><span class="fl">17. Strength / Dose</span><span class="fv">${esc(fd.dose)}</span></td>
+    <td><span class="fl">18. Medication Frequency</span><span class="fv">${esc(fd.frequency)}</span></td>
+    <td><span class="fl">19. Route</span><span class="fv">${esc(fd.route)}</span></td>
+    <td colspan="2"><span class="fl">20. Not to Exceed</span><span class="fv">${esc(fd.notExceed)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">21. Reason for Medication</span><span class="fv">${esc(fd.medReason)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Optional Task Sheet: (22 – 30)</td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <span class="fl">22. Steps to Perform the New Task &nbsp; ${chk(fd.teachingAid)} Check if Teaching Aid Attached</span>
+      <span class="fv" style="white-space:pre-wrap;min-height:32px">${esc(fd.steps)}</span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">23. Expected Outcome of Delegated Task</span><span class="fv" style="min-height:24px">${esc(fd.expectedOutcome)}</span></td>
+  </tr>
+  <tr><td colspan="5" style="background:#d9d9d9;font-size:8pt;font-weight:bold;font-style:italic;padding:2px 5px">Report side effects or unexpected outcomes to:</td></tr>
+  <tr>
+    <td colspan="3"><span class="fl">24. RND Name (Print)</span><span class="fv">${esc(fd.rndName)}</span></td>
+    <td colspan="2"><span class="fl">25. Telephone Number</span><span class="fv">${esc(fd.rndPhone)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">26. What to Report to RND</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatRnd)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="3"><span class="fl">27. Health Care Provider</span><span class="fv">${esc(fd.hcpName)}</span></td>
+    <td colspan="2"><span class="fl">28. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">29. What to Report to Health Care Provider</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatHcp)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5"><span class="fl">30. What to Report to Emergency Services, 911</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatEmergency)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Select Only One of the Following</td>
+  </tr>
+  <tr>
+    <td colspan="5" style="font-size:8.5pt;line-height:1.65">
+      ${chk(fd.delegateImmediately)} <strong>31. Delegate immediately. No site visit required.</strong> The above order and instructions have been communicated to the delegated Long Term Care Worker(s) (LTCW) and this form should be added to the client's chart.<br><br>
+      <strong>OR</strong><br><br>
+      ${chk(fd.siteVisitRequired)} <strong>32. A site visit is required</strong> for training or assessment prior to delegation. The LTCW(s) may not perform the task until the site visit is completed.
+    </td>
+  </tr>
+  <tr class="sig-row">
+    <td colspan="3"><span class="fl">33. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
+    <td colspan="2"><span class="fl">34. Date</span><span class="fv sig-line">${esc(fd.signDate)}</span></td>
+  </tr>
+</table>
+
+<div class="instructions-box">
+  <strong>Instructions for Completing Nurse Delegation: Change in Medical / Treatment Orders</strong> All fields are required unless indicated <strong>"OPTIONAL".</strong><br>
+  <strong>1. Client Name:</strong> Enter ND client's name (last name, first name). &nbsp;
+  <strong>2. ACES ID Number:</strong> Enter Client's ACES ID Number. &nbsp;
+  <strong>3. Date of Birth:</strong> Enter ND client's date of birth (month, day, year). &nbsp;
+  <strong>4. ID Setting:</strong> OPTIONAL – Enter client's ID number or settings "AFH", "ALF", DDA Program, "In-home". &nbsp;
+  <strong>5. Date RND Was Notified:</strong> Enter date you were notified of change. &nbsp;
+  <strong>6. By Whom:</strong> List name and title of individual who notified delegating nurse. &nbsp;
+  <strong>7. Change in Orders:</strong> Check appropriate box. &nbsp;
+  <strong>8. How Was the Change Received:</strong> Select the method used by the health care provider. &nbsp;
+  <strong>9. Effective Date of Change:</strong> Enter date the change was ordered by health care provider. &nbsp;
+  <strong>10. If Verbal was selected in #7:</strong> Insert name, title (MD, ARNP, PA) and date the order was verified. &nbsp;
+  <strong>11. Nursing Task/Orders:</strong> What was the order, and does it require a new task sheet or a change to the current instructions. &nbsp;
+  <strong>12–21. Medication details:</strong> Complete only if a medication was involved. &nbsp;
+  <strong>22–23. Optional Task Sheet:</strong> Complete only if using this form as a task sheet. &nbsp;
+  <strong>24–25. RND Name and Telephone Number:</strong> Print your name and telephone number including area code. &nbsp;
+  <strong>31–32. Delegate Immediately OR Site Visit Required:</strong> Choose only one. &nbsp;
+  <strong>33–34. RND Signature and Date:</strong> Sign and date your signature.
+</div>
+
+<div class="footer-area" style="margin-top:6px">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:7.5pt">
+  <span><strong>DSHS 13-681 (REV. 02/2022)</strong></span>
+  <span><strong>NURSE DELEGATION: CHANGE MEDICAL / TREATMENT ORDERS</strong> &nbsp;&nbsp; Page 1 of 3</span>
+</div>
+
+</body></html>`;
 }
 
 // ── SIGN OUT ──────────────────────────────────────
