@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DelegateRN — Washington State Nurse Delegation Platform</title>
+<title>RN Delegation Management System — WA State Nurse Delegation Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -191,8 +191,8 @@ textarea.form-input{resize:vertical;min-height:80px}
 
   <nav>
     <div class="nav-logo">
-      <div class="mark">D</div>
-      <div class="name">Delegate<span>RN</span></div>
+      <div class="mark">RN</div>
+      <div class="name">Delegation <span>Management System</span></div>
     </div>
     <div>
       <button class="btn btn-ghost btn-sm" onclick="doSignIn()">Sign In</button>
@@ -205,13 +205,13 @@ textarea.form-input{resize:vertical;min-height:80px}
     <div class="hero-content">
       <div class="hero-eyebrow animate-fade-up">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
-        Washington State Nurse Delegation · DSHS Compliant
+        WA State · DSHS Compliant Nurse Delegation System
       </div>
       <h1 class="animate-fade-up animate-delay-1">
-        The <span class="accent">Delegation Workflow</span><br>Operating System for RNs
+        The <span class="accent">RN Delegation</span><br>Management System
       </h1>
       <p class="hero-sub animate-fade-up animate-delay-2">
-        A precision-built clinical platform for Registered Nurses managing nurse delegation in Adult Family Homes — centralizing caregiver oversight, DSHS compliance, and documentation into a single intelligent workspace.
+        A precision-built clinical platform for Registered Nurses managing nurse delegation in Washington State Adult Family Homes — centralizing caregiver oversight, DSHS compliance, and documentation into a single intelligent workspace.
       </p>
       <div class="animate-fade-up animate-delay-3">
         <button class="btn btn-primary btn-lg" onclick="doSignIn()" style="padding:14px 36px;font-size:15px">
@@ -234,8 +234,8 @@ textarea.form-input{resize:vertical;min-height:80px}
 
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div class="mark" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">D</div>
-        <div style="font-size:15px;font-weight:600;letter-spacing:-0.01em">Delegate<span style="color:var(--blue)">RN</span></div>
+        <div class="mark" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">RN</div>
+        <div style="font-size:13px;font-weight:600;letter-spacing:-0.01em">RN Delegation <span style="color:var(--blue)">Mgmt</span></div>
       </div>
       <div class="sidebar-section">
         <span class="sidebar-section-label">Workspace</span>
@@ -319,16 +319,156 @@ textarea.form-input{resize:vertical;min-height:80px}
      MODALS
 ═══════════════════════════════════════════════ -->
 
+<!-- Generate Form Modal -->
+<div class="overlay" id="generateModal">
+  <div class="modal" style="width:min(680px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4 id="genFormTitle">Generate Form</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill with client and caregiver data — saves to Drafts</p>
+      </div>
+      <button onclick="closeModal('generateModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue)">
+        ℹ️ Select a client and caregiver. Fields auto-populate from their profiles. Fill in task-specific details below.
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Assignment</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Client *</label><select class="form-input form-select" id="genClient" onchange="onGenClientChange(this)"><option value="">Select client…</option></select></div>
+          <div class="form-group"><label class="form-label">Caregiver</label><select class="form-input form-select" id="genCaregiver"><option value="">Select caregiver…</option></select></div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Task Details — Fields 6 &amp; 7</div>
+        <div class="form-group"><label class="form-label">6. Delegated Task</label><input class="form-input" id="genDelegatedTask" placeholder="Name of the delegated nursing task"></div>
+        <div class="form-group"><label class="form-label">Expected Outcome</label><input class="form-input" id="genExpectedOutcome" placeholder="Anticipated outcome of the task"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <input type="checkbox" id="genMedCheck" onchange="onGenMedCheck(this)" style="width:14px;height:14px;accent-color:var(--blue)">
+          <label style="font-size:12px;color:var(--text2);cursor:pointer" for="genMedCheck">Medications are delegated — complete Field 7</label>
+        </div>
+        <div id="genMedSection" style="display:none">
+          <div class="form-group"><label class="form-label">7. Medications, Dosages &amp; Frequency</label><textarea class="form-input" id="genMedications" rows="2" placeholder="List each medication, dose, frequency and route…"></textarea></div>
+          <div class="form-row-3">
+            <div class="form-group"><label class="form-label">Verification Date</label><input class="form-input" type="date" id="genVerifDate"></div>
+            <div class="form-group"><label class="form-label">Verified By (Name / Title)</label><input class="form-input" id="genVerifName" placeholder="Name / Title"></div>
+            <div class="form-group"><label class="form-label">Method of Verification</label><input class="form-input" id="genVerifMethod" placeholder="e.g. MAR review"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Instructions — Field 9</div>
+        <div class="form-group"><label class="form-label">9. Steps to Perform the Task</label><textarea class="form-input" id="genSteps" rows="4" placeholder="Write step-by-step instructions in simple language…"></textarea></div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Reporting — Fields 12, 15, 16</div>
+        <div class="form-group"><label class="form-label">12. What to Report to RND</label><textarea class="form-input" id="genWhatRnd" rows="2" placeholder="Side effects or unexpected outcomes to report to RND…"></textarea></div>
+        <div class="form-group"><label class="form-label">15. What to Report to Health Care Provider</label><textarea class="form-input" id="genWhatHcp" rows="2" placeholder="Side effects or unexpected outcomes to report to HCP…"></textarea></div>
+        <div class="form-group"><label class="form-label">16. What to Report to 911</label><textarea class="form-input" id="genWhatEmergency" rows="2" placeholder="Signs and symptoms requiring emergency call…"></textarea></div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:12px">Consumer Directed Employer — Fields 19 &amp; 20</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">19. Individual Provider (IP) Name</label><input class="form-input" id="genIpName" placeholder="If applicable"></div>
+          <div class="form-group"><label class="form-label">20. ProviderOne Number</label><input class="form-input" id="genProviderOne" placeholder="P1 number"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generateModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="genSubmitBtn" class="btn btn-primary btn-sm" onclick="submitGenerate()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Draft Modal -->
+<div class="overlay" id="editDraftModal">
+  <div class="modal" style="width:min(640px,95vw)">
+    <div class="modal-header">
+      <div><h4 id="editDraftFormName">Edit Draft</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Edit auto-filled fields before printing</p></div>
+      <button onclick="closeModal('editDraftModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editDraftId">
+      <div class="form-group"><label class="form-label">Delegated Task</label><input class="form-input" id="editDelegatedTask"></div>
+      <div class="form-group"><label class="form-label">Expected Outcome</label><input class="form-input" id="editExpectedOutcome"></div>
+      <div class="form-group"><label class="form-label">Medications (if applicable)</label><textarea class="form-input" id="editMedications" rows="2"></textarea></div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Verification Date</label><input class="form-input" type="date" id="editVerifDate"></div>
+        <div class="form-group"><label class="form-label">Verified By</label><input class="form-input" id="editVerifName"></div>
+        <div class="form-group"><label class="form-label">Verification Method</label><input class="form-input" id="editVerifMethod"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Steps to Perform the Task</label><textarea class="form-input" id="editSteps" rows="4"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">RND Name</label><input class="form-input" id="editRndName"></div>
+        <div class="form-group"><label class="form-label">RND Phone</label><input class="form-input" id="editRndPhone"></div>
+      </div>
+      <div class="form-group"><label class="form-label">What to Report to RND</label><textarea class="form-input" id="editWhatRnd" rows="2"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Health Care Provider Name</label><input class="form-input" id="editHcpName"></div>
+        <div class="form-group"><label class="form-label">HCP Phone</label><input class="form-input" id="editHcpPhone"></div>
+      </div>
+      <div class="form-group"><label class="form-label">What to Report to HCP</label><textarea class="form-input" id="editWhatHcp" rows="2"></textarea></div>
+      <div class="form-group"><label class="form-label">What to Report to 911</label><textarea class="form-input" id="editWhatEmergency" rows="2"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">IP Name (Field 19)</label><input class="form-input" id="editIpName"></div>
+        <div class="form-group"><label class="form-label">ProviderOne # (Field 20)</label><input class="form-input" id="editProviderOne"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('editDraftModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditedDraft()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Match Draft Modal (for upload) -->
+<div class="overlay" id="matchDraftModal">
+  <div class="modal" style="width:min(520px,95vw)">
+    <div class="modal-header">
+      <div><h4>Upload Signed Document</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Link this signed copy to a printed draft</p></div>
+      <button onclick="closeModal('matchDraftModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">📎</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)" id="matchFileLabel">—</div>
+          <div style="font-size:11px;color:var(--text3)">Selected file</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Link to a Draft Form (recommended)</label>
+        <select class="form-input form-select" id="matchDraftSelect">
+          <option value="">— Standalone (not linked to a draft) —</option>
+        </select>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px">Linking marks the draft as "Signed &amp; Filed" so you can track the full lifecycle.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('matchDraftModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="matchSubmitBtn" class="btn btn-primary btn-sm" onclick="submitMatchDraft()">Upload &amp; Link</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
-    <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:4px;position:relative">
+      <button onclick="closeModal('signInModal')" style="position:absolute;top:0;right:0;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px" title="Close">&times;</button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <div class="mark" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">D</div>
-        <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em">Delegate<span style="color:var(--blue)">RN</span></span>
+        <div class="mark" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">RN</div>
+        <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em">RN Delegation <span style="color:var(--blue)">Management System</span></span>
       </div>
       <h4 style="margin:0">Sign in to your workspace</h4>
-      <p style="font-size:12px;color:var(--text3);margin:2px 0 0">Washington State Nurse Delegation Platform</p>
+      <p style="font-size:12px;color:var(--text3);margin:2px 0 0">Washington State · DSHS Nurse Delegation Platform</p>
     </div>
     <div class="modal-body" style="padding:28px 28px 16px">
       <div class="form-group">
@@ -337,7 +477,10 @@ textarea.form-input{resize:vertical;min-height:80px}
       </div>
       <div class="form-group" style="margin-bottom:8px">
         <label class="form-label">Password</label>
-        <input class="form-input" id="siPassword" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitSignIn()">
+        <div style="position:relative">
+          <input class="form-input" id="siPassword" type="password" placeholder="••••••••" style="padding-right:44px" onkeydown="if(event.key==='Enter')submitSignIn()">
+          <button type="button" onclick="(()=>{const i=document.getElementById('siPassword');const b=document.getElementById('siPwdToggle');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Show':'Hide';})()" id="siPwdToggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;padding:0;font-family:var(--font);letter-spacing:0.03em">Show</button>
+        </div>
       </div>
       <div id="siError" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
     </div>
@@ -463,6 +606,7 @@ textarea.form-input{resize:vertical;min-height:80px}
         <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="clFirst" placeholder="First name"></div><div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="clLast" placeholder="Last name"></div></div>
         <div class="form-row"><div class="form-group"><label class="form-label">Date of Birth *</label><input class="form-input" type="date" id="clDob"></div><div class="form-group"><label class="form-label">Gender</label><select class="form-input form-select" id="clGender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div></div>
         <div class="form-row"><div class="form-group"><label class="form-label">DSHS Client ID</label><input class="form-input" id="clDshsId" placeholder="DSHS identifier"></div><div class="form-group"><label class="form-label">Medicare / Medicaid #</label><input class="form-input" id="clMedicaid" placeholder="Insurance ID"></div></div>
+        <div class="form-group"><label class="form-label">ACES Client ID Number</label><input class="form-input" id="clAcesId" placeholder="ACES client identifier"></div>
         <div class="form-group" style="margin-bottom:0"><label class="form-label">Address</label><input class="form-input" id="clAddress" placeholder="Street, City, ZIP"></div>
       </div>
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
@@ -519,9 +663,11 @@ function initSupa(){
 }
 
 // ── DATA ──────────────────────────────────────────
-window.facilities = [];
-window.caregivers = [];
-window.clients    = [];
+window.facilities  = [];
+window.caregivers  = [];
+window.clients     = [];
+window.formDrafts  = [];
+window.signedDocs  = [];
 
 // ── MODAL HELPERS ─────────────────────────────────
 function openModal(id){
@@ -633,9 +779,11 @@ function complianceRow(label){
   return `<div class="compliance-item"><span class="compliance-label">${label}</span><div class="compliance-check"></div></div>`;
 }
 function docShell(name,info){
-  return `<div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-ghost btn-sm">Generate</button></div>`;
+  return `<div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.45;cursor:not-allowed" title="Coming soon">Generate</button></div>`;
 }
-
+function docShellGen(name,info,formId){
+  return `<div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name" style="color:var(--text)">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateModal('${formId}','${name}')">Generate</button></div>`;
+}
 // ── PAGE RENDERERS ────────────────────────────────
 const pageRenderers = {};
 
@@ -649,7 +797,8 @@ pageRenderers.dashboard = () => `
 </div>
 <div class="page-content">
   <div style="margin-bottom:32px">
-    <h3 style="margin-bottom:6px;font-size:1.6rem">Good morning</h3>
+    <h3 style="margin-bottom:6px;font-size:1.6rem" id="dashGreeting">Good morning</h3>
+    <script>(()=>{const h=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})).getHours();const g=h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night';document.getElementById('dashGreeting').textContent=g;})()</script>
     <p style="font-size:14px">Your delegation workflow overview — all cases, visits, and compliance items in one place.</p>
   </div>
   <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-bottom:32px">
@@ -827,32 +976,91 @@ pageRenderers.visits = () => `
   <div class="card"><div class="empty-state" style="padding:64px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v3M15 2v3M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No nursing visits recorded</h4><p>Schedule a supervision nursing visit to begin tracking competency reviews and observations.</p><button class="btn btn-primary btn-sm" style="margin-top:16px">+ Schedule Visit</button></div></div>
 </div>`;
 
-pageRenderers.documents = () => `
+pageRenderers.documents = () => {
+  setTimeout(()=>{ docsShowTab('All'); loadDraftsList(); loadSignedList(); }, 0);
+  return `
 <div class="topbar">
   <div class="topbar-title">Document Management</div>
-  <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Filter</button><button class="btn btn-primary btn-sm">+ Upload Document</button></div>
+  <div class="topbar-actions" id="docsTopbarActions">
+    <button class="btn btn-ghost btn-sm" id="docsFilterBtn" style="display:none">Filter</button>
+  </div>
 </div>
 <div class="page-content">
-  <div class="tabs"><div class="tab active">All Documents</div><div class="tab">Draft Forms</div><div class="tab">Signed Forms</div><div class="tab">Caregiver Packets</div><div class="tab">Uploaded Files</div></div>
-  <div style="border:1px dashed var(--border2);border-radius:var(--radius);padding:36px;text-align:center;cursor:pointer;background:var(--bg1);margin-bottom:28px" onclick="this.style.borderColor='var(--blue)'">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="display:block;margin:0 auto 12px;color:var(--text3)"><path d="M16 24V12M16 12l-4 4M16 12l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/></svg>
-    <p style="font-size:13px"><strong style="color:var(--text2)">Drag and drop files here</strong> or click to upload</p>
-    <p style="font-size:12px;margin-top:4px">PDF, DOCX, PNG · Max 25MB per file</p>
+  <div class="tabs" id="docsTabs">
+    <div class="tab active" onclick="docsShowTab('All')">All Documents</div>
+    <div class="tab" onclick="docsShowTab('Drafts')">Drafts</div>
+    <div class="tab" onclick="docsShowTab('Signed')">Signed Documents</div>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
-    ${docShell('Referral Form','DSHS · Not yet generated')}
-    ${docShell('Credentials & Training Verification','DSHS · Not yet generated')}
-    ${docShell('Consent for Delegation','DSHS · Not yet generated')}
-    ${docShell('Nursing Task Instructions','DSHS · Not yet generated')}
-    ${docShell('PRN Medication Form','DSHS · Not yet generated')}
-    ${docShell('Assumption of Delegation','DSHS · Not yet generated')}
-    ${docShell('Rescinding Delegation','DSHS · Not yet generated')}
-    ${docShell('Change in Medical Orders','DSHS · Not yet generated')}
-    ${docShell('Request for Additional Unit','DSHS · Not yet generated')}
-    ${docShell('Nursing Visit Form','DSHS · Not yet generated')}
-    ${docShell('Billing Form','DSHS · Not yet generated')}
+
+  <!-- ALL DOCUMENTS TAB -->
+  <div id="docsTabAll">
+    <p style="font-size:13px;color:var(--text3);margin-bottom:20px">Click <strong style="color:var(--text2)">Generate</strong> on any form to auto-fill it with client or caregiver data and move it to Drafts.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+      ${docShellGen('13-678, Nurse Delegation: Instructions for Nursing Task','DSHS 13-678 · Rev. 06/2021','form-13678')}
+      ${docShell('Referral Form','DSHS · Not yet generated')}
+      ${docShell('Credentials & Training Verification','DSHS · Not yet generated')}
+      ${docShell('Consent for Delegation','DSHS · Not yet generated')}
+      ${docShell('PRN Medication Form','DSHS · Not yet generated')}
+      ${docShell('Assumption of Delegation','DSHS · Not yet generated')}
+      ${docShell('Rescinding Delegation','DSHS · Not yet generated')}
+      ${docShell('Change in Medical Orders','DSHS · Not yet generated')}
+      ${docShell('Request for Additional Unit','DSHS · Not yet generated')}
+      ${docShell('Nursing Visit Form','DSHS · Not yet generated')}
+      ${docShell('Billing Form','DSHS · Not yet generated')}
+    </div>
+  </div>
+
+  <!-- DRAFTS TAB -->
+  <div id="docsTabDrafts" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Draft Forms</span>
+        <span class="chip" id="draftsCountChip">0 drafts</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Form Name</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Created</th><th>Status</th><th></th></tr></thead>
+          <tbody id="draftsTableBody">
+            <tr id="draftsEmptyRow"><td colspan="7"><div class="empty-state" style="padding:48px">
+              <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div>
+              <h4>No drafts yet</h4>
+              <p>Generate a form from All Documents to create a draft.</p>
+            </div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNED DOCUMENTS TAB -->
+  <div id="docsTabSigned" style="display:none">
+    <div style="border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;background:var(--bg1);margin-bottom:24px;transition:all 0.2s" id="signedDropzone" onclick="document.getElementById('signedFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--blue)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handleSignedDrop(event)">
+      <input type="file" id="signedFileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleSignedFileSelect(event)">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="display:block;margin:0 auto 12px;color:var(--text3)"><path d="M16 24V12M16 12l-4 4M16 12l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/></svg>
+      <p style="font-size:13px"><strong style="color:var(--text2)">Drag and drop signed documents here</strong> or click to upload</p>
+      <p style="font-size:12px;margin-top:4px;color:var(--text3)">PDF, JPG, PNG · Max 25MB · Match to a draft to track status</p>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Signed Documents</span>
+        <span class="chip" id="signedCountChip">0 signed</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Form Name</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Signed / Uploaded</th><th>Status</th><th></th></tr></thead>
+          <tbody id="signedTableBody">
+            <tr id="signedEmptyRow"><td colspan="7"><div class="empty-state" style="padding:48px">
+              <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 17l4-4 3 3 7-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <h4>No signed documents uploaded</h4>
+              <p>After printing and signing a draft, upload the signed copy here.</p>
+            </div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>`;
+};
 
 pageRenderers.compliance = () => `
 <div class="topbar">
@@ -1075,7 +1283,7 @@ function switchCgTab(el,tab){document.querySelectorAll('#cgTabs .tab').forEach(t
 
 // ── CLIENT FUNCTIONS ──────────────────────────────
 function openClientModal(editId){
-  ['clFirst','clLast','clDob','clGender','clDshsId','clMedicaid','clAddress','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['clFirst','clLast','clDob','clGender','clDshsId','clAcesId','clMedicaid','clAddress','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const fSel=document.getElementById('clFacility'),cgSel=document.getElementById('clCaregiver');
   if(fSel){fSel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>fSel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));}
   if(cgSel){cgSel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgSel.insertAdjacentHTML('beforeend','<option value="'+c.id+'">'+c.first+' '+c.last+'</option>'));}
@@ -1100,12 +1308,12 @@ async function saveClient(){
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
   const cg=window.caregivers.find(c=>c.id===caregiverId);
   const caregiverName=cg?cg.first+' '+cg.last:'—';
-  const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};
+  const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};
   const now2=new Date().toISOString();
   const row2={
     id: cl.id, user_id: currentUser?.id,
     first: cl.first, last: cl.last, dob: cl.dob, gender: cl.gender,
-    dshs_id: cl.dshsId, medicaid: cl.medicaid, address: cl.address,
+    dshs_id: cl.dshsId, aces_id: cl.acesId, medicaid: cl.medicaid, address: cl.address,
     facility_id: cl.facilityId, facility_name: cl.facilityName,
     caregiver_id: cl.caregiverId, caregiver_name: cl.caregiverName,
     status: cl.status, diagnosis: cl.diagnosis,
@@ -1154,9 +1362,430 @@ function refreshClientFilters(){const sel=document.getElementById('clientFacilit
 function renderLinksTable(){const body=document.getElementById('clLinksBody');if(!body)return;const linked=window.clients.filter(c=>c.caregiverId);if(!linked.length){body.innerHTML='<div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div>';return;}body.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th></th></tr></thead><tbody>'+linked.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td>${c.caregiverName}</td><td>${c.facilityName}</td><td><span class="status status-active"><span class="status-dot"></span>Linked</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button></td></tr>`).join('')+'</tbody></table></div>';}
 function switchClTab(el,tab){document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Links','Care'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});const d=document.getElementById('clTab'+tab);if(d)d.style.display='block';if(tab==='Links')renderLinksTable();}
 
+// ── DOCUMENTS FUNCTIONS ───────────────────────────
+function docsShowTab(tab){
+  document.querySelectorAll('#docsTabs .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#docsTabs .tab').forEach(t=>{if(t.textContent.trim().startsWith(tab)||t.getAttribute('onclick').includes("'"+tab+"'"))t.classList.add('active');});
+  ['All','Drafts','Signed'].forEach(t=>{const el=document.getElementById('docsTab'+t);if(el)el.style.display='none';});
+  const el=document.getElementById('docsTab'+tab);
+  if(el)el.style.display='block';
+}
+
+// generate modal state
+let generateFormId='', generateFormName='';
+
+function openGenerateModal(formId, formName){
+  generateFormId=formId; generateFormName=formName;
+  // populate selects
+  const cs=document.getElementById('genClient'),cgs=document.getElementById('genCaregiver');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cgs){cgs.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  document.getElementById('genFormTitle').textContent=formName;
+  // reset fields
+  ['genDelegatedTask','genExpectedOutcome','genMedications','genVerifDate','genVerifName','genVerifMethod','genSteps','genWhatRnd','genWhatHcp','genWhatEmergency','genIpName','genProviderOne'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('genMedSection').style.display='none';
+  document.getElementById('genMedCheck').checked=false;
+  openModal('generateModal');
+}
+
+function onGenClientChange(sel){
+  const c=window.clients.find(x=>x.id===sel.value);
+  if(!c)return;
+  // auto-link caregiver if one is assigned
+  if(c.caregiverId){const cgSel=document.getElementById('genCaregiver');if(cgSel)cgSel.value=c.caregiverId;}
+}
+
+function onGenMedCheck(cb){
+  document.getElementById('genMedSection').style.display=cb.checked?'block':'none';
+}
+
+async function submitGenerate(){
+  const clientId=document.getElementById('genClient').value;
+  const caregiverId=document.getElementById('genCaregiver').value;
+  if(!clientId){alert('Please select a client.');return;}
+
+  const cl=window.clients.find(x=>x.id===clientId);
+  const cg=window.caregivers.find(x=>x.id===caregiverId);
+  const fac=window.facilities.find(x=>x.id===(cl?.facilityId||cg?.facilityId));
+
+  const formData={
+    clientName: cl?`${cl.last}, ${cl.first}`:'',
+    acesId: cl?.acesId||cl?.dshsId||'',
+    dob: cl?.dob||'',
+    idSetting: fac?.type||'AFH',
+    dateDelegated: new Date().toLocaleDateString('en-US'),
+    delegatedTask: document.getElementById('genDelegatedTask').value,
+    expectedOutcome: document.getElementById('genExpectedOutcome').value,
+    medications: document.getElementById('genMedCheck').checked?document.getElementById('genMedications').value:'',
+    verifDate: document.getElementById('genVerifDate').value,
+    verifName: document.getElementById('genVerifName').value,
+    verifMethod: document.getElementById('genVerifMethod').value,
+    steps: document.getElementById('genSteps').value,
+    rndName: currentProfile?.full_name||currentUser?.email||'',
+    rndPhone: currentProfile?.phone||'',
+    whatRnd: document.getElementById('genWhatRnd').value,
+    hcpName: cl?.physician||'',
+    hcpPhone: cl?.physicianPhone||'',
+    whatHcp: document.getElementById('genWhatHcp').value,
+    whatEmergency: document.getElementById('genWhatEmergency').value,
+    ipName: document.getElementById('genIpName').value,
+    providerOne: document.getElementById('genProviderOne').value,
+  };
+
+  const btn=document.getElementById('genSubmitBtn');
+  btn.textContent='Generating…';btn.disabled=true;
+
+  // generate the docx in background (browser can't run node, so we store form data + generate on demand)
+  const now=new Date().toISOString();
+  const draft={
+    id: Date.now().toString(),
+    user_id: currentUser?.id,
+    form_id: generateFormId,
+    form_name: generateFormName,
+    client_id: clientId,
+    client_name: cl?`${cl.first} ${cl.last}`:'—',
+    caregiver_id: caregiverId||null,
+    caregiver_name: cg?`${cg.first} ${cg.last}`:'—',
+    facility_id: cl?.facilityId||cg?.facilityId||null,
+    facility_name: fac?.name||'—',
+    form_data: formData,
+    status: 'Draft — Printed, Awaiting Signature',
+    created_at: now,
+    updated_at: now
+  };
+
+  initSupa();
+  if(supa&&currentUser){
+    const {error}=await supa.from('form_drafts').insert(draft);
+    if(error){console.error(error);}
+  }
+
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generateModal');
+  // navigate to drafts tab
+  if(document.getElementById('page-documents').style.display!=='none'){
+    docsShowTab('Drafts');
+    renderDraftsTable(window.formDrafts);
+  }
+  alert('✅ Form saved to Drafts. Print it from the Drafts tab, then upload the signed copy in Signed Documents.');
+}
+
+async function loadDraftsList(){
+  initSupa();
+  if(!supa||!currentUser)return;
+  const {data}=await supa.from('form_drafts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  window.formDrafts=data||[];
+  renderDraftsTable(window.formDrafts);
+}
+
+function renderDraftsTable(list){
+  const tbody=document.getElementById('draftsTableBody');if(!tbody)return;
+  const empty=document.getElementById('draftsEmptyRow');
+  tbody.querySelectorAll('tr:not(#draftsEmptyRow)').forEach(r=>r.remove());
+  const chip=document.getElementById('draftsCountChip');if(chip)chip.textContent=list.length+' draft'+(list.length===1?'':'s');
+  if(!list.length){if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  tbody.insertAdjacentHTML('afterbegin',list.map(d=>`
+    <tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${d.form_name}</td>
+      <td style="font-size:12.5px">${d.client_name}</td>
+      <td style="font-size:12.5px">${d.caregiver_name}</td>
+      <td style="font-size:12px;color:var(--text3)">${d.facility_name}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+      <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Awaiting Signature</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:nowrap">
+        <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteDraft('${d.id}')" style="color:var(--red)">Delete</button>
+      </td>
+    </tr>`).join(''));
+}
+
+function printDraft(id){
+  const d=(window.formDrafts||[]).find(x=>x.id===id);
+  if(!d){alert('Draft not found.');return;}
+  const fd=d.form_data||{};
+  // Build a printable HTML page for 13-678
+  const printWin=window.open('','_blank','width=850,height=1100');
+  printWin.document.write(build13678PrintHtml(fd, d));
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(()=>printWin.print(),600);
+}
+
+function build13678PrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 13-678 — ${esc(draft.client_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
+  h2{font-size:11pt;font-weight:bold;text-align:center;margin-bottom:2px}
+  .form-num{font-size:8pt;text-align:center;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse;margin-bottom:0}
+  td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8.5pt}
+  .field-label{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px}
+  .field-val{font-size:9pt;min-height:14px;display:block}
+  .header-cell{background:#d9d9d9;font-weight:bold;font-size:9pt;text-align:center;border:1px solid #000;padding:5px}
+  .section-label{font-weight:bold;font-size:8pt}
+  .call-list{font-size:8pt;margin-top:6px}
+  .call-list td{border:none;padding:1px 4px;font-size:8pt}
+  .footer-note{font-size:7.5pt;margin-top:8px;border:1px solid #000;padding:6px}
+  .two-col td{width:50%}
+  .three-col td{width:33.33%}
+  .five-col td{width:20%}
+  @media print{body{padding:0.4in} @page{size:letter;margin:0.5in}}
+  .sig-row td{height:36px;vertical-align:bottom}
+</style>
+</head><body>
+<h2>Nurse Delegation: Instructions for Nursing Task</h2>
+<p class="form-num">DSHS 13-678 (REV. 06/2021)</p>
+<table>
+  <tr class="five-col">
+    <td><span class="field-label">1. CLIENT NAME</span><span class="field-val">${esc(fd.clientName)}</span></td>
+    <td><span class="field-label">2. ACES CLIENT ID NUMBER</span><span class="field-val">${esc(fd.acesId)}</span></td>
+    <td><span class="field-label">3. DATE OF BIRTH</span><span class="field-val">${esc(fd.dob)}</span></td>
+    <td><span class="field-label">4. ID / SETTING (OPTIONAL)</span><span class="field-val">${esc(fd.idSetting)}</span></td>
+    <td><span class="field-label">5. DATE TASK DELEGATED</span><span class="field-val">${esc(fd.dateDelegated)}</span></td>
+  </tr>
+  <tr><td colspan="5"><span class="field-label">6. DELEGATED TASK AND EXPECTED OUTCOME</span><span class="field-val">${esc(fd.delegatedTask)}${fd.expectedOutcome?'  —  Expected outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
+  <tr><td colspan="5" style="font-size:8pt;font-style:italic;background:#f5f5f5"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
+  <tr>
+    <td colspan="3"><span class="field-label">7. LIST SPECIFIC MEDICATION(S), DOSAGES AND FREQUENCY OF MEDICATIONS DELEGATED ON THIS DATE</span><span class="field-val">${esc(fd.medications)||' '}</span></td>
+    <td colspan="2">
+      <span class="field-label">8. VERIFICATION OF DELEGATED MEDICATION DATE</span>
+      <span class="field-val">${esc(fd.verifDate)}</span>
+      <span class="field-label" style="margin-top:6px">NAME / TITLE</span>
+      <span class="field-val">${esc(fd.verifName)}</span>
+      <span class="field-label" style="margin-top:6px">METHOD OF VERIFICATION</span>
+      <span class="field-val">${esc(fd.verifMethod)}</span>
+    </td>
+  </tr>
+  <tr><td colspan="5"><span class="field-label">9. STEPS TO PERFORM THE TASK: <input type="checkbox" style="margin-left:6px"> Check here if additional teaching aide(s) attached.</span><span class="field-val" style="white-space:pre-wrap;min-height:60px">${esc(fd.steps)}</span></td></tr>
+</table>
+<p class="section-label" style="margin:6px 0 3px;padding-left:2px">Report Side Effects or Unexpected Outcomes To:</p>
+<table>
+  <tr class="two-col">
+    <td><span class="field-label">10. RND NAME (PRINT)</span><span class="field-val">${esc(fd.rndName)}</span></td>
+    <td><span class="field-label">11. TELEPHONE NUMBER</span><span class="field-val">${esc(fd.rndPhone)}</span></td>
+  </tr>
+  <tr><td colspan="2"><span class="field-label">12. WHAT TO REPORT TO RND</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatRnd)}</span></td></tr>
+  <tr class="two-col">
+    <td><span class="field-label">13. HEALTH CARE PROVIDER NAME</span><span class="field-val">${esc(fd.hcpName)}</span></td>
+    <td><span class="field-label">14. TELEPHONE NUMBER</span><span class="field-val">${esc(fd.hcpPhone)}</span></td>
+  </tr>
+  <tr><td colspan="2"><span class="field-label">15. WHAT TO REPORT TO HEALTH CARE PROVIDER</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatHcp)}</span></td></tr>
+  <tr><td colspan="2"><span class="field-label">16. WHAT TO REPORT TO 911</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatEmergency)}</span></td></tr>
+  <tr class="sig-row">
+    <td><span class="field-label">17. RND SIGNATURE</span><span class="field-val" style="border-bottom:1px solid #000;min-width:200px;display:block;height:28px"></span></td>
+    <td><span class="field-label">18. DATE</span><span class="field-val" style="border-bottom:1px solid #000;min-width:100px;display:block;height:28px"></span></td>
+  </tr>
+</table>
+<table style="margin-top:4px">
+  <tr class="two-col">
+    <td><span class="field-label">19. FOR CONSUMER DIRECTED EMPLOYER: INDIVIDUAL PROVIDER'S (IP) NAME</span><span class="field-val">${esc(fd.ipName)}</span></td>
+    <td><span class="field-label">20. PROVIDERONE NUMBER</span><span class="field-val">${esc(fd.providerOne)}</span></td>
+  </tr>
+</table>
+<div class="footer-note">
+  <table class="call-list"><tr>
+    <td><strong>Call RND when:</strong></td>
+    <td>Medications change</td><td>New orders received</td><td>Client dies</td>
+    <td>Client admitted to ER, hospital, or SNF</td><td>Client moves</td>
+    <td>Client condition changes</td><td>Problem / unable to perform nursing task.</td>
+  </tr></table>
+  <p style="margin-top:6px;font-size:7.5pt">To register concerns or complaints about Nurse Delegation, please call <strong>1-800-562-6078</strong> &nbsp;&nbsp; <strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</p>
+</div>
+</body></html>`;
+}
+
+function editDraft(id){
+  const d=(window.formDrafts||[]).find(x=>x.id===id);
+  if(!d){alert('Draft not found.');return;}
+  // open edit modal pre-populated
+  openEditDraftModal(d);
+}
+
+function openEditDraftModal(d){
+  const fd=d.form_data||{};
+  document.getElementById('editDraftId').value=d.id;
+  document.getElementById('editDraftFormName').textContent=d.form_name;
+  ['editDelegatedTask','editExpectedOutcome','editMedications','editVerifDate','editVerifName','editVerifMethod','editSteps','editRndName','editRndPhone','editWhatRnd','editHcpName','editHcpPhone','editWhatHcp','editWhatEmergency','editIpName','editProviderOne'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const key=id.replace('edit','');
+    const camel=key.charAt(0).toLowerCase()+key.slice(1);
+    el.value=fd[camel]||'';
+  });
+  openModal('editDraftModal');
+}
+
+async function saveEditedDraft(){
+  const id=document.getElementById('editDraftId').value;
+  const d=(window.formDrafts||[]).find(x=>x.id===id);
+  if(!d)return;
+  const fd=d.form_data||{};
+  fd.delegatedTask=document.getElementById('editDelegatedTask').value;
+  fd.expectedOutcome=document.getElementById('editExpectedOutcome').value;
+  fd.medications=document.getElementById('editMedications').value;
+  fd.verifDate=document.getElementById('editVerifDate').value;
+  fd.verifName=document.getElementById('editVerifName').value;
+  fd.verifMethod=document.getElementById('editVerifMethod').value;
+  fd.steps=document.getElementById('editSteps').value;
+  fd.rndName=document.getElementById('editRndName').value;
+  fd.rndPhone=document.getElementById('editRndPhone').value;
+  fd.whatRnd=document.getElementById('editWhatRnd').value;
+  fd.hcpName=document.getElementById('editHcpName').value;
+  fd.hcpPhone=document.getElementById('editHcpPhone').value;
+  fd.whatHcp=document.getElementById('editWhatHcp').value;
+  fd.whatEmergency=document.getElementById('editWhatEmergency').value;
+  fd.ipName=document.getElementById('editIpName').value;
+  fd.providerOne=document.getElementById('editProviderOne').value;
+  d.form_data=fd;
+  d.updated_at=new Date().toISOString();
+  initSupa();
+  if(supa&&currentUser) await supa.from('form_drafts').update({form_data:fd,updated_at:d.updated_at}).eq('id',id);
+  closeModal('editDraftModal');
+  renderDraftsTable(window.formDrafts);
+}
+
+async function deleteDraft(id){
+  if(!confirm('Delete this draft?'))return;
+  initSupa();
+  if(supa&&currentUser) await supa.from('form_drafts').delete().eq('id',id);
+  window.formDrafts=(window.formDrafts||[]).filter(x=>x.id!==id);
+  renderDraftsTable(window.formDrafts);
+}
+
+// SIGNED DOCUMENTS
+async function loadSignedList(){
+  initSupa();
+  if(!supa||!currentUser)return;
+  const {data}=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  window.signedDocs=data||[];
+  renderSignedTable(window.signedDocs);
+}
+
+function renderSignedTable(list){
+  const tbody=document.getElementById('signedTableBody');if(!tbody)return;
+  const empty=document.getElementById('signedEmptyRow');
+  tbody.querySelectorAll('tr:not(#signedEmptyRow)').forEach(r=>r.remove());
+  const chip=document.getElementById('signedCountChip');if(chip)chip.textContent=list.length+' signed';
+  if(!list.length){if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  tbody.insertAdjacentHTML('afterbegin',list.map(s=>`
+    <tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${s.form_name}</td>
+      <td style="font-size:12.5px">${s.client_name||'—'}</td>
+      <td style="font-size:12.5px">${s.caregiver_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${s.facility_name||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('en-US')}</td>
+      <td><span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed &amp; Filed</span></td>
+      <td>${s.file_url?`<a href="${s.file_url}" target="_blank" class="btn btn-ghost btn-sm">View</a>`:''} <button class="btn btn-ghost btn-sm" onclick="deleteSignedDoc('${s.id}')" style="color:var(--red)">Delete</button></td>
+    </tr>`).join(''));
+}
+
+function handleSignedDrop(e){
+  e.preventDefault();
+  document.getElementById('signedDropzone').style.borderColor='var(--border2)';
+  const files=e.dataTransfer?.files;
+  if(files&&files[0]) processSignedUpload(files[0]);
+}
+
+function handleSignedFileSelect(e){
+  const file=e.target.files?.[0];
+  if(file) processSignedUpload(file);
+}
+
+function processSignedUpload(file){
+  // prompt to match to a draft
+  openMatchDraftModal(file);
+}
+
+function openMatchDraftModal(file){
+  window._pendingSignedFile=file;
+  const sel=document.getElementById('matchDraftSelect');
+  if(sel){
+    sel.innerHTML='<option value="">— Standalone (not linked to a draft) —</option>';
+    (window.formDrafts||[]).forEach(d=>sel.insertAdjacentHTML('beforeend',`<option value="${d.id}">${d.form_name} · ${d.client_name} · ${new Date(d.created_at).toLocaleDateString('en-US')}</option>`));
+  }
+  document.getElementById('matchFileLabel').textContent=file.name;
+  openModal('matchDraftModal');
+}
+
+async function submitMatchDraft(){
+  const file=window._pendingSignedFile;
+  if(!file){closeModal('matchDraftModal');return;}
+  const draftId=document.getElementById('matchDraftSelect').value;
+  const draft=draftId?(window.formDrafts||[]).find(x=>x.id===draftId):null;
+
+  const btn=document.getElementById('matchSubmitBtn');
+  btn.textContent='Uploading…';btn.disabled=true;
+
+  let fileUrl=null;
+  initSupa();
+  if(supa&&currentUser){
+    const ext=file.name.split('.').pop();
+    const path=`${currentUser.id}/${Date.now()}.${ext}`;
+    const {data:upData,error:upErr}=await supa.storage.from('signed-documents').upload(path,file,{cacheControl:'3600',upsert:false});
+    if(!upErr&&upData){
+      const {data:urlData}=supa.storage.from('signed-documents').getPublicUrl(path);
+      fileUrl=urlData?.publicUrl||null;
+    }
+  }
+
+  const now=new Date().toISOString();
+  const rec={
+    id: Date.now().toString(),
+    user_id: currentUser?.id,
+    draft_id: draftId||null,
+    form_id: draft?.form_id||'upload',
+    form_name: draft?.form_name||file.name,
+    client_id: draft?.client_id||null,
+    client_name: draft?.client_name||'—',
+    caregiver_id: draft?.caregiver_id||null,
+    caregiver_name: draft?.caregiver_name||'—',
+    facility_id: draft?.facility_id||null,
+    facility_name: draft?.facility_name||'—',
+    file_url: fileUrl,
+    file_name: file.name,
+    status: 'Signed & Filed',
+    created_at: now
+  };
+
+  if(supa&&currentUser){
+    await supa.from('signed_documents').insert(rec);
+    // mark draft as signed
+    if(draftId) await supa.from('form_drafts').update({status:'Signed — Filed'}).eq('id',draftId);
+  }
+
+  window.signedDocs=window.signedDocs||[];
+  window.signedDocs.unshift(rec);
+  if(draft) draft.status='Signed — Filed';
+
+  btn.textContent='Upload & Link';btn.disabled=false;
+  closeModal('matchDraftModal');
+  renderSignedTable(window.signedDocs);
+  renderDraftsTable(window.formDrafts||[]);
+  window._pendingSignedFile=null;
+  document.getElementById('signedFileInput').value='';
+}
+
+async function deleteSignedDoc(id){
+  if(!confirm('Remove this signed document record?'))return;
+  initSupa();
+  if(supa&&currentUser) await supa.from('signed_documents').delete().eq('id',id);
+  window.signedDocs=(window.signedDocs||[]).filter(x=>x.id!==id);
+  renderSignedTable(window.signedDocs);
+}
+
 // ── SIGN OUT ──────────────────────────────────────
 async function signOut(){
-  if(!confirm('Sign out of DelegateRN?')) return;
+  if(!confirm('Sign out of RN Delegation Management System?')) return;
   initSupa();
   if(supa) await supa.auth.signOut();
   currentUser = null; currentProfile = null;
