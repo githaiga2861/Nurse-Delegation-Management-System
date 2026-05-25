@@ -409,21 +409,21 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
 </nav>
 
-<!-- LANDING PAGE - HERO ONLY (matches screenshot) -->
-<div id="landing" style="min-height:100vh;display:flex;flex-direction:column">
+<!-- LANDING PAGE - HERO ONLY -->
+<div id="landing" style="min-height:100vh;display:flex;flex-direction:column;background:var(--bg)">
   <!-- HERO -->
-  <section id="hero" style="flex:1;padding:180px 40px 120px;position:relative;overflow:hidden;background:var(--bg);display:flex;align-items:center">
+  <section id="hero" style="flex:1;padding:180px 40px 120px;position:relative;overflow:hidden;display:flex;align-items:center">
     <div class="hero-grid"></div>
     <div class="hero-glow"></div>
-    <div class="hero-content" style="max-width:1200px;margin:0 auto;text-align:center;width:100%">
-      <div class="hero-eyebrow animate-fade-up" style="margin-bottom:32px">
+    <div class="hero-content" style="max-width:1200px;margin:0 auto;text-align:center;width:100%;z-index:1">
+      <div class="hero-eyebrow animate-fade-up">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
         Washington State Nurse Delegation · DSHS Compliant
       </div>
       <h1 class="animate-fade-up animate-delay-1" style="margin-bottom:24px">
         The <span class="accent">Delegation Workflow</span><br>Operating System for RNs
       </h1>
-      <p class="hero-sub animate-fade-up animate-delay-2" style="max-width:620px;margin:0 auto 48px">
+      <p class="hero-sub animate-fade-up animate-delay-2" style="max-width:620px;margin:0 auto 48px;line-height:1.7">
         A precision-built clinical platform for Registered Nurses managing nurse delegation in Adult Family Homes — centralizing caregiver oversight, DSHS compliance, and documentation into a single intelligent workspace.
       </p>
       <div class="hero-ctas animate-fade-up animate-delay-3">
@@ -467,85 +467,6 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
 </div>
 
-</div><!-- /hidden placeholder -->
-
-<!-- APP SHELL -->
-<div id="app">
-  <div class="app-layout">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <div class="mark">D</div>
-        <div class="name">Delegate<span>RN</span></div>
-      </div>
-
-      <div class="sidebar-section">
-        <span class="sidebar-section-label">Overview</span>
-        <div class="nav-item active" onclick="showPage('dashboard')">
-          <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          RN Dashboard
-        </div>
-        <div class="nav-item" onclick="showPage('alerts')">
-          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 1 5 5v3l1 1H2l1-1V7a5 5 0 0 1 5-5zM6.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.5"/></svg>
-          Alerts Center
-          <div style="margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--amber)"></div>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <span class="sidebar-section-label">Workspaces</span>
-        <div class="nav-item" onclick="showPage('cases')">
-          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.5"/><path d="M5 9h6M5 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Delegation Cases
-        </div>
-        <div class="nav-item" onclick="showPage('visits')">
-          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Nursing Visits
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <span class="sidebar-section-label">Management</span>
-        <div class="nav-item" onclick="showPage('afh')">
-          <svg viewBox="0 0 16 16" fill="none"><path d="M1 14V7.5L8 2l7 5.5V14H1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="5" y="9" width="3" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          Facility Management
-        </div>
-        <div class="nav-item" onclick="showPage('caregivers')">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 7l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Caregiver Management
-        </div>
-        <div class="nav-item" onclick="showPage('patients')">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Client Management
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <span class="sidebar-section-label">Records</span>
-        <div class="nav-item" onclick="showPage('documents')">
-          <svg viewBox="0 0 16 16" fill="none"><path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2z" stroke="currentColor" stroke-width="1.5"/><path d="M9 2v4h4" stroke="currentColor" stroke-width="1.5"/><path d="M5 9h6M5 11.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Documents
-        </div>
-        <div class="nav-item" onclick="showPage('compliance')">
-          <svg viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Compliance Center
-        </div>
-        <div class="nav-item" onclick="showPage('archive')">
-          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="5" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M1 5h14M6 2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Archive
-        </div>
-      </div>
-
-      <div class="sidebar-bottom">
-        <div class="avatar-pill">
-          <div class="avatar">RN</div>
-          <div class="avatar-info">
-            <div class="avatar-name">Registered Nurse</div>
-            <div class="avatar-role">Washington State RN</div>
-          </div>
-        </div>
-      </div>
-    </aside>
 
     <!-- MAIN CONTENT -->
     <div class="main">
@@ -1497,6 +1418,7 @@ pageRenderers.archive = () => `
     </div>
   </div>
 </div>`;
+  <script>
 
 // ---- HELPERS ----
 function statCard(color,label,val,sub){
@@ -1562,8 +1484,11 @@ function openApp(){
 }
 
 function doSignIn(){
-  // Simplified: directly open the platform (no modal needed)
-  openApp();
+  // Directly open the full platform
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  showPage('dashboard');
+  window.scrollTo(0, 0);
 }
 
 function openModal(id){
@@ -1584,6 +1509,15 @@ document.querySelectorAll('.overlay').forEach(o=>{
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('page-dashboard').innerHTML = pageRenderers.dashboard();
 });
+// Ensure everything is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Pre-render dashboard
+  const dashboardEl = document.getElementById('page-dashboard');
+  if (dashboardEl) {
+    dashboardEl.innerHTML = pageRenderers.dashboard();
+  }
+});
+  
 </script>
 </body>
 </html>
