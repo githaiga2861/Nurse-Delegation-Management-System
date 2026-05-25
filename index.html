@@ -541,8 +541,8 @@ textarea.form-input{resize:vertical;min-height:80px}
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Address</div>
         <div class="form-group"><label class="form-label">Street Address *</label><input class="form-input" id="facilityStreet" placeholder="Street address"></div>
-        <div class="form-row-3"><div class="form-group"><label class="form-label">City *</label><input class="form-input" id="facilityCity" placeholder="City"></div><div class="form-group"><label class="form-label">State</label><input class="form-input" value="WA" readonly style="opacity:0.6"></div><div class="form-group"><label class="form-label">ZIP</label><input class="form-input" id="facilityZip" placeholder="ZIP"></div></div>
-        <div class="form-group" style="margin-bottom:0"><label class="form-label">County</label><select class="form-input form-select" id="facilityCounty"><option value="">Select county…</option><option>King</option><option>Pierce</option><option>Snohomish</option><option>Spokane</option><option>Clark</option><option>Thurston</option><option>Kitsap</option><option>Yakima</option><option>Whatcom</option><option>Benton</option><option>Chelan</option><option>Grant</option><option>Lewis</option><option>Mason</option><option>Skagit</option><option>Other</option></select></div>
+        <div class="form-row-3"><div class="form-group"><label class="form-label">City *</label><input class="form-input" id="facilityCity" placeholder="City" oninput="autoFillCountyFromCity(this.value)"></div><div class="form-group"><label class="form-label">State</label><input class="form-input" value="WA" readonly style="opacity:0.6"></div><div class="form-group"><label class="form-label">ZIP</label><input class="form-input" id="facilityZip" placeholder="ZIP" oninput="autoFillCountyFromZip(this.value)"></div></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">County <span style="font-size:10px;color:var(--text3);font-weight:400">(auto-fills from ZIP)</span></label><select class="form-input form-select" id="facilityCounty"><option value="">Select county…</option><option>King</option><option>Pierce</option><option>Snohomish</option><option>Spokane</option><option>Clark</option><option>Thurston</option><option>Kitsap</option><option>Yakima</option><option>Whatcom</option><option>Benton</option><option>Chelan</option><option>Grant</option><option>Lewis</option><option>Mason</option><option>Skagit</option><option>Other</option></select></div>
       </div>
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Primary Contact</div>
@@ -1102,6 +1102,96 @@ pageRenderers.archive = () => `
   </div>
   <div class="card"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="7" width="16" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h18M8 7V5a3 3 0 0 1 6 0v2M8 13h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>Archive is empty</h4><p>Closed, rescinded, and historical delegation cases will be stored here for long-term records retention.</p></div></div>
 </div>`;
+
+// ── WA STATE ZIP → COUNTY MAP ─────────────────────
+const WA_ZIP_COUNTY = {
+  // King County
+  '98001':'King','98002':'King','98003':'King','98004':'King','98005':'King','98006':'King','98007':'King','98008':'King','98009':'King','98010':'King','98011':'King','98013':'King','98014':'King','98015':'King','98019':'King','98022':'King','98023':'King','98024':'King','98025':'King','98027':'King','98028':'King','98029':'King','98030':'King','98031':'King','98032':'King','98033':'King','98034':'King','98035':'King','98038':'King','98039':'King','98040':'King','98041':'King','98042':'King','98045':'King','98047':'King','98050':'King','98051':'King','98052':'King','98053':'King','98054':'King','98055':'King','98056':'King','98057':'King','98058':'King','98059':'King','98062':'King','98063':'King','98064':'King','98065':'King','98068':'King','98070':'King','98071':'King','98072':'King','98073':'King','98074':'King','98075':'King','98077':'King','98083':'King','98089':'King','98092':'King','98093':'King','98101':'King','98102':'King','98103':'King','98104':'King','98105':'King','98106':'King','98107':'King','98108':'King','98109':'King','98111':'King','98112':'King','98113':'King','98114':'King','98115':'King','98116':'King','98117':'King','98118':'King','98119':'King','98121':'King','98122':'King','98124':'King','98125':'King','98126':'King','98127':'King','98129':'King','98131':'King','98132':'King','98133':'King','98134':'King','98136':'King','98138':'King','98139':'King','98141':'King','98144':'King','98145':'King','98146':'King','98148':'King','98154':'King','98155':'King','98158':'King','98160':'King','98161':'King','98164':'King','98165':'King','98166':'King','98168':'King','98170':'King','98174':'King','98175':'King','98177':'King','98178':'King','98181':'King','98184':'King','98185':'King','98188':'King','98189':'King','98190':'King','98191':'King','98194':'King','98195':'King','98198':'King','98199':'King',
+  // Pierce County
+  '98301':'Pierce','98303':'Pierce','98304':'Pierce','98305':'Pierce','98310':'Pierce','98311':'Pierce','98312':'Pierce','98314':'Pierce','98315':'Pierce','98321':'Pierce','98323':'Pierce','98327':'Pierce','98328':'Pierce','98329':'Pierce','98330':'Pierce','98332':'Pierce','98333':'Pierce','98335':'Pierce','98338':'Pierce','98345':'Pierce','98349':'Pierce','98351':'Pierce','98352':'Pierce','98354':'Pierce','98360':'Pierce','98371':'Pierce','98372':'Pierce','98373':'Pierce','98374':'Pierce','98375':'Pierce','98380':'Pierce','98381':'Pierce','98385':'Pierce','98387':'Pierce','98388':'Pierce','98390':'Pierce','98391':'Pierce','98392':'Pierce','98393':'Pierce','98394':'Pierce','98395':'Pierce','98396':'Pierce','98397':'Pierce','98398':'Pierce','98401':'Pierce','98402':'Pierce','98403':'Pierce','98404':'Pierce','98405':'Pierce','98406':'Pierce','98407':'Pierce','98408':'Pierce','98409':'Pierce','98411':'Pierce','98412':'Pierce','98413':'Pierce','98415':'Pierce','98416':'Pierce','98417':'Pierce','98418':'Pierce','98419':'Pierce','98421':'Pierce','98422':'Pierce','98424':'Pierce','98430':'Pierce','98431':'Pierce','98433':'Pierce','98438':'Pierce','98439':'Pierce','98442':'Pierce','98443':'Pierce','98444':'Pierce','98445':'Pierce','98446':'Pierce','98447':'Pierce','98448':'Pierce','98450':'Pierce','98455':'Pierce','98460':'Pierce','98464':'Pierce','98465':'Pierce','98466':'Pierce','98467':'Pierce','98471':'Pierce','98477':'Pierce','98490':'Pierce','98492':'Pierce','98493':'Pierce','98496':'Pierce','98497':'Pierce','98498':'Pierce','98499':'Pierce',
+  // Snohomish County
+  '98012':'Snohomish','98020':'Snohomish','98021':'Snohomish','98026':'Snohomish','98036':'Snohomish','98037':'Snohomish','98043':'Snohomish','98046':'Snohomish','98082':'Snohomish','98087':'Snohomish','98201':'Snohomish','98203':'Snohomish','98204':'Snohomish','98205':'Snohomish','98206':'Snohomish','98207':'Snohomish','98208':'Snohomish','98213':'Snohomish','98220':'Snohomish','98221':'Skagit','98223':'Snohomish','98224':'King','98225':'Whatcom','98226':'Whatcom','98227':'Whatcom','98228':'Whatcom','98229':'Whatcom','98230':'Whatcom','98232':'Skagit','98233':'Skagit','98235':'Skagit','98236':'Island','98237':'Skagit','98238':'Skagit','98239':'Island','98240':'Whatcom','98241':'Snohomish','98243':'San Juan','98244':'Whatcom','98245':'San Juan','98247':'Whatcom','98248':'Whatcom','98249':'Island','98250':'San Juan','98251':'Snohomish','98252':'Snohomish','98253':'Island','98255':'Skagit','98256':'King','98257':'Skagit','98258':'Snohomish','98259':'Snohomish','98260':'Island','98261':'San Juan','98262':'Whatcom','98263':'Skagit','98264':'Whatcom','98266':'Whatcom','98267':'Skagit','98270':'Snohomish','98271':'Snohomish','98272':'Snohomish','98273':'Skagit','98274':'Skagit','98275':'Snohomish','98276':'Whatcom','98277':'Island','98278':'Island','98279':'San Juan','98280':'San Juan','98281':'Whatcom','98282':'Island','98283':'Whatcom','98284':'Skagit','98286':'San Juan','98287':'Snohomish','98288':'King','98290':'Snohomish','98291':'Snohomish','98292':'Snohomish','98293':'Snohomish','98294':'Snohomish','98295':'Whatcom','98296':'Snohomish','98297':'San Juan',
+  // Spokane County
+  '99001':'Spokane','99003':'Spokane','99004':'Spokane','99005':'Spokane','99006':'Spokane','99008':'Adams','99009':'Spokane','99011':'Spokane','99012':'Spokane','99013':'Spokane','99014':'Spokane','99016':'Spokane','99017':'Whitman','99018':'Spokane','99019':'Spokane','99020':'Spokane','99021':'Spokane','99022':'Spokane','99023':'Spokane','99025':'Spokane','99026':'Spokane','99027':'Spokane','99029':'Lincoln','99030':'Spokane','99031':'Spokane','99032':'Adams','99033':'Whitman','99034':'Stevens','99036':'Spokane','99037':'Spokane','99039':'Spokane','99201':'Spokane','99202':'Spokane','99203':'Spokane','99204':'Spokane','99205':'Spokane','99206':'Spokane','99207':'Spokane','99208':'Spokane','99209':'Spokane','99210':'Spokane','99211':'Spokane','99212':'Spokane','99213':'Spokane','99214':'Spokane','99215':'Spokane','99216':'Spokane','99217':'Spokane','99218':'Spokane','99219':'Spokane','99220':'Spokane','99223':'Spokane','99224':'Spokane','99228':'Spokane','99251':'Spokane','99252':'Spokane','99256':'Spokane','99258':'Spokane','99260':'Spokane',
+  // Clark County
+  '98601':'Clark','98604':'Clark','98606':'Clark','98607':'Clark','98609':'Cowlitz','98610':'Skamania','98611':'Cowlitz','98612':'Wahkiakum','98613':'Klickitat','98614':'Pacific','98616':'Skamania','98617':'Klickitat','98619':'Klickitat','98620':'Klickitat','98621':'Wahkiakum','98622':'Clark','98623':'Klickitat','98624':'Pacific','98625':'Cowlitz','98626':'Cowlitz','98628':'Klickitat','98629':'Clark','98631':'Pacific','98632':'Cowlitz','98635':'Klickitat','98637':'Pacific','98638':'Pacific','98639':'Skamania','98640':'Pacific','98641':'Pacific','98642':'Clark','98643':'Wahkiakum','98644':'Pacific','98645':'Cowlitz','98647':'Wahkiakum','98648':'Skamania','98649':'Cowlitz','98650':'Klickitat','98651':'Skamania','98660':'Clark','98661':'Clark','98662':'Clark','98663':'Clark','98664':'Clark','98665':'Clark','98666':'Clark','98667':'Clark','98668':'Clark','98670':'Klickitat','98671':'Clark','98672':'Klickitat','98673':'Klickitat','98674':'Cowlitz','98675':'Clark','98682':'Clark','98683':'Clark','98684':'Clark','98685':'Clark','98686':'Clark','98687':'Clark',
+  // Thurston County
+  '98501':'Thurston','98502':'Thurston','98503':'Thurston','98504':'Thurston','98505':'Thurston','98506':'Thurston','98507':'Thurston','98508':'Thurston','98509':'Thurston','98511':'Thurston','98512':'Thurston','98513':'Thurston','98516':'Thurston','98530':'Thurston','98531':'Thurston','98532':'Lewis','98533':'Lewis','98537':'Grays Harbor','98538':'Lewis','98539':'Lewis','98540':'Thurston','98541':'Grays Harbor','98542':'Lewis','98544':'Lewis','98546':'Mason','98547':'Grays Harbor','98548':'Mason','98550':'Grays Harbor','98552':'Grays Harbor','98554':'Pacific','98555':'Mason','98556':'Thurston','98557':'Grays Harbor','98558':'Pierce','98559':'Grays Harbor','98560':'Mason','98561':'Pacific','98562':'Grays Harbor','98563':'Grays Harbor','98564':'Lewis','98565':'Lewis','98566':'Grays Harbor','98568':'Grays Harbor','98569':'Grays Harbor','98570':'Lewis','98571':'Grays Harbor','98572':'Lewis','98575':'Grays Harbor','98576':'Thurston','98577':'Pacific','98579':'Thurston','98580':'Pierce','98581':'Cowlitz','98582':'Lewis','98583':'Grays Harbor','98584':'Mason','98585':'Lewis','98586':'Pacific','98587':'Grays Harbor','98588':'Mason','98589':'Thurston','98590':'Pacific','98591':'Lewis','98592':'Mason','98593':'Lewis','98595':'Grays Harbor','98596':'Lewis','98597':'Thurston','98599':'Thurston',
+  // Kitsap County
+  '98310':'Kitsap','98311':'Kitsap','98312':'Kitsap','98314':'Kitsap','98315':'Kitsap','98320':'Jefferson','98322':'Pierce','98324':'Clallam','98325':'Jefferson','98326':'Clallam','98327':'Pierce','98328':'Pierce','98329':'Pierce','98331':'Clallam','98332':'Pierce','98333':'Pierce','98335':'Pierce','98337':'Kitsap','98339':'Jefferson','98340':'Kitsap','98342':'Kitsap','98343':'Clallam','98344':'Pierce','98345':'Kitsap','98346':'Kitsap','98347':'Clallam','98348':'Pierce','98349':'Pierce','98350':'Clallam','98351':'Pierce','98352':'Pierce','98353':'Kitsap','98354':'Pierce','98355':'Lewis','98356':'Lewis','98357':'Clallam','98358':'Jefferson','98359':'Kitsap','98360':'Pierce','98361':'Lewis','98362':'Clallam','98363':'Clallam','98364':'Kitsap','98365':'Jefferson','98366':'Kitsap','98367':'Kitsap','98368':'Jefferson','98370':'Kitsap','98371':'Pierce','98372':'Pierce','98373':'Pierce','98374':'Pierce','98375':'Pierce','98376':'Jefferson','98377':'Lewis','98378':'Kitsap','98380':'Kitsap','98381':'Clallam','98382':'Clallam','98383':'Kitsap','98384':'Kitsap','98385':'Pierce','98386':'Kitsap','98387':'Pierce','98388':'Pierce','98390':'Pierce','98391':'Pierce','98392':'Kitsap','98393':'Kitsap','98394':'Pierce','98395':'Pierce','98396':'Pierce',
+  // Yakima County
+  '98901':'Yakima','98902':'Yakima','98903':'Yakima','98904':'Yakima','98907':'Yakima','98908':'Yakima','98909':'Yakima','98920':'Yakima','98921':'Yakima','98922':'Kittitas','98923':'Yakima','98925':'Kittitas','98926':'Kittitas','98929':'Yakima','98930':'Yakima','98932':'Yakima','98933':'Yakima','98934':'Kittitas','98935':'Yakima','98936':'Yakima','98937':'Yakima','98938':'Yakima','98939':'Yakima','98940':'Kittitas','98941':'Kittitas','98942':'Yakima','98943':'Kittitas','98944':'Yakima','98946':'Kittitas','98947':'Yakima','98948':'Yakima','98950':'Kittitas','98951':'Yakima','98952':'Yakima','98953':'Yakima',
+  // Benton County
+  '99320':'Benton','99330':'Franklin','99335':'Benton','99336':'Benton','99337':'Benton','99338':'Benton','99341':'Adams','99343':'Franklin','99344':'Adams','99345':'Benton','99346':'Benton','99347':'Garfield','99348':'Walla Walla','99349':'Benton','99350':'Benton','99352':'Benton','99353':'Benton','99354':'Benton','99356':'Klickitat',
+  // Whatcom County — bulk already above, extras:
+  '98220':'Whatcom','98266':'Whatcom',
+  // Chelan County
+  '98801':'Chelan','98802':'Douglas','98807':'Chelan','98811':'Chelan','98812':'Okanogan','98813':'Douglas','98814':'Okanogan','98815':'Chelan','98816':'Chelan','98817':'Chelan','98819':'Okanogan','98821':'Chelan','98822':'Chelan','98823':'Grant','98824':'Grant','98826':'Chelan','98827':'Okanogan','98828':'Chelan','98829':'Okanogan','98830':'Douglas','98831':'Chelan','98832':'Grant','98833':'Okanogan','98834':'Okanogan','98836':'Chelan','98837':'Grant','98840':'Okanogan','98841':'Okanogan','98843':'Douglas','98844':'Okanogan','98845':'Douglas','98846':'Okanogan','98847':'Chelan','98848':'Grant','98849':'Okanogan','98850':'Douglas','98851':'Grant','98852':'Chelan','98853':'Grant','98855':'Okanogan','98856':'Okanogan','98857':'Grant','98858':'Douglas','98859':'Okanogan','98860':'Grant','98862':'Okanogan',
+  // Grant County — bulk above
+  // Lewis County — bulk above
+  // Mason County — bulk above
+  // Skagit County — bulk above
+};
+
+const WA_CITY_COUNTY = {
+  'seattle':'King','bellevue':'King','redmond':'King','kirkland':'King','renton':'King','kent':'King','auburn':'King','federal way':'King','burien':'King','shoreline':'King','bothell':'King','kenmore':'King','issaquah':'King','sammamish':'King','covington':'King','tukwila':'King','mercer island':'King','newcastle':'King','maple valley':'King','black diamond':'King','enumclaw':'King','north bend':'King','snoqualmie':'King','duvall':'King','woodinville':'King','lake forest park':'King',
+  'tacoma':'Pierce','puyallup':'Pierce','lakewood':'Pierce','bonney lake':'Pierce','sumner':'Pierce','gig harbor':'Pierce','university place':'Pierce','fife':'Pierce','milton':'Pierce','edgewood':'Pierce','orting':'Pierce','eatonville':'Pierce','buckley':'Pierce','south hill':'Pierce','graham':'Pierce','spanaway':'Pierce','parkland':'Pierce','tacoma':'Pierce',
+  'everett':'Snohomish','marysville':'Snohomish','lynnwood':'Snohomish','mukilteo':'Snohomish','edmonds':'Snohomish','mountlake terrace':'Snohomish','mill creek':'Snohomish','lake stevens':'Snohomish','monroe':'Snohomish','snohomish':'Snohomish','arlington':'Snohomish','stanwood':'Snohomish','granite falls':'Snohomish','gold bar':'Snohomish','index':'Snohomish','sultan':'Snohomish',
+  'spokane':'Spokane','spokane valley':'Spokane','cheney':'Spokane','medical lake':'Spokane','airway heights':'Spokane','deer park':'Spokane','chattaroy':'Spokane','mead':'Spokane','newman lake':'Spokane','otis orchards':'Spokane',
+  'vancouver':'Clark','camas':'Clark','washougal':'Clark','battle ground':'Clark','ridgefield':'Clark','la center':'Clark','woodland':'Clark','yacolt':'Clark',
+  'olympia':'Thurston','lacey':'Thurston','tumwater':'Thurston','yelm':'Thurston','rainier':'Thurston','tenino':'Thurston','bucoda':'Thurston',
+  'bremerton':'Kitsap','poulsbo':'Kitsap','silverdale':'Kitsap','port orchard':'Kitsap','bainbridge island':'Kitsap','kingston':'Kitsap','suquamish':'Kitsap','hansville':'Kitsap',
+  'yakima':'Yakima','selah':'Yakima','union gap':'Yakima','wapato':'Yakima','moxee':'Yakima','tieton':'Yakima','naches':'Yakima','zillah':'Yakima','sunnyside':'Yakima','grandview':'Yakima','prosser':'Benton','richland':'Benton','kennewick':'Benton','west richland':'Benton','pasco':'Franklin',
+  'bellingham':'Whatcom','ferndale':'Whatcom','blaine':'Whatcom','lynden':'Whatcom','sumas':'Whatcom','nooksack':'Whatcom','birch bay':'Whatcom','point roberts':'Whatcom',
+  'wenatchee':'Chelan','east wenatchee':'Douglas','leavenworth':'Chelan','cashmere':'Chelan','chelan':'Chelan','entiat':'Chelan','monitor':'Chelan',
+  'mount vernon':'Skagit','burlington':'Skagit','anacortes':'Skagit','sedro-woolley':'Skagit','la conner':'Skagit','concrete':'Skagit','lyman':'Skagit',
+  'shelton':'Mason','belfair':'Mason','union':'Mason','hoodsport':'Mason',
+  'centralia':'Lewis','chehalis':'Lewis','morton':'Lewis','mossyrock':'Lewis','toledo':'Lewis',
+  'port angeles':'Clallam','sequim':'Clallam','forks':'Clallam','port townsend':'Jefferson',
+  'moses lake':'Grant','quincy':'Grant','ephrata':'Grant','soap lake':'Grant','warden':'Grant','royal city':'Grant',
+  'ellensburg':'Kittitas','cle elum':'Kittitas','roslyn':'Kittitas',
+  'walla walla':'Walla Walla','college place':'Walla Walla',
+  'longview':'Cowlitz','kelso':'Cowlitz','castle rock':'Cowlitz',
+  'aberdeen':'Grays Harbor','hoquiam':'Grays Harbor','ocean shores':'Grays Harbor','westport':'Grays Harbor',
+  'south bend':'Pacific','raymond':'Pacific','long beach':'Pacific',
+  'white salmon':'Klickitat','goldendale':'Klickitat',
+  'stevenson':'Skamania',
+  'cathlamet':'Wahkiakum',
+  'colfax':'Whitman','pullman':'Whitman',
+  'colville':'Stevens',
+  'republic':'Ferry',
+  'okanogan':'Okanogan','omak':'Okanogan','tonasket':'Okanogan','twisp':'Okanogan','winthrop':'Okanogan',
+  'newport':'Pend Oreille',
+  'davenport':'Lincoln',
+  'ritzville':'Adams',
+  'dayton':'Columbia',
+};
+
+function autoFillCountyFromZip(zip){
+  if(zip.length<5)return;
+  const county=WA_ZIP_COUNTY[zip.substring(0,5)];
+  if(county) setFacilityCounty(county);
+}
+
+function autoFillCountyFromCity(city){
+  if(!city||city.length<3)return;
+  const county=WA_CITY_COUNTY[city.trim().toLowerCase()];
+  if(county) setFacilityCounty(county);
+}
+
+function setFacilityCounty(county){
+  const sel=document.getElementById('facilityCounty');
+  if(!sel)return;
+  // try exact match first
+  for(const opt of sel.options){
+    if(opt.value===county||opt.text===county){sel.value=opt.value;return;}
+  }
+  // if not in list, add it and select it
+  const opt=document.createElement('option');
+  opt.value=county;opt.text=county;
+  sel.appendChild(opt);
+  sel.value=county;
+}
 
 // ── FACILITY FUNCTIONS ────────────────────────────
 function openFacilityModal(editId){
