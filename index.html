@@ -752,6 +752,40 @@ textarea.form-input{resize:vertical;min-height:80px}
         <div class="form-row"><div class="form-group"><label class="form-label">Assigned Facility *</label><select class="form-input form-select" id="clFacility"><option value="">Select facility…</option></select></div><div class="form-group"><label class="form-label">Assigned Caregiver</label><select class="form-input form-select" id="clCaregiver"><option value="">Select caregiver…</option></select></div></div>
         <div class="form-group" style="margin-bottom:0"><label class="form-label">Client Status</label><select class="form-input form-select" id="clStatus"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select></div>
       </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">RN Management &amp; Reassessment Schedule</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Date RN Began Managing Client *</label><input class="form-input" type="date" id="clRnStartDate" oninput="onClRnStartDateChange(this.value)"></div>
+          <div class="form-group"><label class="form-label">Is This Client New to This RN?</label><select class="form-input form-select" id="clIsNew" onchange="onClIsNewChange(this.value)"><option value="">Select…</option><option value="yes">Yes — New Client (auto-schedule reassessments)</option><option value="no">No — Existing / Transferred Client</option></select></div>
+        </div>
+        <div id="clNewClientPanel" style="display:none;background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:14px 16px;margin-top:4px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:10px">📋 Auto-Scheduled Reassessment Dates (WA State Nurse Delegation Law)</div>
+          <div class="form-row-3">
+            <div class="form-group"><label class="form-label">1st Reassessment <span style="color:var(--amber);font-size:10px">Compulsory · 2 weeks</span></label><input class="form-input" type="date" id="clReassess1" readonly style="background:var(--bg3);opacity:0.8"></div>
+            <div class="form-group"><label class="form-label">2nd Reassessment <span style="color:var(--amber);font-size:10px">Compulsory · 4 weeks</span></label><input class="form-input" type="date" id="clReassess2" readonly style="background:var(--bg3);opacity:0.8"></div>
+            <div class="form-group"><label class="form-label">3rd Reassessment <span style="color:var(--text3);font-size:10px">3 months · if not requested earlier</span></label><input class="form-input" type="date" id="clReassess3"></div>
+          </div>
+          <p style="font-size:11px;color:var(--blue);margin-top:4px">The 1st and 2nd reassessment dates are compulsory under WA State law and are auto-filled. The 3rd auto-fills to 3 months after the 2nd — override only if the client requests an earlier date. All dates carry into the Delegation Case on save.</p>
+        </div>
+        <div style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:10px">
+            <input type="checkbox" id="clIsSpecialCase" style="accent-color:var(--blue)" onchange="onClSpecialCaseChange(this.checked)"> This is a <strong style="color:var(--text)">Special Case</strong> (e.g. Diabetes, complex medication regime) — requires irregular reassessments
+          </label>
+          <div id="clSpecialCasePanel" style="display:none">
+            <div class="form-group"><label class="form-label">Special Case Type / Condition</label><input class="form-input" id="clSpecialCaseType" placeholder="e.g. Diabetes, Wound Care, Insulin-dependent, Complex Medications…"></div>
+            <div class="form-group"><label class="form-label">Special Reassessment Notes</label><textarea class="form-input" id="clSpecialCaseNotes" rows="2" placeholder="Describe why irregular reassessments are needed and any specific triggers or conditions…"></textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+              <div class="form-group"><label class="form-label">Special Reassess #1</label><input class="form-input" type="date" id="clSpecialReassess1"></div>
+              <div class="form-group"><label class="form-label">Special Reassess #2</label><input class="form-input" type="date" id="clSpecialReassess2"></div>
+              <div class="form-group"><label class="form-label">Special Reassess #3</label><input class="form-input" type="date" id="clSpecialReassess3"></div>
+              <div class="form-group"><label class="form-label">Special Reassess #4</label><input class="form-input" type="date" id="clSpecialReassess4"></div>
+            </div>
+            <p style="font-size:11px;color:var(--text3)">Enter the RN-determined reassessment dates for this special case. Additional dates can be added from within the Delegation Case at any time.</p>
+          </div>
+        </div>
+      </div>
+
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Medical Information</div>
         <div class="form-group"><label class="form-label">Primary Diagnosis</label><input class="form-input" id="clDiagnosis" placeholder="Primary diagnosis"></div>
@@ -1507,8 +1541,16 @@ function buildCaseDetailHtml(c){
     </div>
     <div class="stat-card">
       <div class="label" style="margin-bottom:8px">Case Timeline</div>
-      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px">Started: ${c.startDate||'—'}</div>
-      <div style="font-size:11px;color:${c.reassessDate&&new Date(c.reassessDate)<new Date()?'var(--red)':'var(--text3)'}">Reassess: ${c.reassessDate||'Not set'}</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">Started: ${c.startDate||'—'}</div>
+      ${(c.reassessSchedule||[]).map(r=>{
+        const overdue=r.date&&new Date(r.date)<new Date()&&!r.completed;
+        const done=r.completed;
+        const color=done?'var(--green)':overdue?'var(--red)':r.type==='compulsory'?'var(--amber)':r.type==='special-case'?'var(--purple)':'var(--text3)';
+        const icon=done?'✓':overdue?'⚠':'○';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:10.5px;margin-bottom:2px"><span style="color:${color}">${icon} ${r.label}</span><span style="font-family:var(--mono);color:${color}">${r.date}</span></div>`;
+      }).join('')}
+      ${(c.reassessSchedule||[]).length===0?`<div style="font-size:11px;color:${c.reassessDate&&new Date(c.reassessDate)<new Date()?'var(--red)':'var(--text3)'}">Reassess: ${c.reassessDate||'Not set'}</div>`:''}
+      ${c.isSpecialCase?`<div style="margin-top:6px;padding:4px 8px;background:var(--purple-dim);border-radius:4px;font-size:10px;color:var(--purple);font-weight:600">⚠ Special Case: ${c.specialCaseType||''}</div>`:''}
     </div>
     <div class="stat-card">
       <div class="label" style="margin-bottom:8px">Active Tasks</div>
@@ -1533,6 +1575,7 @@ function buildCaseDetailHtml(c){
     <div class="tab" onclick="switchCaseTab(this,'Consent')">Consent &amp; Signatures</div>
     <div class="tab" onclick="switchCaseTab(this,'Forms')">Form Generation</div>
     <div class="tab" onclick="switchCaseTab(this,'Visits')">Supervision Visits</div>
+    <div class="tab" onclick="switchCaseTab(this,'Reassessments')">Reassessment Schedule</div>
     <div class="tab" onclick="switchCaseTab(this,'Timeline')">Audit Trail</div>
   </div>
 
@@ -1657,6 +1700,51 @@ function buildCaseDetailHtml(c){
     </div>
   </div>
 
+  <!-- TAB: REASSESSMENTS -->
+  <div id="caseTabReassessments" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Reassessment Schedule</span>
+        <button class="btn btn-primary btn-sm" onclick="addSpecialReassessDate('${c.id}')">+ Add Date</button>
+      </div>
+      <div class="card-body">
+        ${c.isSpecialCase?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--purple-dim);border:1px solid #8b6ef530;border-radius:var(--radius-sm)"><span style="font-size:18px">⚠</span><div><div style="font-size:13px;font-weight:600;color:var(--purple)">Special Case — ${c.specialCaseType||'Complex'}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${c.specialCaseNotes||'Irregular reassessments required. Dates set manually by the RN.'}</div></div></div>`:''}
+        <div style="margin-bottom:16px">
+          <div class="label" style="margin-bottom:10px">Scheduled Reassessments</div>
+          ${(c.reassessSchedule||[]).length===0?'<p style="font-size:13px;color:var(--text3)">No reassessment schedule set. Add dates using the button above.</p>'
+          :(c.reassessSchedule||[]).map((r,i)=>{
+            const overdue=r.date&&new Date(r.date)<new Date()&&!r.completed;
+            const color=r.completed?'var(--green)':overdue?'var(--red)':r.type==='compulsory'?'var(--amber)':r.type==='special-case'?'var(--purple)':'var(--text3)';
+            const bgColor=r.completed?'var(--green-dim)':overdue?'var(--red-dim)':r.type==='compulsory'?'var(--amber-dim)':r.type==='special-case'?'var(--purple-dim)':'var(--bg3)';
+            const badge=r.type==='compulsory'?'Compulsory':r.type==='statutory-max'?'Statutory Max (3 mo)':r.type==='special-case'?'Special Case':'Manual';
+            return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:${bgColor};border:1px solid ${color}30;border-radius:var(--radius-sm);margin-bottom:8px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:${color}">${r.label}</div>
+                <div style="display:flex;gap:10px;margin-top:4px;align-items:center">
+                  <span style="font-size:12px;font-family:var(--mono);color:${color}">${r.date}</span>
+                  <span style="font-size:10px;padding:2px 8px;background:${color}22;color:${color};border-radius:99px;font-weight:600">${badge}</span>
+                  ${r.completed?'<span style="font-size:10px;color:var(--green);font-weight:600">✓ Completed</span>':overdue?'<span style="font-size:10px;color:var(--red);font-weight:600">⚠ Overdue</span>':''}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px">
+                ${!r.completed?`<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="markReassessComplete('${c.id}',${i})">Mark Done</button>`:`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="markReassessIncomplete('${c.id}',${i})">Undo</button>`}
+                ${r.type!=='compulsory'&&r.type!=='statutory-max'?`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="removeReassessDate('${c.id}',${i})">Remove</button>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="padding:14px 16px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <div class="label" style="margin-bottom:8px">Add a Manual Reassessment Date</div>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px"><label class="form-label">Date</label><input class="form-input" type="date" id="inlineReassessDate_${c.id}"></div>
+            <div class="form-group" style="margin-bottom:0;flex:2;min-width:200px"><label class="form-label">Label / Reason</label><input class="form-input" id="inlineReassessLabel_${c.id}" placeholder="e.g. Client-requested, PRN, Quarterly…"></div>
+            <button class="btn btn-primary btn-sm" style="flex-shrink:0;margin-bottom:0" onclick="addInlineReassessDate('${c.id}')">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TAB: TIMELINE / AUDIT -->
   <div id="caseTabTimeline" style="display:none">
     <div class="card">
@@ -1681,7 +1769,7 @@ function buildCaseDetailHtml(c){
 function switchCaseTab(el,tab){
   document.querySelectorAll('#caseDetailTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Tasks','Instructions','Consent','Forms','Visits','Timeline'].forEach(t=>{
+  ['Tasks','Instructions','Consent','Forms','Visits','Reassessments','Timeline'].forEach(t=>{
     const d=document.getElementById('caseTab'+t);if(d)d.style.display='none';
   });
   const d=document.getElementById('caseTab'+tab);if(d)d.style.display='block';
@@ -1881,6 +1969,67 @@ function openGenerateFromCase(caseId,formId){
   },100);
 }
 
+async function markReassessComplete(caseId,idx){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c||!c.reassessSchedule)return;
+  c.reassessSchedule[idx].completed=true;
+  const now=new Date().toISOString();
+  const label=c.reassessSchedule[idx].label;
+  c.timeline=c.timeline||[];
+  c.timeline.push({date:now,action:`Reassessment completed: ${label} (${c.reassessSchedule[idx].date})`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  // advance reassessDate to next pending
+  const next=c.reassessSchedule.find(r=>!r.completed);
+  if(next) c.reassessDate=next.date;
+  initSupa();
+  if(supa&&currentUser) await supa.from('delegation_cases').update({reassess_schedule:JSON.stringify(c.reassessSchedule),reassess_date:c.reassessDate,timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none') detail.innerHTML=buildCaseDetailHtml(c);
+}
+async function markReassessIncomplete(caseId,idx){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c||!c.reassessSchedule)return;
+  c.reassessSchedule[idx].completed=false;
+  const now=new Date().toISOString();
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser) await supa.from('delegation_cases').update({reassess_schedule:JSON.stringify(c.reassessSchedule),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none') detail.innerHTML=buildCaseDetailHtml(c);
+}
+async function removeReassessDate(caseId,idx){
+  if(!confirm('Remove this reassessment date?'))return;
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c||!c.reassessSchedule)return;
+  c.reassessSchedule.splice(idx,1);
+  const now=new Date().toISOString();
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser) await supa.from('delegation_cases').update({reassess_schedule:JSON.stringify(c.reassessSchedule),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none') detail.innerHTML=buildCaseDetailHtml(c);
+}
+async function addInlineReassessDate(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  const dateEl=document.getElementById('inlineReassessDate_'+caseId);
+  const labelEl=document.getElementById('inlineReassessLabel_'+caseId);
+  const date=dateEl?.value;const label=labelEl?.value.trim()||'Manual Reassessment';
+  if(!date){alert('Please select a date.');return;}
+  c.reassessSchedule=c.reassessSchedule||[];
+  c.reassessSchedule.push({date,label,type:'manual',completed:false});
+  c.reassessSchedule.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const now=new Date().toISOString();
+  c.timeline=c.timeline||[];
+  c.timeline.push({date:now,action:`Manual reassessment date added: ${label} (${date})`,by:currentProfile?.full_name||'RN'});
+  c.updated_at=now;
+  initSupa();
+  if(supa&&currentUser) await supa.from('delegation_cases').update({reassess_schedule:JSON.stringify(c.reassessSchedule),timeline:JSON.stringify(c.timeline),updated_at:now}).eq('id',caseId);
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none') detail.innerHTML=buildCaseDetailHtml(c);
+}
+function addSpecialReassessDate(caseId){
+  // scroll to inline input
+  const el=document.getElementById('inlineReassessDate_'+caseId);
+  if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});}
+}
+
 async function loadCasesFromSupabase(){
   initSupa();
   if(!supa||!currentUser)return;
@@ -1898,7 +2047,12 @@ async function loadCasesFromSupabase(){
     consentCaregiverSigned: row.consent_caregiver_signed,
     tasks: typeof row.tasks==='string'?JSON.parse(row.tasks||'[]'):row.tasks||[],
     visits: typeof row.visits==='string'?JSON.parse(row.visits||'[]'):row.visits||[],
-    timeline: typeof row.timeline==='string'?JSON.parse(row.timeline||'[]'):row.timeline||[]
+    timeline: typeof row.timeline==='string'?JSON.parse(row.timeline||'[]'):row.timeline||[],
+    reassessSchedule: typeof row.reassess_schedule==='string'?JSON.parse(row.reassess_schedule||'[]'):row.reassess_schedule||[],
+    isSpecialCase: row.is_special_case||false,
+    specialCaseType: row.special_case_type||'',
+    specialCaseNotes: row.special_case_notes||'',
+    specialReassessDates: typeof row.special_reassess_dates==='string'?JSON.parse(row.special_reassess_dates||'[]'):row.special_reassess_dates||[]
   }));
 }
 
@@ -2170,6 +2324,40 @@ function filterCaregivers(q){renderCaregiverTable(window.caregivers.filter(c=>(c
 function filterCaregiversByStatus(s){let f=window.caregivers;if(s==='Active')f=f.filter(c=>c.status==='Active');else if(s==='Inactive')f=f.filter(c=>c.status==='Inactive');else if(s==='Credential Expired')f=f.filter(c=>c.certExpired||c.cprExpired);renderCaregiverTable(f);}
 function switchCgTab(el,tab){document.querySelectorAll('#cgTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Alerts','History'].forEach(t=>{const d=document.getElementById('cgTab'+t);if(d)d.style.display='none';});const d=document.getElementById('cgTab'+tab);if(d)d.style.display='block';}
 
+// ── REASSESSMENT DATE HELPERS ─────────────────────
+function addDays(dateStr, days){
+  const d=new Date(dateStr);d.setDate(d.getDate()+days);return d.toISOString().split('T')[0];
+}
+function addMonths(dateStr, months){
+  const d=new Date(dateStr);d.setMonth(d.getMonth()+months);return d.toISOString().split('T')[0];
+}
+function onClRnStartDateChange(val){
+  if(!val)return;
+  const isNew=document.getElementById('clIsNew').value;
+  if(isNew==='yes') populateReassessDates(val);
+}
+function onClIsNewChange(val){
+  const panel=document.getElementById('clNewClientPanel');
+  if(val==='yes'){
+    panel.style.display='block';
+    const start=document.getElementById('clRnStartDate').value;
+    if(start) populateReassessDates(start);
+  } else {
+    panel.style.display='none';
+  }
+}
+function populateReassessDates(startDate){
+  const r1=addDays(startDate,14);
+  const r2=addDays(startDate,28);
+  const r3=addMonths(startDate,3); // 3 months from start; RN can override if client requests sooner
+  document.getElementById('clReassess1').value=r1;
+  document.getElementById('clReassess2').value=r2;
+  document.getElementById('clReassess3').value=r3;
+}
+function onClSpecialCaseChange(checked){
+  document.getElementById('clSpecialCasePanel').style.display=checked?'block':'none';
+}
+
 // ── CLIENT FUNCTIONS ──────────────────────────────
 function openClientModal(editId){
   ['clFirst','clLast','clDob','clGender','clDshsId','clAcesId','clMedicaid','clAddress','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -2177,6 +2365,17 @@ function openClientModal(editId){
   if(fSel){fSel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>fSel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));}
   if(cgSel){cgSel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgSel.insertAdjacentHTML('beforeend','<option value="'+c.id+'">'+c.first+' '+c.last+'</option>'));}
   document.getElementById('clStatus').value='Active';
+  document.getElementById('clRnStartDate').value='';
+  document.getElementById('clIsNew').value='';
+  document.getElementById('clNewClientPanel').style.display='none';
+  document.getElementById('clReassess1').value='';
+  document.getElementById('clReassess2').value='';
+  document.getElementById('clReassess3').value='';
+  document.getElementById('clIsSpecialCase').checked=false;
+  document.getElementById('clSpecialCasePanel').style.display='none';
+  document.getElementById('clSpecialCaseType').value='';
+  document.getElementById('clSpecialCaseNotes').value='';
+  ['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('clModalTitle').textContent=editId?'Edit Client Profile':'Add Client Profile';
   if(editId){const cl=window.clients.find(x=>x.id===editId);if(cl){Object.keys(cl).forEach(k=>{const el=document.getElementById('cl'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=cl[k]||'';});}}
   openModal('clientModal');
@@ -2197,8 +2396,16 @@ async function saveClient(){
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
   const cg=window.caregivers.find(c=>c.id===caregiverId);
   const caregiverName=cg?cg.first+' '+cg.last:'—';
-  const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};
-  const now2=new Date().toISOString();
+  const rnStartDate=document.getElementById('clRnStartDate').value;
+  const isNewClient=document.getElementById('clIsNew').value==='yes';
+  const reassess1=document.getElementById('clReassess1').value;
+  const reassess2=document.getElementById('clReassess2').value;
+  const reassess3=document.getElementById('clReassess3').value;
+  const isSpecialCase=document.getElementById('clIsSpecialCase').checked;
+  const specialCaseType=document.getElementById('clSpecialCaseType').value;
+  const specialCaseNotes=document.getElementById('clSpecialCaseNotes').value;
+  const specialReassessDates=['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].map(id=>document.getElementById(id).value).filter(Boolean);
+  const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
   const row2={
     id: cl.id, user_id: currentUser?.id,
     first: cl.first, last: cl.last, dob: cl.dob, gender: cl.gender,
@@ -2213,18 +2420,90 @@ async function saveClient(){
     physician: cl.physician, physician_phone: cl.physicianPhone,
     physician_address: cl.physicianAddress, emergency_name: cl.emergencyName,
     emergency_rel: cl.emergencyRel, emergency_phone: cl.emergencyPhone,
-    guardian: cl.guardian, created_at: now2, updated_at: now2
+    guardian: cl.guardian,
+    rn_start_date: cl.rnStartDate, is_new_client: cl.isNewClient,
+    reassess1: cl.reassess1, reassess2: cl.reassess2, reassess3: cl.reassess3,
+    is_special_case: cl.isSpecialCase, special_case_type: cl.specialCaseType,
+    special_case_notes: cl.specialCaseNotes,
+    special_reassess_dates: JSON.stringify(cl.specialReassessDates||[]),
+    created_at: now2, updated_at: now2
   };
   const { error: clErr } = await supa.from('clients').upsert(row2);
   if(clErr){ alert('Save failed: ' + clErr.message); return; }
   if(caregiverId){const c=window.caregivers.find(x=>x.id===caregiverId);if(c&&!c.assignedClients.includes(cl.id))c.assignedClients.push(cl.id);}
   window.clients = window.clients.filter(x => x.id !== cl.id);
   window.clients.unshift(cl);
+
+  // ── AUTO-CREATE DELEGATION CASE for new clients ──────────────────────────
+  if(cl.isNewClient && cl.rnStartDate){
+    const autoCase={
+      id: 'case-'+Date.now(),
+      user_id: currentUser?.id,
+      clientId: cl.id, clientName: `${cl.first} ${cl.last}`,
+      caregiverId: cl.caregiverId, caregiverName: cl.caregiverName,
+      facilityId: cl.facilityId, facilityName: cl.facilityName,
+      rnName: currentProfile?.full_name||'',
+      startDate: cl.rnStartDate,
+      reassessDate: cl.reassess1||'',   // first compulsory reassessment pre-filled
+      status: 'Active',
+      supervision: 'Every 2 Weeks',
+      notes: `Auto-created on client registration.\n\n` +
+        `Compulsory 1st reassessment: ${cl.reassess1||'—'}\n` +
+        `Compulsory 2nd reassessment: ${cl.reassess2||'—'}\n` +
+        `3rd reassessment (statutory max): ${cl.reassess3||'—'}` +
+        (cl.isSpecialCase ? `\n\n⚠ SPECIAL CASE — ${cl.specialCaseType||''}:\n${cl.specialCaseNotes||''}` : ''),
+      instructions: '', precautions: '', escalation: '',
+      consentClient: true, consentGuardian: false, consentCaregiver: true,
+      consentClientSigned: false, consentGuardianSigned: false, consentCaregiverSigned: false,
+      tasks: [], visits: [],
+      isSpecialCase: cl.isSpecialCase,
+      specialCaseType: cl.specialCaseType,
+      specialCaseNotes: cl.specialCaseNotes,
+      specialReassessDates: cl.specialReassessDates||[],
+      reassessSchedule: [
+        {date: cl.reassess1, label:'1st Reassessment', type:'compulsory', completed:false},
+        {date: cl.reassess2, label:'2nd Reassessment', type:'compulsory', completed:false},
+        {date: cl.reassess3, label:'3rd Reassessment', type:'statutory-max', completed:false},
+        ...(cl.specialReassessDates||[]).map((d,i)=>({date:d,label:`Special Reassess #${i+1}`,type:'special-case',completed:false}))
+      ].filter(r=>r.date),
+      timeline:[{date:now2,action:'Case auto-created from new client registration',by:currentProfile?.full_name||'RN'}],
+      created_at:now2, updated_at:now2
+    };
+    if(supa&&currentUser){
+      const caseRow={
+        id:autoCase.id, user_id:autoCase.user_id,
+        client_id:autoCase.clientId, client_name:autoCase.clientName,
+        caregiver_id:autoCase.caregiverId, caregiver_name:autoCase.caregiverName,
+        facility_id:autoCase.facilityId, facility_name:autoCase.facilityName,
+        rn_name:autoCase.rnName, start_date:autoCase.startDate,
+        reassess_date:autoCase.reassessDate, status:autoCase.status,
+        supervision:autoCase.supervision, notes:autoCase.notes,
+        instructions:'', precautions:'', escalation:'',
+        consent_client:true, consent_guardian:false, consent_caregiver:true,
+        consent_client_signed:false, consent_guardian_signed:false, consent_caregiver_signed:false,
+        tasks:'[]', visits:'[]',
+        timeline:JSON.stringify(autoCase.timeline),
+        is_special_case:autoCase.isSpecialCase,
+        special_case_type:autoCase.specialCaseType,
+        special_case_notes:autoCase.specialCaseNotes,
+        special_reassess_dates:JSON.stringify(autoCase.specialReassessDates),
+        reassess_schedule:JSON.stringify(autoCase.reassessSchedule),
+        created_at:now2, updated_at:now2
+      };
+      await supa.from('delegation_cases').upsert(caseRow);
+    }
+    window.delegationCases=window.delegationCases||[];
+    window.delegationCases.unshift(autoCase);
+  }
+
   closeModal('clientModal');
   renderClientTable(window.clients);
   updateClientStats();
   refreshClientFilters();
   renderLinksTable();
+  if(cl.isNewClient){
+    setTimeout(()=>alert(`✅ Client registered.\n\nA Delegation Case has been auto-created with the following compulsory reassessment schedule:\n• 1st: ${cl.reassess1||'—'} (2 weeks — compulsory)\n• 2nd: ${cl.reassess2||'—'} (4 weeks — compulsory)\n• 3rd: ${cl.reassess3||'—'} (3-month statutory max)\n${cl.isSpecialCase?'\n⚠ Special Case flagged: '+cl.specialCaseType:''}\n\nOpen the Delegation Cases page to review and add tasks.`),200);
+  }
 }
 function renderClientTable(list){
   const tbody=document.getElementById('clientTableBody');if(!tbody)return;
