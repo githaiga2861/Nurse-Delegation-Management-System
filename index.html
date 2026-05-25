@@ -399,42 +399,41 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
     <div class="name">Delegate<span>RN</span></div>
   </div>
   <div class="nav-links">
-    <a href="#features">Platform</a>
-    <a href="#workflow">Workflow</a>
-    <a href="#forms">DSHS Forms</a>
-    <a href="#compliance">Compliance</a>
+    <a href="#">Platform</a>
+    <a href="#">Workflow</a>
+    <a href="#">DSHS Forms</a>
+    <a href="#">Compliance</a>
   </div>
   <div class="nav-cta">
-    <button class="btn btn-ghost" onclick="openModal('signinModal')">Sign In</button>
+    <button class="btn btn-ghost" onclick="doSignIn()">Sign In</button>
   </div>
 </nav>
 
-<!-- LANDING PAGE -->
-<div id="landing">
-
-<!-- HERO -->
-<section id="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-glow"></div>
-  <div class="hero-content">
-    <div class="hero-eyebrow animate-fade-up">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
-      Washington State Nurse Delegation · DSHS Compliant
+<!-- LANDING PAGE - HERO ONLY (matches screenshot) -->
+<div id="landing" style="min-height:100vh;display:flex;flex-direction:column">
+  <!-- HERO -->
+  <section id="hero" style="flex:1;padding:180px 40px 120px;position:relative;overflow:hidden;background:var(--bg);display:flex;align-items:center">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-content" style="max-width:1200px;margin:0 auto;text-align:center;width:100%">
+      <div class="hero-eyebrow animate-fade-up" style="margin-bottom:32px">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>
+        Washington State Nurse Delegation · DSHS Compliant
+      </div>
+      <h1 class="animate-fade-up animate-delay-1" style="margin-bottom:24px">
+        The <span class="accent">Delegation Workflow</span><br>Operating System for RNs
+      </h1>
+      <p class="hero-sub animate-fade-up animate-delay-2" style="max-width:620px;margin:0 auto 48px">
+        A precision-built clinical platform for Registered Nurses managing nurse delegation in Adult Family Homes — centralizing caregiver oversight, DSHS compliance, and documentation into a single intelligent workspace.
+      </p>
+      <div class="hero-ctas animate-fade-up animate-delay-3">
+        <button class="btn btn-primary btn-lg" onclick="doSignIn()" style="padding:14px 32px;font-size:15px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Open Platform
+        </button>
+      </div>
     </div>
-    <h1 class="animate-fade-up animate-delay-1">
-      The <span class="accent">Delegation Workflow</span><br>Operating System for RNs
-    </h1>
-    <p class="hero-sub animate-fade-up animate-delay-2">
-      A precision-built clinical platform for Registered Nurses managing nurse delegation in Adult Family Homes — centralizing caregiver oversight, DSHS compliance, and documentation into a single intelligent workspace.
-    </p>
-    <div class="hero-ctas animate-fade-up animate-delay-3">
-      <button class="btn btn-primary btn-lg" onclick="openModal('signinModal')">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Open Platform
-      </button>
-    </div>
-  </div>
-</section>
+  </section>
 </div>
 
 <!-- SIGN IN MODAL -->
@@ -1561,10 +1560,7 @@ function openApp(){
 }
 
 function doSignIn(){
-  const email=document.getElementById('signinEmail').value.trim();
-  const password=document.getElementById('signinPassword').value;
-  if(!email||!password){alert('Please enter your email and password.');return;}
-  closeModal('signinModal');
+  // Simplified: directly open the platform (no modal needed)
   openApp();
 }
 
