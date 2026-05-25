@@ -431,7 +431,7 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           Open Platform
         </button>
-      </div>
+    </div>
     </div>
   </section>
 </div>
@@ -467,10 +467,76 @@ footer{background:var(--bg1);border-top:1px solid var(--border);padding:64px 40p
   </div>
 </div>
 
+<!-- (removed stray markup) -->
 
-    <!-- MAIN CONTENT -->
+<!-- APP SHELL -->
+<div id="app" style="display:none">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="mark" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">D</div>
+        <div style="font-size:15px;font-weight:600;letter-spacing:-0.01em">Delegate<span style="color:var(--blue)">RN</span></div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-section-label">Workspace</span>
+        <div class="nav-item active" onclick="showPage('dashboard')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="showPage('afh')">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M1 14V8L8 2l7 6v6H1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Facility Management
+        </div>
+        <div class="nav-item" onclick="showPage('cases')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.5"/></svg>
+          Delegation Cases
+        </div>
+        <div class="nav-item" onclick="showPage('caregivers')">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 13c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 7v4M14 9h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Caregivers
+        </div>
+        <div class="nav-item" onclick="showPage('patients')">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Clients
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-section-label">Clinical</span>
+        <div class="nav-item" onclick="showPage('visits')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Nursing Visits
+        </div>
+        <div class="nav-item" onclick="showPage('documents')">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M9 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7L9 2z" stroke="currentColor" stroke-width="1.5"/><path d="M9 2v5h5" stroke="currentColor" stroke-width="1.5"/></svg>
+          Documents
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-section-label">Oversight</span>
+        <div class="nav-item" onclick="showPage('compliance')">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 1.5L1.5 4v4c0 3.5 3 5.5 6.5 6 3.5-.5 6.5-2.5 6.5-6V4L8 1.5z" stroke="currentColor" stroke-width="1.5"/></svg>
+          Compliance
+        </div>
+        <div class="nav-item" onclick="showPage('alerts')" style="position:relative">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 0 1 5 5v3l1.5 1.5H1.5L3 10V7a5 5 0 0 1 5-5zM6.5 14a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.5"/></svg>
+          Alerts
+        </div>
+        <div class="nav-item" onclick="showPage('archive')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="5" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 5h14M6 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Archive
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="avatar-pill">
+          <div class="avatar">RN</div>
+          <div class="avatar-info">
+            <div class="avatar-name">Registered Nurse</div>
+            <div class="avatar-role">DelegateRN Platform</div>
+          </div>
+        </div>
+      </div>
+    </aside>
     <div class="main">
-      <!-- Pages will be injected here -->
       <div id="page-dashboard"></div>
       <div id="page-afh" style="display:none"></div>
       <div id="page-cases" style="display:none"></div>
