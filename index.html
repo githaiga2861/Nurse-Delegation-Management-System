@@ -342,7 +342,7 @@ textarea.form-input{resize:vertical;min-height:80px}
       <div id="siError" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
     </div>
     <div class="modal-footer" style="padding:16px 28px 24px;flex-direction:column;gap:0">
-      <button id="siBtnSubmit" class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;justify-content:center" onclick="submitSignIn()">Sign In</button>
+      <button id="siBtnSubmit" class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;justify-content:center;transition:opacity 0.15s" onclick="submitSignIn()">Sign In</button>
       <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:16px">Access is restricted to authorised RNs only.<br>Contact your system administrator if you need access.</p>
     </div>
   </div>
@@ -560,23 +560,40 @@ async function submitSignIn(){
     return;
   }
   currentUser = data.user;
-  // fetch profile
-  const { data: profile } = await supa.from('profiles').select('*').eq('id', currentUser.id).single();
-  currentProfile = profile;
+  // Show app immediately, load everything in parallel
   closeModal('signInModal');
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  // update sidebar name
-  const nameEl = document.getElementById('sidebarUserName');
-  const roleEl = document.getElementById('sidebarUserRole');
-  if(nameEl) nameEl.textContent = profile?.full_name || email;
-  if(roleEl) roleEl.textContent = profile?.role || 'Registered Nurse';
-  // load data from supabase
-  await loadAllData();
   showPage('dashboard');
   window.scrollTo(0,0);
   btn.textContent = 'Sign In';
   btn.disabled = false;
+  // Fetch profile + all data simultaneously in background
+  const uid = currentUser.id;
+  Promise.all([
+    supa.from('profiles').select('*').eq('id', uid).single(),
+    supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
+  ]).then(([profileRes, facRes, cgRes, clRes]) => {
+    currentProfile = profileRes.data;
+    window.facilities = (facRes.data || []).map(f => ({ ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count }));
+    window.caregivers = (cgRes.data || []).map(c => ({ ...c, credType: c.cred_type, certNum: c.cert_num, certExpiry: c.cert_expiry, cprExpiry: c.cpr_expiry, delegationEligible: c.delegation_eligible, facilityId: c.facility_id, facilityName: c.facility_name, assignedClients: c.assigned_clients || [], certExpired: new Date(c.cert_expiry)<new Date(), cprExpired: new Date(c.cpr_expiry)<new Date() }));
+    window.clients    = (clRes.data || []).map(c => ({ ...c, facilityId: c.facility_id, facilityName: c.facility_name, caregiverId: c.caregiver_id, caregiverName: c.caregiver_name }));
+    const nameEl = document.getElementById('sidebarUserName');
+    const roleEl = document.getElementById('sidebarUserRole');
+    if(nameEl) nameEl.textContent = currentProfile?.full_name || email;
+    if(roleEl) roleEl.textContent = currentProfile?.role || 'Registered Nurse';
+    // Refresh whichever page is currently visible with the loaded data
+    const activePage = document.querySelector('[id^="page-"]:not([style*="none"])');
+    if(activePage){
+      const pid = activePage.id.replace('page-','');
+      if(['afh','caregivers','patients'].includes(pid)){
+        activePage.innerHTML='';
+        showPage(pid);
+      }
+    }
+  });
 }
 
 async function loadAllData(){
@@ -584,13 +601,13 @@ async function loadAllData(){
   if(!currentUser || !supa) return;
   const uid = currentUser.id;
   const [facRes, cgRes, clRes] = await Promise.all([
-    supa.from('facilities').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('caregivers').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+    supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]);
-  window.facilities = facRes.data || [];
-  window.caregivers = (cgRes.data || []).map(c => ({ ...c, assignedClients: c.assigned_clients || [] }));
-  window.clients    = clRes.data || [];
+  window.facilities = (facRes.data || []).map(f => ({ ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count }));
+  window.caregivers = (cgRes.data || []).map(c => ({ ...c, credType: c.cred_type, certNum: c.cert_num, certExpiry: c.cert_expiry, cprExpiry: c.cpr_expiry, delegationEligible: c.delegation_eligible, facilityId: c.facility_id, facilityName: c.facility_name, assignedClients: c.assigned_clients || [], certExpired: new Date(c.cert_expiry)<new Date(), cprExpired: new Date(c.cpr_expiry)<new Date() }));
+  window.clients    = (clRes.data || []).map(c => ({ ...c, facilityId: c.facility_id, facilityName: c.facility_name, caregiverId: c.caregiver_id, caregiverName: c.caregiver_name }));
 }
 
 function showPage(id){
@@ -1155,24 +1172,35 @@ async function signOut(){
 
 // ── INIT ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Render landing immediately — no blocking
   initSupa();
   document.getElementById('page-dashboard').innerHTML = pageRenderers.dashboard();
-  // restore session if user was already signed in
-  if(supa){
-    supa.auth.getSession().then(({ data }) => {
-      if(data?.session?.user){
-        currentUser = data.session.user;
-        supa.from('profiles').select('*').eq('id', currentUser.id).single().then(({ data: profile }) => {
-          currentProfile = profile;
-          const nameEl = document.getElementById('sidebarUserName');
-          const roleEl = document.getElementById('sidebarUserRole');
-          if(nameEl) nameEl.textContent = profile?.full_name || currentUser.email;
-          if(roleEl) roleEl.textContent = profile?.role || 'Registered Nurse';
-        });
-        loadAllData();
-      }
+  if(!supa) return;
+  // Check session in background — don't block render
+  supa.auth.getSession().then(({ data }) => {
+    if(!data?.session?.user) return;
+    currentUser = data.session.user;
+    // Show app shell immediately, load data in parallel
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    // Fetch profile and all data simultaneously
+    Promise.all([
+      supa.from('profiles').select('*').eq('id', currentUser.id).single(),
+      supa.from('facilities').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+      supa.from('caregivers').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+      supa.from('clients').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+    ]).then(([profileRes, facRes, cgRes, clRes]) => {
+      currentProfile = profileRes.data;
+      window.facilities = facRes.data || [];
+      window.caregivers = (cgRes.data || []).map(c => ({ ...c, assignedClients: c.assigned_clients || [] }));
+      window.clients    = clRes.data || [];
+      const nameEl = document.getElementById('sidebarUserName');
+      const roleEl = document.getElementById('sidebarUserRole');
+      if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
+      if(roleEl) roleEl.textContent = currentProfile?.role || 'Registered Nurse';
+      showPage('dashboard');
     });
-  }
+  });
 });
 
 </script>
