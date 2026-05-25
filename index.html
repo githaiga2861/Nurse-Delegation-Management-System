@@ -70,7 +70,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:ce
 
 /* APP SHELL — hidden until login */
 #app{display:none;min-height:100vh;background:var(--bg)}
-.app-layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.app-layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh;width:100vw}
 
 /* SIDEBAR */
 .sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:240px;overflow-y:auto;z-index:100}
@@ -95,7 +95,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:ce
 .topbar{position:sticky;top:0;z-index:50;background:#080a0fee;backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
 .topbar-title{font-size:15px;font-weight:600}
 .topbar-actions{display:flex;align-items:center;gap:8px}
-.page-content{padding:32px}
+.page-content{padding:36px 40px}
 
 /* CARDS */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
@@ -246,17 +246,17 @@ textarea.form-input{resize:vertical;min-height:80px}
           <svg viewBox="0 0 16 16" fill="none"><path d="M1 14V8L8 2l7 6v6H1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           Facility Management
         </div>
-        <div class="nav-item" onclick="showPage('cases')">
-          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.5"/></svg>
-          Delegation Cases
-        </div>
         <div class="nav-item" onclick="showPage('caregivers')">
           <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 13c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 7v4M14 9h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Caregivers
+          Caregiver Management
         </div>
         <div class="nav-item" onclick="showPage('patients')">
           <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Clients
+          Client Management
+        </div>
+        <div class="nav-item" onclick="showPage('cases')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 0 1 6 0v1" stroke="currentColor" stroke-width="1.5"/></svg>
+          Delegation Cases
         </div>
       </div>
       <div class="sidebar-section">
@@ -540,12 +540,12 @@ pageRenderers.dashboard = () => `
     <button class="btn btn-primary btn-sm" onclick="openModal('newCaseModal')">+ New Case</button>
   </div>
 </div>
-<div class="page-content">
-  <div style="margin-bottom:28px">
-    <h3 style="margin-bottom:4px">Good morning</h3>
-    <p style="font-size:13px">Your delegation workflow overview — all cases, visits, and compliance items in one place.</p>
+<div class="page-content" style="max-width:1400px;margin:0 auto">
+  <div style="margin-bottom:32px">
+    <h3 style="margin-bottom:6px;font-size:1.6rem">Good morning</h3>
+    <p style="font-size:14px">Your delegation workflow overview — all cases, visits, and compliance items in one place.</p>
   </div>
-  <div class="stat-grid">
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:32px">
     ${statCard('blue','Active Delegation Cases','—','No cases yet')}
     ${statCard('green','AFH Workspaces','—','No workspaces yet')}
     ${statCard('amber','Pending Signatures','—','No pending items')}
@@ -553,24 +553,24 @@ pageRenderers.dashboard = () => `
     ${statCard('purple','Nursing Visits (MTD)','—','No visits recorded')}
     ${statCard('blue','Caregivers on File','—','No caregivers yet')}
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
     <div class="card">
-      <div class="card-header"><span style="font-size:13px;font-weight:600">Recent Delegation Cases</span><button class="btn btn-ghost btn-sm" onclick="showPage('cases')">View All</button></div>
-      <div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases yet</h4><p>Create your first delegation case to begin tracking workflow and compliance.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openModal('newCaseModal')">+ Create Case</button></div>
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Recent Delegation Cases</span><button class="btn btn-ghost btn-sm" onclick="showPage('cases')">View All</button></div>
+      <div class="empty-state" style="padding:56px 32px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases yet</h4><p>Create your first delegation case to begin tracking workflow and compliance.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openModal('newCaseModal')">+ Create Case</button></div>
     </div>
     <div class="card">
-      <div class="card-header"><span style="font-size:13px;font-weight:600">Upcoming Nursing Visits</span><button class="btn btn-ghost btn-sm" onclick="showPage('visits')">Schedule</button></div>
-      <div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v3M15 2v3M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No visits scheduled</h4><p>Schedule supervision nursing visits to appear on your dashboard calendar.</p></div>
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Upcoming Nursing Visits</span><button class="btn btn-ghost btn-sm" onclick="showPage('visits')">Schedule</button></div>
+      <div class="empty-state" style="padding:56px 32px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v3M15 2v3M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No visits scheduled</h4><p>Schedule supervision nursing visits to appear on your dashboard calendar.</p></div>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+  <div style="display:grid;grid-template-columns:3fr 1fr;gap:24px">
     <div class="card">
-      <div class="card-header"><span style="font-size:13px;font-weight:600">Document Activity</span><span class="label">Last 30 Days</span></div>
-      <div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No document activity</h4><p>Uploaded and generated documents will appear here.</p></div>
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Document Activity</span><span class="label">Last 30 Days</span></div>
+      <div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No document activity</h4><p>Uploaded and generated documents will appear here.</p></div>
     </div>
     <div class="card">
-      <div class="card-header"><span style="font-size:13px;font-weight:600">Compliance Status</span></div>
-      <div class="card-body" style="padding:20px">
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Compliance Status</span></div>
+      <div class="card-body" style="padding:24px">
         ${complianceRow('Active Cases Compliant')}
         ${complianceRow('Credentials Current')}
         ${complianceRow('Visits Up-to-Date')}
@@ -587,13 +587,13 @@ pageRenderers.afh = () => {
 <div class="topbar">
   <div class="topbar-title">Facility Management</div>
   <div class="topbar-actions">
-    <input class="form-input" style="width:200px;padding:7px 12px;font-size:12px" placeholder="Search facilities…" oninput="filterFacilities(this.value)">
-    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" onchange="filterFacilitiesByType(this.value)"><option value="">All Types</option><option>Adult Family Home (AFH)</option><option>Client Residential Home</option><option>Assisted Living Facility</option><option>Group Home</option><option>Skilled Nursing Facility</option><option>Other</option></select>
+    <input class="form-input" style="width:220px;padding:8px 14px;font-size:13px" placeholder="Search facilities…" oninput="filterFacilities(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px" onchange="filterFacilitiesByType(this.value)"><option value="">All Types</option><option>Adult Family Home (AFH)</option><option>Client Residential Home</option><option>Assisted Living Facility</option><option>Group Home</option><option>Skilled Nursing Facility</option><option>Other</option></select>
     <button class="btn btn-primary btn-sm" onclick="openFacilityModal()">+ Register Facility</button>
   </div>
 </div>
-<div class="page-content">
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px">
     <div class="stat-card"><div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 16V9L9 3l7 6v7H2z" stroke="var(--blue)" stroke-width="1.5" stroke-linejoin="round"/></svg></div><div class="stat-val empty" id="fac-total">—</div><div class="stat-label">Total Facilities</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="fac-active">—</div><div class="stat-label">Active AFHs</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="11" rx="1.5" stroke="var(--purple)" stroke-width="1.5"/></svg></div><div class="stat-val empty" id="fac-residential">—</div><div class="stat-label">Residential Homes</div></div>
@@ -615,11 +615,11 @@ pageRenderers.cases = () => `
 <div class="topbar">
   <div class="topbar-title">Delegation Cases</div>
   <div class="topbar-actions">
-    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px"><option>All Statuses</option><option>Draft</option><option>Pending Consent</option><option>Active</option><option>Requires Reassessment</option><option>Suspended</option><option>Closed</option></select>
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px"><option>All Statuses</option><option>Draft</option><option>Pending Consent</option><option>Active</option><option>Requires Reassessment</option><option>Suspended</option><option>Closed</option></select>
     <button class="btn btn-primary btn-sm" onclick="openModal('newCaseModal')">+ New Case</button>
   </div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
     <span class="status status-draft"><span class="status-dot"></span>Draft</span>
     <span class="status status-pending"><span class="status-dot"></span>Pending Consent</span>
@@ -640,13 +640,13 @@ pageRenderers.caregivers = () => {
 <div class="topbar">
   <div class="topbar-title">Caregiver Management</div>
   <div class="topbar-actions">
-    <input class="form-input" style="width:200px;padding:7px 12px;font-size:12px" placeholder="Search caregivers…" oninput="filterCaregivers(this.value)">
-    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" onchange="filterCaregiversByStatus(this.value)"><option value="">All Statuses</option><option>Active</option><option>Inactive</option><option>Credential Expired</option></select>
+    <input class="form-input" style="width:220px;padding:8px 14px;font-size:13px" placeholder="Search caregivers…" oninput="filterCaregivers(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px" onchange="filterCaregiversByStatus(this.value)"><option value="">All Statuses</option><option>Active</option><option>Inactive</option><option>Credential Expired</option></select>
     <button class="btn btn-primary btn-sm" onclick="openCaregiverModal()">+ Add Caregiver</button>
   </div>
 </div>
-<div class="page-content">
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:28px">
     <div class="stat-card"><div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M1 16c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cg-total">—</div><div class="stat-label">Total Caregivers</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cg-active">—</div><div class="stat-label">Active</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2 5v4c0 3.5 3 6 7 7 4-1 7-3.5 7-7V5L9 1.5z" stroke="var(--green)" stroke-width="1.5"/></svg></div><div class="stat-val empty" id="cg-eligible">—</div><div class="stat-label">Delegation Eligible</div></div>
@@ -677,13 +677,13 @@ pageRenderers.patients = () => {
 <div class="topbar">
   <div class="topbar-title">Client Management</div>
   <div class="topbar-actions">
-    <input class="form-input" style="width:200px;padding:7px 12px;font-size:12px" placeholder="Search clients…" oninput="filterClients(this.value)">
-    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px" id="clientFacilityFilter" onchange="filterClientsByFacility(this.value)"><option value="">All Facilities</option></select>
+    <input class="form-input" style="width:220px;padding:8px 14px;font-size:13px" placeholder="Search clients…" oninput="filterClients(this.value)">
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px" id="clientFacilityFilter" onchange="filterClientsByFacility(this.value)"><option value="">All Facilities</option></select>
     <button class="btn btn-primary btn-sm" onclick="openClientModal()">+ Add Client</button>
   </div>
 </div>
-<div class="page-content">
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px">
     <div class="stat-card"><div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M2 16c0-3.3 3.1-5 7-5s7 1.7 7 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cl-total">—</div><div class="stat-label">Total Clients</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val empty" id="cl-active">—</div><div class="stat-label">Active Clients</div></div>
     <div class="stat-card"><div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2 5v4c0 3.5 3 6 7 7 4-1 7-3.5 7-7V5L9 1.5z" stroke="var(--purple)" stroke-width="1.5"/></svg></div><div class="stat-val empty" id="cl-linked">—</div><div class="stat-label">Caregiver Linked</div></div>
@@ -713,7 +713,7 @@ pageRenderers.visits = () => `
     <button class="btn btn-primary btn-sm">+ Schedule Visit</button>
   </div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
     ${statCard('blue','Total Visits','—','')}${statCard('green','Completed','—','')}${statCard('amber','Upcoming','—','')}
   </div>
@@ -725,7 +725,7 @@ pageRenderers.documents = () => `
   <div class="topbar-title">Document Management</div>
   <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Filter</button><button class="btn btn-primary btn-sm">+ Upload Document</button></div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div class="tabs"><div class="tab active">All Documents</div><div class="tab">Draft Forms</div><div class="tab">Signed Forms</div><div class="tab">Caregiver Packets</div><div class="tab">Uploaded Files</div></div>
   <div style="border:1px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;background:var(--bg1);margin-bottom:24px" onclick="this.style.borderColor='var(--blue)'">
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="display:block;margin:0 auto 12px;color:var(--text3)"><path d="M16 24V12M16 12l-4 4M16 12l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/></svg>
@@ -752,7 +752,7 @@ pageRenderers.compliance = () => `
   <div class="topbar-title">Compliance Center</div>
   <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Export Compliance Report</button></div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
     ${statCard('green','Compliant Cases','—','')}${statCard('amber','Expiring Credentials','—','')}${statCard('red','Overdue Reassessments','—','')}${statCard('purple','Missing Signatures','—','')}
   </div>
@@ -769,7 +769,7 @@ pageRenderers.alerts = () => `
   <div class="topbar-title">Alerts Center</div>
   <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Mark All Read</button></div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div class="empty-state" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:96px"><div class="empty-icon" style="width:60px;height:60px"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3a8 8 0 0 1 8 8v4l2 2H3l2-2v-4a8 8 0 0 1 8-8zM10 21a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No active alerts</h4><p>Compliance alerts, credential expirations, overdue reassessments, and missing signatures will appear here.</p></div>
 </div>`;
 
@@ -778,10 +778,10 @@ pageRenderers.archive = () => `
   <div class="topbar-title">Archive</div>
   <div class="topbar-actions">
     <input class="form-input" style="width:220px" placeholder="Search archive…">
-    <select class="form-input form-select" style="width:auto;padding:7px 32px 7px 12px;font-size:12px"><option>All Record Types</option><option>Closed Cases</option><option>Rescinded Delegations</option><option>Historical Visits</option><option>Signed Documents</option></select>
+    <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px"><option>All Record Types</option><option>Closed Cases</option><option>Rescinded Delegations</option><option>Historical Visits</option><option>Signed Documents</option></select>
   </div>
 </div>
-<div class="page-content">
+<div class="page-content" style="max-width:1400px;margin:0 auto">
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
     ${statCard('blue','Archived Cases','—','')}${statCard('green','Signed Documents','—','')}${statCard('amber','Historical Visits','—','')}${statCard('purple','Rescinded Delegations','—','')}
   </div>
