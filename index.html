@@ -1162,6 +1162,7 @@ textarea.form-input{resize:vertical;min-height:80px}
   <div class="modal" style="width:min(660px,95vw)">
     <div class="modal-header"><div><h4 id="facilityModalTitle">Register New Facility</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Enter all relevant details for this care setting</p></div><button onclick="closeModal('facilityModal')" class="btn btn-ghost btn-sm">✕</button></div>
     <div class="modal-body">
+      <input type="hidden" id="facilityEditId">
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Facility Type</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
@@ -1207,6 +1208,7 @@ textarea.form-input{resize:vertical;min-height:80px}
   <div class="modal" style="width:min(660px,95vw)">
     <div class="modal-header"><div><h4 id="cgModalTitle">Add Caregiver Profile</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Register a caregiver for nurse delegation management</p></div><button onclick="closeModal('caregiverModal')" class="btn btn-ghost btn-sm">✕</button></div>
     <div class="modal-body">
+      <input type="hidden" id="cgEditId">
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Personal Information</div>
         <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="cgFirst" placeholder="First name"></div><div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="cgLast" placeholder="Last name"></div></div>
@@ -1252,6 +1254,7 @@ textarea.form-input{resize:vertical;min-height:80px}
   <div class="modal" style="width:min(700px,95vw)">
     <div class="modal-header"><div><h4 id="clModalTitle">Add Client Profile</h4><p style="font-size:11px;color:var(--text3);margin-top:2px">Register a client for nurse delegation management</p></div><button onclick="closeModal('clientModal')" class="btn btn-ghost btn-sm">✕</button></div>
     <div class="modal-body">
+      <input type="hidden" id="clEditId">
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Demographics</div>
         <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="clFirst" placeholder="First name"></div><div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="clLast" placeholder="Last name"></div></div>
@@ -3394,6 +3397,9 @@ function openFacilityModal(editId){
   document.getElementById('facilityTypeOther').style.display='none';
   document.getElementById('facilityStatus').value='Active';
   document.getElementById('facilityModalTitle').textContent=editId?'Edit Facility':'Register New Facility';
+  // Store the edit ID so saveFacility knows whether to insert or update
+  const hiddenId=document.getElementById('facilityEditId');
+  if(hiddenId) hiddenId.value=editId||'';
   if(editId){const f=window.facilities.find(x=>x.id===editId);if(f)populateFacility(f);}
   openModal('facilityModal');
 }
@@ -3422,8 +3428,10 @@ async function saveFacility(){
   if(!contactName){alert('Primary contact name is required.');return;}
   if(!phone){alert('Primary phone is required.');return;}
   const now = new Date().toISOString();
+  const editId = document.getElementById('facilityEditId')?.value;
+  const existingFac = editId ? window.facilities.find(x=>x.id===editId) : null;
   const f={
-    id: Date.now().toString(),
+    id: existingFac ? existingFac.id : Date.now().toString(),
     user_id: currentUser?.id,
     type, name,
     license: document.getElementById('facilityLicense').value||null,
@@ -3439,7 +3447,8 @@ async function saveFacility(){
     capacity: document.getElementById('facilityCapacity').value,
     client_count: document.getElementById('facilityClientCount').value,
     notes: document.getElementById('facilityNotes').value,
-    created_at: now, updated_at: now
+    created_at: existingFac ? existingFac.created_at : now,
+    updated_at: now
   };
   let { error } = await supa.from('facilities').upsert(f);
   if(error && error.message && error.message.toLowerCase().includes('column')){
@@ -3457,11 +3466,21 @@ async function saveFacility(){
     alert('Save failed: ' + error.message); return;
   }
   // normalise for local use
+  // normalise for local use
   const local = { ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count };
-  window.facilities = window.facilities.filter(x => x.id !== f.id);
-  window.facilities.unshift(local);
+  // Remove both the old record (by original editId) and any accidental duplicate
+  window.facilities = window.facilities.filter(x => x.id !== f.id && x.id !== editId);
+  if(existingFac){
+    // Edit: put it back in the same position
+    const idx = window.facilities.findIndex(x=>x.id===editId);
+    if(idx>=0) window.facilities.splice(idx,0,local);
+    else window.facilities.unshift(local);
+  } else {
+    window.facilities.unshift(local);
+  }
   closeModal('facilityModal');
   clearModalDraft('facilityModal');
+  document.getElementById('facilityEditId').value='';
   renderFacilityTable(window.facilities);
   updateFacilityStats();
   refreshDashboard();
@@ -3498,6 +3517,8 @@ function updateFacilityStats(){
 // ── CAREGIVER FUNCTIONS ───────────────────────────
 function openCaregiverModal(editId){
   ['cgFirst','cgLast','cgPhone','cgEmail','cgAddress','cgCredType','cgCertNum','cgCertIssued','cgCertExpiry','cgTrainingStatus','cgCprIssued','cgCprExpiry','cgCprProvider','cgTrainingDate','cgInservice','cgTrainingNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const cgHidden=document.getElementById('cgEditId');
+  if(cgHidden) cgHidden.value=editId||'';
   const sel=document.getElementById('cgFacility');
   if(sel){sel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));}
   document.getElementById('cgStatus').value='Active';
@@ -3526,8 +3547,10 @@ async function saveCaregiver(){
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
   const now=new Date().toISOString();
   const cgd = v => (v && v.toString().trim() !== '') ? v : null;
+  const cgEditId = document.getElementById('cgEditId')?.value;
+  const existingCg = cgEditId ? window.caregivers.find(x=>x.id===cgEditId) : null;
   const row={
-    id: Date.now().toString(),
+    id: existingCg ? existingCg.id : Date.now().toString(),
     user_id: currentUser?.id,
     first, last, phone,
     email:           cgd(document.getElementById('cgEmail').value),
@@ -3547,8 +3570,9 @@ async function saveCaregiver(){
     facility_name:   facilityName||null,
     status:          document.getElementById('cgStatus').value,
     delegation_eligible: document.getElementById('cgDelegationEligible').value,
-    assigned_clients: [],
-    created_at: now, updated_at: now
+    assigned_clients: existingCg ? (existingCg.assignedClients||[]) : [],
+    created_at: existingCg ? existingCg.created_at : now,
+    updated_at: now
   };
   // Try full row first; fall back to core fields if schema is behind
   let { error } = await supa.from('caregivers').upsert(row);
@@ -3571,10 +3595,11 @@ async function saveCaregiver(){
     alert('Save failed: ' + error.message); return;
   }
   const c = { ...row, credType: row.cred_type, certNum: row.cert_num, certIssued: row.cert_issued, certExpiry, trainingStatus: row.training_status, cprIssued: row.cpr_issued, cprExpiry, cprProvider: row.cpr_provider, trainingDate: row.training_date, trainingNotes: row.training_notes, facilityId, facilityName, delegationEligible: row.delegation_eligible, certExpired: cExp<today, cprExpired: cprExp<today, certExpiring: cExp>=today&&(cExp-today)<90*86400000, cprExpiring: cprExp>=today&&(cprExp-today)<90*86400000, assignedClients: [] };
-  window.caregivers = window.caregivers.filter(x => x.id !== row.id);
+  window.caregivers = window.caregivers.filter(x => x.id !== row.id && x.id !== cgEditId);
   window.caregivers.unshift(c);
   closeModal('caregiverModal');
   clearModalDraft('caregiverModal');
+  if(document.getElementById('cgEditId')) document.getElementById('cgEditId').value='';
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
   refreshDashboard();
@@ -3681,6 +3706,8 @@ function onClSpecialCaseChange(checked){
 // ── CLIENT FUNCTIONS ──────────────────────────────
 function openClientModal(editId){
   ['clFirst','clLast','clDob','clGender','clDshsId','clAcesId','clMedicaid','clAddress','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const clHidden=document.getElementById('clEditId');
+  if(clHidden) clHidden.value=editId||'';
   const fSel=document.getElementById('clFacility'),cgSel=document.getElementById('clCaregiver');
   if(fSel){fSel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>fSel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));}
   if(cgSel){cgSel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgSel.insertAdjacentHTML('beforeend','<option value="'+c.id+'">'+c.first+' '+c.last+'</option>'));}
@@ -3725,7 +3752,9 @@ async function saveClient(){
   const specialCaseType=document.getElementById('clSpecialCaseType').value;
   const specialCaseNotes=document.getElementById('clSpecialCaseNotes').value;
   const specialReassessDates=['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].map(id=>document.getElementById(id).value).filter(Boolean);
-  const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
+  const clEditId=document.getElementById('clEditId')?.value;
+  const existingCl=clEditId?window.clients.find(x=>x.id===clEditId):null;
+  const cl={id:existingCl?existingCl.id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
   // Core columns — always present in every clients table
   const nd = v => (v && v.toString().trim() !== '') ? v : null;
   const row2={
@@ -3783,7 +3812,8 @@ async function saveClient(){
     alert('Save failed: ' + clErr.message); return;
   }
   if(caregiverId){const c=window.caregivers.find(x=>x.id===caregiverId);if(c&&!c.assignedClients.includes(cl.id))c.assignedClients.push(cl.id);}
-  window.clients = window.clients.filter(x => x.id !== cl.id);
+  cl.created_at = existingCl ? existingCl.created_at : now2;
+  window.clients = window.clients.filter(x => x.id !== cl.id && x.id !== clEditId);
   window.clients.unshift(cl);
 
   // ── AUTO-CREATE DELEGATION CASE for new clients ──────────────────────────
@@ -3850,6 +3880,7 @@ async function saveClient(){
 
   closeModal('clientModal');
   clearModalDraft('clientModal');
+  if(document.getElementById('clEditId')) document.getElementById('clEditId').value='';
   renderClientTable(window.clients);
   updateClientStats();
   refreshClientFilters();
