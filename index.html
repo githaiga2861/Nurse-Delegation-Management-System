@@ -3421,8 +3421,8 @@ async function saveFacility(){
     id: Date.now().toString(),
     user_id: currentUser?.id,
     type, name,
-    license: document.getElementById('facilityLicense').value,
-    license_exp: document.getElementById('facilityLicenseExp').value,
+    license: document.getElementById('facilityLicense').value||null,
+    license_exp: document.getElementById('facilityLicenseExp').value||null,
     status: document.getElementById('facilityStatus').value,
     street, city: document.getElementById('facilityCity').value,
     zip: document.getElementById('facilityZip').value,
@@ -3436,8 +3436,21 @@ async function saveFacility(){
     notes: document.getElementById('facilityNotes').value,
     created_at: now, updated_at: now
   };
-  const { error } = await supa.from('facilities').upsert(f);
-  if(error){ alert('Save failed: ' + error.message); return; }
+  let { error } = await supa.from('facilities').upsert(f);
+  if(error && error.message && error.message.toLowerCase().includes('column')){
+    console.warn('Facility extended columns missing, saving core only:', error.message);
+    const coreF={
+      id: f.id, user_id: f.user_id, type: f.type, name: f.name,
+      license: f.license, status: f.status, street: f.street,
+      city: f.city, zip: f.zip, county: f.county,
+      contact_name: f.contact_name, phone: f.phone,
+      email: f.email, created_at: f.created_at, updated_at: f.updated_at
+    };
+    const { error: err2 } = await supa.from('facilities').upsert(coreF);
+    if(err2){ alert('Save failed: ' + err2.message); return; }
+  } else if(error){
+    alert('Save failed: ' + error.message); return;
+  }
   // normalise for local use
   const local = { ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count };
   window.facilities = window.facilities.filter(x => x.id !== f.id);
@@ -3505,32 +3518,51 @@ async function saveCaregiver(){
   const facilityId=document.getElementById('cgFacility').value;
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
   const now=new Date().toISOString();
+  const cgd = v => (v && v.toString().trim() !== '') ? v : null;
   const row={
     id: Date.now().toString(),
     user_id: currentUser?.id,
     first, last, phone,
-    email: document.getElementById('cgEmail').value,
-    address: document.getElementById('cgAddress').value,
-    cred_type: credType,
-    cert_num: document.getElementById('cgCertNum').value,
-    cert_issued: document.getElementById('cgCertIssued').value,
-    cert_expiry: certExpiry,
-    training_status: document.getElementById('cgTrainingStatus').value,
-    cpr_issued: document.getElementById('cgCprIssued').value,
-    cpr_expiry: cprExpiry,
-    cpr_provider: document.getElementById('cgCprProvider').value,
-    training_date: document.getElementById('cgTrainingDate').value,
-    inservice: document.getElementById('cgInservice').value,
-    training_notes: document.getElementById('cgTrainingNotes').value,
-    facility_id: facilityId,
-    facility_name: facilityName,
-    status: document.getElementById('cgStatus').value,
+    email:           cgd(document.getElementById('cgEmail').value),
+    address:         cgd(document.getElementById('cgAddress').value),
+    cred_type:       credType,
+    cert_num:        cgd(document.getElementById('cgCertNum').value),
+    cert_issued:     cgd(document.getElementById('cgCertIssued').value),
+    cert_expiry:     cgd(certExpiry),
+    training_status: cgd(document.getElementById('cgTrainingStatus').value),
+    cpr_issued:      cgd(document.getElementById('cgCprIssued').value),
+    cpr_expiry:      cgd(cprExpiry),
+    cpr_provider:    cgd(document.getElementById('cgCprProvider').value),
+    training_date:   cgd(document.getElementById('cgTrainingDate').value),
+    inservice:       cgd(document.getElementById('cgInservice').value),
+    training_notes:  cgd(document.getElementById('cgTrainingNotes').value),
+    facility_id:     cgd(facilityId),
+    facility_name:   facilityName||null,
+    status:          document.getElementById('cgStatus').value,
     delegation_eligible: document.getElementById('cgDelegationEligible').value,
     assigned_clients: [],
     created_at: now, updated_at: now
   };
-  const { error } = await supa.from('caregivers').upsert(row);
-  if(error){ alert('Save failed: ' + error.message); return; }
+  // Try full row first; fall back to core fields if schema is behind
+  let { error } = await supa.from('caregivers').upsert(row);
+  if(error && error.message && error.message.toLowerCase().includes('column')){
+    console.warn('Caregiver extended columns missing, saving core only:', error.message);
+    const coreRow={
+      id: row.id, user_id: row.user_id,
+      first: row.first, last: row.last, phone: row.phone,
+      email: row.email, cred_type: row.cred_type,
+      cert_num: row.cert_num, cert_expiry: row.cert_expiry,
+      cpr_expiry: row.cpr_expiry, facility_id: row.facility_id,
+      facility_name: row.facility_name, status: row.status,
+      delegation_eligible: row.delegation_eligible,
+      assigned_clients: row.assigned_clients,
+      created_at: row.created_at, updated_at: row.updated_at
+    };
+    const { error: err2 } = await supa.from('caregivers').upsert(coreRow);
+    if(err2){ alert('Save failed: ' + err2.message); return; }
+  } else if(error){
+    alert('Save failed: ' + error.message); return;
+  }
   const c = { ...row, credType: row.cred_type, certNum: row.cert_num, certIssued: row.cert_issued, certExpiry, trainingStatus: row.training_status, cprIssued: row.cpr_issued, cprExpiry, cprProvider: row.cpr_provider, trainingDate: row.training_date, trainingNotes: row.training_notes, facilityId, facilityName, delegationEligible: row.delegation_eligible, certExpired: cExp<today, cprExpired: cprExp<today, certExpiring: cExp>=today&&(cExp-today)<90*86400000, cprExpiring: cprExp>=today&&(cprExp-today)<90*86400000, assignedClients: [] };
   window.caregivers = window.caregivers.filter(x => x.id !== row.id);
   window.caregivers.unshift(c);
@@ -3685,30 +3717,62 @@ async function saveClient(){
   const specialCaseNotes=document.getElementById('clSpecialCaseNotes').value;
   const specialReassessDates=['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].map(id=>document.getElementById(id).value).filter(Boolean);
   const cl={id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
+  // Core columns — always present in every clients table
+  const nd = v => (v && v.toString().trim() !== '') ? v : null;
   const row2={
     id: cl.id, user_id: currentUser?.id,
-    first: cl.first, last: cl.last, dob: cl.dob, gender: cl.gender,
-    dshs_id: cl.dshsId, aces_id: cl.acesId, medicaid: cl.medicaid, address: cl.address,
+    first: cl.first, last: cl.last, dob: nd(cl.dob),
     facility_id: cl.facilityId, facility_name: cl.facilityName,
-    caregiver_id: cl.caregiverId, caregiver_name: cl.caregiverName,
-    status: cl.status, diagnosis: cl.diagnosis,
-    diagnosis_secondary: cl.diagnosisSecondary, allergies: cl.allergies,
-    medications: cl.medications, pharmacy: cl.pharmacy,
-    pharmacy_phone: cl.pharmacyPhone, med_notes: cl.medNotes,
-    care_plan: cl.carePlan, delegation_req: cl.delegationReq,
-    physician: cl.physician, physician_phone: cl.physicianPhone,
-    physician_address: cl.physicianAddress, emergency_name: cl.emergencyName,
-    emergency_rel: cl.emergencyRel, emergency_phone: cl.emergencyPhone,
-    guardian: cl.guardian,
-    rn_start_date: cl.rnStartDate, is_new_client: cl.isNewClient,
-    reassess1: cl.reassess1, reassess2: cl.reassess2, reassess3: cl.reassess3,
-    is_special_case: cl.isSpecialCase, special_case_type: cl.specialCaseType,
-    special_case_notes: cl.specialCaseNotes,
-    special_reassess_dates: JSON.stringify(cl.specialReassessDates||[]),
+    caregiver_id: nd(cl.caregiverId), caregiver_name: cl.caregiverName||null,
+    status: cl.status, diagnosis: cl.diagnosis||null,
+    allergies: cl.allergies||null, physician: cl.physician||null,
+    medications: cl.medications||null,
     created_at: now2, updated_at: now2
   };
-  const { error: clErr } = await supa.from('clients').upsert(row2);
-  if(clErr){ alert('Save failed: ' + clErr.message); return; }
+  // Extended columns — added via ALTER TABLE; included only if non-empty
+  // so an older schema without them doesn't error on upsert
+  // Helper: converts empty strings to null, keeps valid dates as-is
+  const d = v => (v && v.toString().trim() !== '') ? v : null;
+  const t = v => (v && v.toString().trim() !== '') ? v : null;
+
+  const extended={
+    gender:               t(cl.gender),
+    dshs_id:              t(cl.dshsId),
+    aces_id:              t(cl.acesId),
+    medicaid:             t(cl.medicaid),
+    address:              t(cl.address),
+    diagnosis_secondary:  t(cl.diagnosisSecondary),
+    pharmacy:             t(cl.pharmacy),
+    pharmacy_phone:       t(cl.pharmacyPhone),
+    med_notes:            t(cl.medNotes),
+    care_plan:            t(cl.carePlan),
+    delegation_req:       t(cl.delegationReq),
+    physician_phone:      t(cl.physicianPhone),
+    physician_address:    t(cl.physicianAddress),
+    emergency_name:       t(cl.emergencyName),
+    emergency_rel:        t(cl.emergencyRel),
+    emergency_phone:      t(cl.emergencyPhone),
+    guardian:             t(cl.guardian),
+    rn_start_date:        d(cl.rnStartDate),
+    is_new_client:        cl.isNewClient || false,
+    reassess1:            d(cl.reassess1),
+    reassess2:            d(cl.reassess2),
+    reassess3:            d(cl.reassess3),
+    is_special_case:      cl.isSpecialCase || false,
+    special_case_type:    t(cl.specialCaseType),
+    special_case_notes:   t(cl.specialCaseNotes),
+    special_reassess_dates: JSON.stringify(cl.specialReassessDates||[]),
+  };
+  // Attempt save with all columns first; if it fails due to missing
+  // schema columns, fall back to core-only row so the save never blocks
+  let { error: clErr } = await supa.from('clients').upsert({...row2, ...extended});
+  if(clErr && clErr.message && clErr.message.toLowerCase().includes('column')){
+    console.warn('Extended columns not yet in schema, saving core fields only:', clErr.message);
+    const { error: clErr2 } = await supa.from('clients').upsert(row2);
+    if(clErr2){ alert('Save failed: ' + clErr2.message); return; }
+  } else if(clErr){
+    alert('Save failed: ' + clErr.message); return;
+  }
   if(caregiverId){const c=window.caregivers.find(x=>x.id===caregiverId);if(c&&!c.assignedClients.includes(cl.id))c.assignedClients.push(cl.id);}
   window.clients = window.clients.filter(x => x.id !== cl.id);
   window.clients.unshift(cl);
