@@ -5396,7 +5396,6 @@ document.addEventListener('DOMContentLoaded', () => {
       supa.from('facilities').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       supa.from('caregivers').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       supa.from('clients').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
-    });
     loadAllDataThenShow();
   });
 });
