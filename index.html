@@ -1422,9 +1422,51 @@ async function submitSignIn(){
     supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]).then(([profileRes, facRes, cgRes, clRes]) => {
     currentProfile = profileRes.data;
-    window.facilities = (facRes.data || []).map(f => ({ ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count }));
-    window.caregivers = (cgRes.data || []).map(c => ({ ...c, credType: c.cred_type, certNum: c.cert_num, certExpiry: c.cert_expiry, cprExpiry: c.cpr_expiry, delegationEligible: c.delegation_eligible, facilityId: c.facility_id, facilityName: c.facility_name, assignedClients: c.assigned_clients || [], certExpired: new Date(c.cert_expiry)<new Date(), cprExpired: new Date(c.cpr_expiry)<new Date() }));
-    window.clients    = (clRes.data || []).map(c => ({ ...c, facilityId: c.facility_id, facilityName: c.facility_name, caregiverId: c.caregiver_id, caregiverName: c.caregiver_name }));
+    window.facilities = (facRes.data || []).map(f => ({
+      ...f,
+      licenseExp: f.license_exp, contactName: f.contact_name,
+      contactRole: f.contact_role, clientCount: f.client_count
+    }));
+    window.caregivers = (cgRes.data || []).map(c => {
+      const today=new Date();
+      const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
+      const cprExp=c.cpr_expiry?new Date(c.cpr_expiry):null;
+      const in90=new Date();in90.setDate(today.getDate()+90);
+      return {
+        ...c,
+        credType: c.cred_type, certNum: c.cert_num,
+        certIssued: c.cert_issued, certExpiry: c.cert_expiry,
+        trainingStatus: c.training_status,
+        cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
+        cprProvider: c.cpr_provider, trainingDate: c.training_date,
+        trainingNotes: c.training_notes,
+        facilityId: c.facility_id, facilityName: c.facility_name,
+        delegationEligible: c.delegation_eligible,
+        assignedClients: c.assigned_clients || [],
+        certExpired: certExp ? certExp < today : false,
+        cprExpired:  cprExp  ? cprExp  < today : false,
+        certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
+        cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
+      };
+    });
+    window.clients = (clRes.data || []).map(c => ({
+      ...c,
+      facilityId: c.facility_id, facilityName: c.facility_name,
+      caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
+      dshsId: c.dshs_id, acesId: c.aces_id,
+      rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+      diagnosisSecondary: c.diagnosis_secondary,
+      pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
+      carePlan: c.care_plan, delegationReq: c.delegation_req,
+      physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
+      emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
+      emergencyPhone: c.emergency_phone,
+      isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
+      specialCaseNotes: c.special_case_notes,
+      specialReassessDates: typeof c.special_reassess_dates==='string'
+        ? JSON.parse(c.special_reassess_dates||'[]')
+        : c.special_reassess_dates||[],
+    }));
     const nameEl = document.getElementById('sidebarUserName');
     const roleEl = document.getElementById('sidebarUserRole');
     if(nameEl) nameEl.textContent = currentProfile?.full_name || email;
@@ -1432,6 +1474,8 @@ async function submitSignIn(){
     // Load cases data
     loadCasesFromSupabase().then(()=>{
       if(document.getElementById('page-cases')&&document.getElementById('page-cases').style.display!=='none'){updateCaseStats();renderCasesView();}
+      // Refresh dashboard counts now that cases are loaded
+      if(document.getElementById('dash-active-cases')) refreshDashboard();
     });
     // Refresh whichever page is currently visible with the loaded data
     const activePage = document.querySelector('[id^="page-"]:not([style*="none"])');
@@ -1454,9 +1498,51 @@ async function loadAllData(){
     supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
     supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]);
-  window.facilities = (facRes.data || []).map(f => ({ ...f, licenseExp: f.license_exp, contactName: f.contact_name, contactRole: f.contact_role, clientCount: f.client_count }));
-  window.caregivers = (cgRes.data || []).map(c => ({ ...c, credType: c.cred_type, certNum: c.cert_num, certExpiry: c.cert_expiry, cprExpiry: c.cpr_expiry, delegationEligible: c.delegation_eligible, facilityId: c.facility_id, facilityName: c.facility_name, assignedClients: c.assigned_clients || [], certExpired: new Date(c.cert_expiry)<new Date(), cprExpired: new Date(c.cpr_expiry)<new Date() }));
-  window.clients    = (clRes.data || []).map(c => ({ ...c, facilityId: c.facility_id, facilityName: c.facility_name, caregiverId: c.caregiver_id, caregiverName: c.caregiver_name }));
+  window.facilities = (facRes.data || []).map(f => ({
+      ...f,
+      licenseExp: f.license_exp, contactName: f.contact_name,
+      contactRole: f.contact_role, clientCount: f.client_count
+    }));
+    window.caregivers = (cgRes.data || []).map(c => {
+      const today=new Date();
+      const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
+      const cprExp=c.cpr_expiry?new Date(c.cpr_expiry):null;
+      const in90=new Date();in90.setDate(today.getDate()+90);
+      return {
+        ...c,
+        credType: c.cred_type, certNum: c.cert_num,
+        certIssued: c.cert_issued, certExpiry: c.cert_expiry,
+        trainingStatus: c.training_status,
+        cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
+        cprProvider: c.cpr_provider, trainingDate: c.training_date,
+        trainingNotes: c.training_notes,
+        facilityId: c.facility_id, facilityName: c.facility_name,
+        delegationEligible: c.delegation_eligible,
+        assignedClients: c.assigned_clients || [],
+        certExpired: certExp ? certExp < today : false,
+        cprExpired:  cprExp  ? cprExp  < today : false,
+        certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
+        cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
+      };
+    });
+    window.clients = (clRes.data || []).map(c => ({
+      ...c,
+      facilityId: c.facility_id, facilityName: c.facility_name,
+      caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
+      dshsId: c.dshs_id, acesId: c.aces_id,
+      rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+      diagnosisSecondary: c.diagnosis_secondary,
+      pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
+      carePlan: c.care_plan, delegationReq: c.delegation_req,
+      physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
+      emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
+      emergencyPhone: c.emergency_phone,
+      isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
+      specialCaseNotes: c.special_case_notes,
+      specialReassessDates: typeof c.special_reassess_dates==='string'
+        ? JSON.parse(c.special_reassess_dates||'[]')
+        : c.special_reassess_dates||[],
+    }));
 }
 
 function showPage(id){
@@ -1491,55 +1577,102 @@ function docShellGen(name,info,formId){
 // ── PAGE RENDERERS ────────────────────────────────
 const pageRenderers = {};
 
-pageRenderers.dashboard = () => `
+pageRenderers.dashboard = () => {
+  setTimeout(()=>refreshDashboard(), 0);
+  return `
 <div class="topbar">
   <div class="topbar-title">RN Dashboard</div>
   <div class="topbar-actions">
-    <button class="btn btn-ghost btn-sm">Export Report</button>
-    <button class="btn btn-primary btn-sm" onclick="openModal('newCaseModal')">+ New Case</button>
+    <button class="btn btn-ghost btn-sm" onclick="refreshDashboard()">↻ Refresh</button>
+    <button class="btn btn-primary btn-sm" onclick="openNewCaseModal()">+ New Case</button>
   </div>
 </div>
 <div class="page-content">
-  <div style="margin-bottom:32px">
+  <div style="margin-bottom:28px">
     <h3 style="margin-bottom:6px;font-size:1.6rem" id="dashGreeting">Good morning</h3>
     <img src="" onerror="(()=>{const h=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})).getHours();const g=h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night';document.getElementById('dashGreeting').textContent=g;})()">
-    <p style="font-size:14px">Golden Years Home Health Supported Living LLC — your delegation workflow overview, all cases, visits, and compliance items in one place.</p>
+    <p style="font-size:14px;margin-top:4px">Golden Years Home Health Supported Living LLC — your delegation workflow overview, all cases, visits, and compliance items in one place.</p>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-bottom:32px">
-    ${statCard('blue','Active Delegation Cases','—','No cases yet')}
-    ${statCard('green','AFH Workspaces','—','No workspaces yet')}
-    ${statCard('amber','Pending Signatures','—','No pending items')}
-    ${statCard('red','Compliance Alerts','—','No alerts')}
-    ${statCard('purple','Nursing Visits (MTD)','—','No visits recorded')}
-    ${statCard('blue','Caregivers on File','—','No caregivers yet')}
+
+  <!-- STAT CARDS -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:28px" id="dashStatGrid">
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('cases')">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="12" rx="1.5" stroke="var(--blue)" stroke-width="1.5"/><path d="M5 5V4a3 3 0 0 1 8 0v1" stroke="var(--blue)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val" id="dash-active-cases">—</div>
+      <div class="stat-label">Active Cases</div>
+      <div class="stat-change" id="dash-active-cases-sub"></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('afh')">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 16V9L9 3l7 6v7H2z" stroke="var(--green)" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+      <div class="stat-val" id="dash-facilities">—</div>
+      <div class="stat-label">Facilities</div>
+      <div class="stat-change" id="dash-facilities-sub"></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('patients')">
+      <div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="5" r="3" stroke="var(--purple)" stroke-width="1.5"/><path d="M2 16c0-3.3 3.1-5 7-5s7 1.7 7 5" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" id="dash-clients">—</div>
+      <div class="stat-label">Clients</div>
+      <div class="stat-change" id="dash-clients-sub"></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('caregivers')">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M1 16c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/><path d="M13 8v4M15 10h-4" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" id="dash-caregivers">—</div>
+      <div class="stat-label">Caregivers on File</div>
+      <div class="stat-change" id="dash-caregivers-sub"></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('documents');setTimeout(()=>docsShowTab('Drafts'),120)">
+      <div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10 2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6l-5-4z" stroke="var(--amber)" stroke-width="1.5"/><path d="M10 2v4h4" stroke="var(--amber)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val" id="dash-pending-sigs">—</div>
+      <div class="stat-label">Pending Signatures</div>
+      <div class="stat-change" id="dash-pending-sigs-sub"></div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('compliance')">
+      <div class="stat-icon" style="background:var(--red-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--red)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" id="dash-alerts">—</div>
+      <div class="stat-label">Compliance Alerts</div>
+      <div class="stat-change" id="dash-alerts-sub"></div>
+    </div>
   </div>
+
+  <!-- RECENT CASES + UPCOMING VISITS -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
     <div class="card">
       <div class="card-header"><span style="font-size:14px;font-weight:600">Recent Delegation Cases</span><button class="btn btn-ghost btn-sm" onclick="showPage('cases')">View All</button></div>
-      <div class="empty-state" style="padding:56px 32px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases yet</h4><p>Create your first delegation case to begin tracking workflow and compliance.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openModal('newCaseModal')">+ Create Case</button></div>
+      <div id="dashRecentCases"><div class="empty-state" style="padding:48px 32px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases yet</h4><p>Create your first case to begin tracking workflow and compliance.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openNewCaseModal()">+ Create Case</button></div></div>
     </div>
     <div class="card">
-      <div class="card-header"><span style="font-size:14px;font-weight:600">Upcoming Nursing Visits</span><button class="btn btn-ghost btn-sm" onclick="showPage('visits')">Schedule</button></div>
-      <div class="empty-state" style="padding:56px 32px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v3M15 2v3M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No visits scheduled</h4><p>Schedule supervision nursing visits to appear on your dashboard calendar.</p></div>
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Caregiver Credential Alerts</span><button class="btn btn-ghost btn-sm" onclick="showPage('caregivers');setTimeout(()=>switchCgTab(document.querySelectorAll(\'#cgTabs .tab\')[1],\'Alerts\'),150)">View All</button></div>
+      <div id="dashCredAlerts"><div class="empty-state" style="padding:48px 32px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No credential alerts</h4><p>Expiring or expired credentials will appear here.</p></div></div>
     </div>
   </div>
+
+  <!-- CLIENTS + FACILITIES QUICK VIEW -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+    <div class="card">
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Active Clients</span><button class="btn btn-ghost btn-sm" onclick="showPage('patients')">Manage</button></div>
+      <div id="dashClientsList"><div class="empty-state" style="padding:40px"><h4>No clients yet</h4><p>Register clients to see them here.</p></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Registered Facilities</span><button class="btn btn-ghost btn-sm" onclick="showPage('afh')">Manage</button></div>
+      <div id="dashFacilitiesList"><div class="empty-state" style="padding:40px"><h4>No facilities yet</h4><p>Register facilities to see them here.</p></div></div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS + COMPLIANCE -->
   <div style="display:grid;grid-template-columns:3fr 1fr;gap:24px">
     <div class="card">
-      <div class="card-header"><span style="font-size:14px;font-weight:600">Document Activity</span><span class="label">Last 30 Days</span></div>
-      <div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="24" height="24" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No document activity</h4><p>Uploaded and generated documents will appear here.</p></div>
+      <div class="card-header"><span style="font-size:14px;font-weight:600">Recent Document Activity</span><span class="label">Last 30 Days</span></div>
+      <div id="dashDocActivity"><div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No document activity</h4><p>Generated and uploaded documents will appear here.</p></div></div>
     </div>
     <div class="card">
       <div class="card-header"><span style="font-size:14px;font-weight:600">Compliance Status</span></div>
-      <div class="card-body" style="padding:24px">
-        ${complianceRow('Active Cases Compliant')}
-        ${complianceRow('Credentials Current')}
-        ${complianceRow('Visits Up-to-Date')}
-        ${complianceRow('Signatures Complete')}
-        ${complianceRow('Forms Generated')}
+      <div class="card-body" style="padding:20px" id="dashCompliancePanel">
+        <div style="color:var(--text3);font-size:13px">Loading…</div>
       </div>
     </div>
   </div>
 </div>`;
+};
 
 pageRenderers.afh = () => {
   setTimeout(()=>{ renderFacilityTable(window.facilities); updateFacilityStats(); },0);
@@ -1833,6 +1966,201 @@ pageRenderers.archive = () => `
   </div>
   <div class="card"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="7" width="16" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h18M8 7V5a3 3 0 0 1 6 0v2M8 13h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>Archive is empty</h4><p>Closed, rescinded, and historical delegation cases will be stored here for long-term records retention.</p></div></div>
 </div>`;
+
+// ── DASHBOARD REFRESH ─────────────────────────────
+function refreshDashboard(){
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const today=new Date();
+  const in90=new Date();in90.setDate(today.getDate()+90);
+
+  // ── STAT CARDS ──
+  const activeCases=(window.delegationCases||[]).filter(c=>c.status==='Active');
+  const totalCases=(window.delegationCases||[]).length;
+  s('dash-active-cases', activeCases.length||'0');
+  s('dash-active-cases-sub', totalCases+' total case'+(totalCases===1?'':'s'));
+
+  const activeFac=(window.facilities||[]).filter(f=>f.status==='Active');
+  s('dash-facilities', (window.facilities||[]).length||'0');
+  s('dash-facilities-sub', activeFac.length+' active');
+
+  const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
+  s('dash-clients', (window.clients||[]).length||'0');
+  s('dash-clients-sub', activeClients.length+' active');
+
+  const activeCg=(window.caregivers||[]).filter(c=>c.status==='Active');
+  const expiredCg=(window.caregivers||[]).filter(c=>c.certExpired||c.cprExpired);
+  s('dash-caregivers', (window.caregivers||[]).length||'0');
+  s('dash-caregivers-sub', activeCg.length+' active'+(expiredCg.length?' · '+expiredCg.length+' expired':''));
+
+  const pendingDrafts=(window.formDrafts||[]).filter(d=>d.status&&d.status.includes('Awaiting'));
+  s('dash-pending-sigs', pendingDrafts.length||'0');
+  s('dash-pending-sigs-sub', pendingDrafts.length?'form'+(pendingDrafts.length===1?'':'s')+' awaiting signature':'All signed');
+
+  // compliance alerts = expired creds + overdue reassessments + pending consent
+  const expCreds=(window.caregivers||[]).filter(c=>c.certExpired||c.cprExpired).length;
+  const overdueReassess=(window.delegationCases||[]).filter(c=>c.reassessDate&&new Date(c.reassessDate)<today&&c.status==='Active').length;
+  const pendingConsent=(window.delegationCases||[]).filter(c=>c.status==='Pending Consent').length;
+  const totalAlerts=expCreds+overdueReassess+pendingConsent;
+  s('dash-alerts', totalAlerts||'0');
+  s('dash-alerts-sub', totalAlerts?[
+    expCreds?expCreds+' expired cred'+(expCreds===1?'':'s'):'',
+    overdueReassess?overdueReassess+' overdue reassess':'',
+    pendingConsent?pendingConsent+' pending consent':''
+  ].filter(Boolean).join(' · '):'All clear');
+
+  // ── RECENT CASES ──
+  const rcEl=document.getElementById('dashRecentCases');
+  if(rcEl){
+    const recent=(window.delegationCases||[]).slice(0,5);
+    if(!recent.length){
+      rcEl.innerHTML='<div class="empty-state" style="padding:48px 32px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No delegation cases yet</h4><p>Create your first case to begin tracking workflow and compliance.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openNewCaseModal()">+ Create Case</button></div>';
+    } else {
+      const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+      rcEl.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Status</th><th>Tasks</th><th>Reassess Due</th><th></th></tr></thead><tbody>'+
+        recent.map(c=>{
+          const active=(c.tasks||[]).filter(t=>t.status==='Active').length;
+          const total=(c.tasks||[]).length;
+          const overdue=c.reassessDate&&new Date(c.reassessDate)<today;
+          return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">
+            <td style="font-weight:600;color:var(--text);font-size:12.5px">${c.clientName}</td>
+            <td style="font-size:12px">${c.caregiverName}</td>
+            <td><span class="status ${statusMap[c.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
+            <td style="font-size:12px">${active}/${total}</td>
+            <td style="font-size:11.5px;font-family:var(--mono);${overdue?'color:var(--red);font-weight:600':''}">${c.reassessDate||'—'}</td>
+            <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">Open</button></td>
+          </tr>`;
+        }).join('')+
+      '</tbody></table></div>';
+    }
+  }
+
+  // ── CREDENTIAL ALERTS ──
+  const caEl=document.getElementById('dashCredAlerts');
+  if(caEl){
+    const expiring=(window.caregivers||[]).filter(c=>{
+      const certExp=c.certExpiry?new Date(c.certExpiry):null;
+      const cprExp=c.cprExpiry?new Date(c.cprExpiry):null;
+      return (certExp&&certExp<=in90)||(cprExp&&cprExp<=in90);
+    });
+    if(!expiring.length){
+      caEl.innerHTML='<div class="empty-state" style="padding:40px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4 style="color:var(--green)">All credentials current</h4><p>No expirations within the next 90 days.</p></div>';
+    } else {
+      caEl.innerHTML='<div style="padding:0 4px">'+expiring.map(c=>{
+        const certExp=c.certExpiry?new Date(c.certExpiry):null;
+        const cprExp=c.cprExpiry?new Date(c.cprExpiry):null;
+        const certOverdue=certExp&&certExp<today;
+        const cprOverdue=cprExp&&cprExp<today;
+        const certColor=certOverdue?'var(--red)':certExp&&certExp<=in90?'var(--amber)':'var(--green)';
+        const cprColor=cprOverdue?'var(--red)':cprExp&&cprExp<=in90?'var(--amber)':'var(--green)';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${c.first} ${c.last}</div>
+            <div style="font-size:11px;color:var(--text3)">${c.credType||'—'} · ${c.facilityName||'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:${certColor};font-weight:600">Cert: ${c.certExpiry||'—'} ${certOverdue?'⚠ Expired':''}</div>
+            <div style="font-size:11px;color:${cprColor}">CPR: ${c.cprExpiry||'—'} ${cprOverdue?'⚠ Expired':''}</div>
+          </div>
+        </div>`;
+      }).join('')+'</div>';
+    }
+  }
+
+  // ── ACTIVE CLIENTS LIST ──
+  const clEl=document.getElementById('dashClientsList');
+  if(clEl){
+    const active=(window.clients||[]).filter(c=>c.status==='Active').slice(0,6);
+    if(!active.length){
+      clEl.innerHTML='<div class="empty-state" style="padding:40px"><h4>No active clients</h4><p>Register clients to see them here.</p></div>';
+    } else {
+      clEl.innerHTML='<div style="padding:0 4px">'+active.map(c=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${c.first} ${c.last}</div>
+            <div style="font-size:11px;color:var(--text3)">${c.facilityName||'—'} · ${c.diagnosis||'No diagnosis on file'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--text2)">${c.caregiverName||'No caregiver'}</div>
+            <div style="font-size:10px;color:var(--text3)">${c.dob||''}</div>
+          </div>
+        </div>`).join('')+
+      (window.clients.filter(c=>c.status==='Active').length>6?`<div style="padding:10px 16px;font-size:12px;color:var(--blue);cursor:pointer" onclick="showPage('patients')">+ ${window.clients.filter(c=>c.status==='Active').length-6} more clients → View all</div>`:'')+
+      '</div>';
+    }
+  }
+
+  // ── FACILITIES LIST ──
+  const facEl=document.getElementById('dashFacilitiesList');
+  if(facEl){
+    const facs=(window.facilities||[]).slice(0,5);
+    if(!facs.length){
+      facEl.innerHTML='<div class="empty-state" style="padding:40px"><h4>No facilities registered</h4><p>Register a facility to see it here.</p></div>';
+    } else {
+      facEl.innerHTML='<div style="padding:0 4px">'+facs.map(f=>{
+        const clientCount=(window.clients||[]).filter(c=>c.facilityId===f.id).length;
+        const cgCount=(window.caregivers||[]).filter(c=>c.facilityId===f.id).length;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${f.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${f.type||'—'} · ${f.city||'—'}, WA</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--text2)">${clientCount} client${clientCount===1?'':'s'}</div>
+            <div style="font-size:10px;color:var(--text3)">${cgCount} caregiver${cgCount===1?'':'s'}</div>
+          </div>
+        </div>`;
+      }).join('')+
+      (window.facilities.length>5?`<div style="padding:10px 16px;font-size:12px;color:var(--blue);cursor:pointer" onclick="showPage('afh')">+ ${window.facilities.length-5} more → View all</div>`:'')+
+      '</div>';
+    }
+  }
+
+  // ── RECENT DOCUMENTS ──
+  const docEl=document.getElementById('dashDocActivity');
+  if(docEl){
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const recent=[...(window.formDrafts||[]),...(window.signedDocs||[])]
+      .filter(d=>new Date(d.created_at)>=cutoff)
+      .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+      .slice(0,6);
+    if(!recent.length){
+      docEl.innerHTML='<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M13 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v5h5" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No document activity in last 30 days</h4><p>Generated and uploaded documents will appear here.</p></div>';
+    } else {
+      docEl.innerHTML='<div class="table-wrap"><table><thead><tr><th>Form</th><th>Client</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>'+
+        recent.map(d=>{
+          const isSigned=!!d.file_url||d.status==='Signed & Filed';
+          return `<tr>
+            <td style="font-weight:600;color:var(--text);font-size:12px">${d.form_name}</td>
+            <td style="font-size:12px">${d.client_name||'—'}</td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+            <td><span class="status ${isSigned?'status-active':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${isSigned?'Signed':'Awaiting Signature'}</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="showPage('documents');setTimeout(()=>docsShowTab('${isSigned?'Signed':'Drafts'}'),120)">View</button></td>
+          </tr>`;
+        }).join('')+
+      '</tbody></table></div>';
+    }
+  }
+
+  // ── COMPLIANCE PANEL ──
+  const compEl=document.getElementById('dashCompliancePanel');
+  if(compEl){
+    const checks=[
+      {label:'Active Cases Compliant', pass:activeCases.length>0&&overdueReassess===0, detail: overdueReassess?overdueReassess+' overdue':activeCases.length+' active'},
+      {label:'Credentials Current',    pass:expCreds===0,  detail: expCreds?expCreds+' expired':'All current'},
+      {label:'Pending Signatures',      pass:pendingDrafts.length===0, detail: pendingDrafts.length?pendingDrafts.length+' awaiting':'None pending'},
+      {label:'Clients Have Caregivers', pass:(window.clients||[]).every(c=>c.caregiverId), detail:(window.clients||[]).filter(c=>!c.caregiverId).length+' unassigned'},
+      {label:'Forms Generated',         pass:(window.formDrafts||[]).length>0||(window.signedDocs||[]).length>0, detail:(window.formDrafts||[]).length+' drafts · '+(window.signedDocs||[]).length+' signed'},
+    ];
+    compEl.innerHTML=checks.map(ck=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:12.5px;color:var(--text2)">${ck.label}</span>
+        <div style="text-align:right">
+          <div style="width:18px;height:18px;border-radius:50%;background:${ck.pass?'var(--green-dim)':'var(--red-dim)'};border:1.5px solid ${ck.pass?'var(--green)':'var(--red)'};display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:${ck.pass?'var(--green)':'var(--red)'}">${ck.pass?'✓':'!'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${ck.detail}</div>
+        </div>
+      </div>`).join('');
+  }
+}
 
 // ── DELEGATION CASES ──────────────────────────────
 window.delegationCases = [];
