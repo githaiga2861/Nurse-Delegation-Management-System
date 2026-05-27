@@ -1419,7 +1419,7 @@ async function submitSignIn(){
     supa.from('profiles').select('*').eq('id', uid).single(),
     supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
     supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
+    supa.from('clients').select('id,first,last,dob,gender,dshs_id,aces_id,medicaid,address,facility_id,facility_name,caregiver_id,caregiver_name,status,diagnosis,diagnosis_secondary,allergies,medications,pharmacy,pharmacy_phone,med_notes,care_plan,delegation_req,physician,physician_phone,physician_address,emergency_name,emergency_rel,emergency_phone,guardian,rn_start_date,is_new_client,reassess1,reassess2,reassess3,is_special_case,special_case_type,special_case_notes,special_reassess_dates,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]).then(([profileRes, facRes, cgRes, clRes]) => {
     currentProfile = profileRes.data;
     window.facilities = (facRes.data || []).map(f => ({
@@ -1496,7 +1496,7 @@ async function loadAllData(){
   const [facRes, cgRes, clRes] = await Promise.all([
     supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
     supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_issued,cert_expiry,training_status,cpr_issued,cpr_expiry,cpr_provider,training_date,training_notes,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
+    supa.from('clients').select('id,first,last,dob,gender,dshs_id,aces_id,medicaid,address,facility_id,facility_name,caregiver_id,caregiver_name,status,diagnosis,diagnosis_secondary,allergies,medications,pharmacy,pharmacy_phone,med_notes,care_plan,delegation_req,physician,physician_phone,physician_address,emergency_name,emergency_rel,emergency_phone,guardian,rn_start_date,is_new_client,reassess1,reassess2,reassess3,is_special_case,special_case_type,special_case_notes,special_reassess_dates,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]);
   window.facilities = (facRes.data || []).map(f => ({
       ...f,
@@ -5283,7 +5283,11 @@ document.addEventListener('DOMContentLoaded', () => {
       supa.from('clients').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
     ]).then(([profileRes, facRes, cgRes, clRes]) => {
       currentProfile = profileRes.data;
-      window.facilities = facRes.data || [];
+      window.facilities = (facRes.data || []).map(f => ({
+        ...f,
+        licenseExp: f.license_exp, contactName: f.contact_name,
+        contactRole: f.contact_role, clientCount: f.client_count
+      }));
       window.caregivers = (cgRes.data || []).map(c => {
         const today=new Date();
         const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
@@ -5306,7 +5310,24 @@ document.addEventListener('DOMContentLoaded', () => {
           cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
         };
       });
-      window.clients    = clRes.data || [];
+      window.clients = (clRes.data || []).map(c => ({
+        ...c,
+        facilityId: c.facility_id, facilityName: c.facility_name,
+        caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
+        dshsId: c.dshs_id, acesId: c.aces_id,
+        rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+        diagnosisSecondary: c.diagnosis_secondary,
+        pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
+        carePlan: c.care_plan, delegationReq: c.delegation_req,
+        physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
+        emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
+        emergencyPhone: c.emergency_phone,
+        isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
+        specialCaseNotes: c.special_case_notes,
+        specialReassessDates: typeof c.special_reassess_dates==='string'
+          ? JSON.parse(c.special_reassess_dates||'[]')
+          : c.special_reassess_dates||[],
+      }));
       const nameEl = document.getElementById('sidebarUserName');
       const roleEl = document.getElementById('sidebarUserRole');
       if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
