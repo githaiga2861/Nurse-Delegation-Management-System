@@ -1219,7 +1219,7 @@ textarea.form-input{resize:vertical;min-height:80px}
             <input class="form-input" id="cgCredTypeCustomInput" placeholder="e.g. QMHA, NCMA, RN, LPN-C…" style="flex:1;font-size:12px">
             <button type="button" class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap" onclick="addCustomCredType()">+ Add to List</button>
           </div>
-          <p style="font-size:11px;color:var(--blue);margin-top:6px">Type the credential abbreviation or full name and click Add. It will be selected automatically and saved to the list for this session.</p>
+          <p style="font-size:11px;color:var(--blue);margin-top:6px">Type the credential abbreviation and/or full name and click Add. It will be selected automatically and saved to the list for this session.</p>
         </div>
         <div class="form-row"><div class="form-group"><label class="form-label">Cert Issue Date</label><input class="form-input" type="date" id="cgCertIssued"></div><div class="form-group"><label class="form-label">Cert Expiry Date *</label><input class="form-input" type="date" id="cgCertExpiry"></div></div>
         <div class="form-group" style="margin-bottom:0"><label class="form-label">Training Verification</label><select class="form-input form-select" id="cgTrainingStatus"><option value="">Select…</option><option>Verified</option><option>Pending Verification</option><option>Not Verified</option></select></div>
@@ -1355,10 +1355,12 @@ window.signedDocs  = [];
 function openModal(id){
   const el=document.getElementById(id);
   if(el){el.style.display='flex';el.classList.add('open');}
+  if(PERSISTENT_MODALS&&PERSISTENT_MODALS.includes(id)) restoreModalDraft(id);
 }
 function closeModal(id){
   const el=document.getElementById(id);
   if(el){el.style.display='none';el.classList.remove('open');}
+  if(typeof PERSISTENT_MODALS!=='undefined'&&PERSISTENT_MODALS.includes(id)) saveModalDraft(id);
 }
 document.addEventListener('click', e => {
   if(e.target.classList.contains('overlay') && e.target.id !== 'signInModal') closeModal(e.target.id);
@@ -1443,6 +1445,7 @@ async function loadAllData(){
 }
 
 function showPage(id){
+  sessionStorage.setItem('gy_active_page', id);
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display='none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const el = document.getElementById('page-'+id);
@@ -1931,6 +1934,7 @@ async function saveCase(){
   }
   window.delegationCases.unshift(caseObj);
   closeModal('newCaseModal');
+  clearModalDraft('newCaseModal');
   updateCaseStats();
   renderCasesView();
 }
@@ -2785,6 +2789,7 @@ async function submitGenerate14484(){
 
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate14484Modal');
+  clearModalDraft('generate14484Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert(`✅ 14-484 saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
@@ -2909,6 +2914,7 @@ async function submitGenerate13678a(){
 
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678aModal');
+  clearModalDraft('generate13678aModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert(`✅ 13-678A saved to Drafts with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
@@ -3091,6 +3097,7 @@ async function saveFacility(){
   window.facilities = window.facilities.filter(x => x.id !== f.id);
   window.facilities.unshift(local);
   closeModal('facilityModal');
+  clearModalDraft('facilityModal');
   renderFacilityTable(window.facilities);
   updateFacilityStats();
 }
@@ -3182,6 +3189,7 @@ async function saveCaregiver(){
   window.caregivers = window.caregivers.filter(x => x.id !== row.id);
   window.caregivers.unshift(c);
   closeModal('caregiverModal');
+  clearModalDraft('caregiverModal');
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
 }
@@ -3422,6 +3430,7 @@ async function saveClient(){
   }
 
   closeModal('clientModal');
+  clearModalDraft('clientModal');
   renderClientTable(window.clients);
   updateClientStats();
   refreshClientFilters();
@@ -3562,6 +3571,7 @@ async function submitGenerate(){
 
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generateModal');
+  clearModalDraft('generateModal');
   // navigate to drafts tab
   if(document.getElementById('page-documents').style.display!=='none'){
     docsShowTab('Drafts');
@@ -4298,6 +4308,7 @@ async function submitGenerate13680(){
   window.formDrafts.unshift(draft);
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13680Modal');
+  clearModalDraft('generate13680Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert(`✅ 13-680 Rescinding Delegation saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
@@ -4556,6 +4567,7 @@ async function submitGenerate13681(){
   window.formDrafts.unshift(draft);
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13681Modal');
+  clearModalDraft('generate13681Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert(`✅ 13-681 Change in Medical Orders saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
@@ -4747,6 +4759,83 @@ function build13681PrintHtml(fd,draft){
 </body></html>`;
 }
 
+// ── MODAL DRAFT PERSISTENCE ───────────────────────
+// Collects all input/select/textarea values inside a modal and saves to sessionStorage
+function saveModalDraft(modalId){
+  const modal=document.getElementById(modalId);
+  if(!modal)return;
+  const data={};
+  modal.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(!el.id)return;
+    if(el.type==='checkbox'||el.type==='radio') data[el.id]=el.checked;
+    else data[el.id]=el.value;
+  });
+  sessionStorage.setItem('gy_modal_draft_'+modalId, JSON.stringify(data));
+}
+
+function restoreModalDraft(modalId){
+  const raw=sessionStorage.getItem('gy_modal_draft_'+modalId);
+  if(!raw)return;
+  let data;try{data=JSON.parse(raw);}catch{return;}
+  const modal=document.getElementById(modalId);
+  if(!modal)return;
+  Object.entries(data).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(el.type==='checkbox'||el.type==='radio') el.checked=!!val;
+    else el.value=val||'';
+    // fire onchange for elements that have dependent UI
+    if(el.tagName==='SELECT'&&el.onchange) el.onchange.call(el);
+  });
+  // show any dependent panels that depend on checkbox state
+  const medCheck=document.getElementById('genMedCheck');
+  if(medCheck&&modalId==='generateModal') document.getElementById('genMedSection').style.display=medCheck.checked?'block':'none';
+  const pg2=document.getElementById('nv_pg2_notes');
+  if(pg2&&modalId==='generate14484Modal') document.getElementById('nv_page2_panel').style.display=pg2.checked?'block':'none';
+  const verbalEl=document.getElementById('chg_receivedVerbal');
+  if(verbalEl&&modalId==='generate13681Modal') document.getElementById('chg_verbalSection').style.display=verbalEl.checked?'block':'none';
+  const cgCredType=document.getElementById('cgCredType');
+  if(cgCredType&&modalId==='caregiverModal'){
+    const panel=document.getElementById('cgCredTypeOtherPanel');
+    if(panel) panel.style.display=cgCredType.value==='Other (specify below)'?'block':'none';
+  }
+  const clIsNew=document.getElementById('clIsNew');
+  if(clIsNew&&modalId==='clientModal'){
+    const panel=document.getElementById('clNewClientPanel');
+    if(panel) panel.style.display=clIsNew.value==='yes'?'block':'none';
+    const scCheck=document.getElementById('clIsSpecialCase');
+    if(scCheck){const sp=document.getElementById('clSpecialCasePanel');if(sp)sp.style.display=scCheck.checked?'block':'none';}
+  }
+  const rscR=document.getElementById('rsc_rK');
+  if(rscR&&modalId==='generate13680Modal'){
+    // re-trigger caregiver container if client was selected
+    const cs=document.getElementById('rsc_client');
+    if(cs&&cs.value) onRscClientChange(cs);
+  }
+}
+
+function clearModalDraft(modalId){
+  sessionStorage.removeItem('gy_modal_draft_'+modalId);
+}
+
+// List of all modal IDs that have persistent drafts
+const PERSISTENT_MODALS=[
+  'generateModal','generate14484Modal','generate13678aModal',
+  'generate13680Modal','generate13681Modal',
+  'caregiverModal','clientModal','facilityModal','newCaseModal'
+];
+
+// Attach auto-save listeners to all persistent modals
+function attachModalDraftListeners(){
+  PERSISTENT_MODALS.forEach(modalId=>{
+    const modal=document.getElementById(modalId);
+    if(!modal)return;
+    // Save on any input/change inside the modal
+    modal.addEventListener('input', ()=>saveModalDraft(modalId));
+    modal.addEventListener('change', ()=>saveModalDraft(modalId));
+  });
+}
+
 // ── SIGN OUT ──────────────────────────────────────
 async function signOut(){
   if(!confirm('Sign out of Golden Years RN Management System?')) return;
@@ -4759,6 +4848,8 @@ async function signOut(){
   document.getElementById('sidebarUserName').textContent = 'Registered Nurse';
   document.getElementById('sidebarUserRole').textContent = 'DelegateRN Platform';
   // reset all pages so they re-render fresh on next login
+  sessionStorage.removeItem('gy_active_page');
+  PERSISTENT_MODALS.forEach(id=>clearModalDraft(id));
   document.querySelectorAll('[id^="page-"]').forEach(p => { p.innerHTML=''; p.style.display='none'; });
   document.getElementById('page-dashboard').style.display='block';
 }
@@ -4767,6 +4858,7 @@ async function signOut(){
 document.addEventListener('DOMContentLoaded', () => {
   // Render landing immediately — no blocking
   initSupa();
+  attachModalDraftListeners();
   document.getElementById('page-dashboard').innerHTML = pageRenderers.dashboard();
   if(!supa) return;
   // Check session in background — don't block render
@@ -4792,7 +4884,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
       if(roleEl) roleEl.textContent = currentProfile?.role || 'Golden Years RN';
       loadCasesFromSupabase();
-      showPage('dashboard');
+      const savedPage = sessionStorage.getItem('gy_active_page') || 'dashboard';
+      showPage(savedPage);
     });
   });
 });
