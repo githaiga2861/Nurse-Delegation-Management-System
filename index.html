@@ -1392,6 +1392,88 @@ function doSignIn(){
   openModal('signInModal');
 }
 
+async function loadAllDataThenShow(){
+  initSupa();
+  if(!supa||!currentUser) return;
+  const uid = currentUser.id;
+  const today = new Date();
+  const in90 = new Date(); in90.setDate(today.getDate()+90);
+
+  const [profileRes, facRes, cgRes, clRes] = await Promise.all([
+    supa.from('profiles').select('*').eq('id', uid).single(),
+    supa.from('facilities').select('*').eq('user_id', uid).order('created_at',{ascending:false}),
+    supa.from('caregivers').select('*').eq('user_id', uid).order('created_at',{ascending:false}),
+    supa.from('clients').select('*').eq('user_id', uid).order('created_at',{ascending:false})
+  ]);
+
+  currentProfile = profileRes.data;
+
+  window.facilities = (facRes.data||[]).map(f=>({
+    ...f,
+    licenseExp: f.license_exp, contactName: f.contact_name,
+    contactRole: f.contact_role, clientCount: f.client_count
+  }));
+
+  window.caregivers = (cgRes.data||[]).map(c=>{
+    const certExp = c.cert_expiry ? new Date(c.cert_expiry) : null;
+    const cprExp  = c.cpr_expiry  ? new Date(c.cpr_expiry)  : null;
+    return {
+      ...c,
+      credType: c.cred_type, certNum: c.cert_num,
+      certIssued: c.cert_issued, certExpiry: c.cert_expiry,
+      trainingStatus: c.training_status,
+      cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
+      cprProvider: c.cpr_provider, trainingDate: c.training_date,
+      trainingNotes: c.training_notes,
+      facilityId: c.facility_id, facilityName: c.facility_name,
+      delegationEligible: c.delegation_eligible,
+      assignedClients: c.assigned_clients||[],
+      certExpired:  certExp ? certExp < today  : false,
+      cprExpired:   cprExp  ? cprExp  < today  : false,
+      certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
+      cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
+    };
+  });
+
+  window.clients = (clRes.data||[]).map(c=>({
+    ...c,
+    facilityId: c.facility_id, facilityName: c.facility_name,
+    caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
+    dshsId: c.dshs_id, acesId: c.aces_id,
+    rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+    diagnosisSecondary: c.diagnosis_secondary,
+    pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
+    carePlan: c.care_plan, delegationReq: c.delegation_req,
+    physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
+    emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
+    emergencyPhone: c.emergency_phone,
+    isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
+    specialCaseNotes: c.special_case_notes,
+    specialReassessDates: typeof c.special_reassess_dates==='string'
+      ? JSON.parse(c.special_reassess_dates||'[]')
+      : c.special_reassess_dates||[],
+  }));
+
+  const nameEl = document.getElementById('sidebarUserName');
+  const roleEl = document.getElementById('sidebarUserRole');
+  if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
+  if(roleEl) roleEl.textContent = currentProfile?.role || 'Golden Years RN';
+
+  // Load cases then show page — dashboard refresh happens AFTER everything is ready
+  await loadCasesFromSupabase();
+
+  // Restore saved page, then force dashboard re-render with live data
+  let savedPage = 'dashboard';
+  try{ savedPage = localStorage.getItem(_pageKey())||'dashboard'; }catch(e){}
+
+  // Always re-render dashboard so stat cards get fresh data
+  const dashPage = document.getElementById('page-dashboard');
+  if(dashPage){ dashPage.innerHTML = pageRenderers.dashboard(); }
+
+  showPage(savedPage);
+  refreshDashboard();
+}
+
 async function submitSignIn(){
   initSupa();
   const email = document.getElementById('siEmail').value.trim();
@@ -1411,89 +1493,13 @@ async function submitSignIn(){
     return;
   }
   currentUser = data.user;
-  // Show app immediately, load everything in parallel
   closeModal('signInModal');
   document.getElementById('landing').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  showPage('dashboard');
   window.scrollTo(0,0);
   btn.textContent = 'Sign In';
   btn.disabled = false;
-  // Fetch profile + all data simultaneously in background
-  const uid = currentUser.id;
-  Promise.all([
-    supa.from('profiles').select('*').eq('id', uid).single(),
-    supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('clients').select('id,first,last,dob,gender,dshs_id,aces_id,medicaid,address,facility_id,facility_name,caregiver_id,caregiver_name,status,diagnosis,diagnosis_secondary,allergies,medications,pharmacy,pharmacy_phone,med_notes,care_plan,delegation_req,physician,physician_phone,physician_address,emergency_name,emergency_rel,emergency_phone,guardian,rn_start_date,is_new_client,reassess1,reassess2,reassess3,is_special_case,special_case_type,special_case_notes,special_reassess_dates,created_at').eq('user_id', uid).order('created_at', { ascending: false })
-  ]).then(([profileRes, facRes, cgRes, clRes]) => {
-    currentProfile = profileRes.data;
-    window.facilities = (facRes.data || []).map(f => ({
-      ...f,
-      licenseExp: f.license_exp, contactName: f.contact_name,
-      contactRole: f.contact_role, clientCount: f.client_count
-    }));
-    window.caregivers = (cgRes.data || []).map(c => {
-      const today=new Date();
-      const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
-      const cprExp=c.cpr_expiry?new Date(c.cpr_expiry):null;
-      const in90=new Date();in90.setDate(today.getDate()+90);
-      return {
-        ...c,
-        credType: c.cred_type, certNum: c.cert_num,
-        certIssued: c.cert_issued, certExpiry: c.cert_expiry,
-        trainingStatus: c.training_status,
-        cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
-        cprProvider: c.cpr_provider, trainingDate: c.training_date,
-        trainingNotes: c.training_notes,
-        facilityId: c.facility_id, facilityName: c.facility_name,
-        delegationEligible: c.delegation_eligible,
-        assignedClients: c.assigned_clients || [],
-        certExpired: certExp ? certExp < today : false,
-        cprExpired:  cprExp  ? cprExp  < today : false,
-        certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
-        cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
-      };
-    });
-    window.clients = (clRes.data || []).map(c => ({
-      ...c,
-      facilityId: c.facility_id, facilityName: c.facility_name,
-      caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
-      dshsId: c.dshs_id, acesId: c.aces_id,
-      rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
-      diagnosisSecondary: c.diagnosis_secondary,
-      pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
-      carePlan: c.care_plan, delegationReq: c.delegation_req,
-      physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
-      emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
-      emergencyPhone: c.emergency_phone,
-      isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
-      specialCaseNotes: c.special_case_notes,
-      specialReassessDates: typeof c.special_reassess_dates==='string'
-        ? JSON.parse(c.special_reassess_dates||'[]')
-        : c.special_reassess_dates||[],
-    }));
-    const nameEl = document.getElementById('sidebarUserName');
-    const roleEl = document.getElementById('sidebarUserRole');
-    if(nameEl) nameEl.textContent = currentProfile?.full_name || email;
-    if(roleEl) roleEl.textContent = currentProfile?.role || 'Golden Years RN';
-    // Load cases data
-    loadCasesFromSupabase().then(()=>{
-      if(document.getElementById('page-cases')&&document.getElementById('page-cases').style.display!=='none'){updateCaseStats();renderCasesView();}
-      refreshDashboard();
-    });
-    // Refresh whichever page is currently visible with the loaded data
-    const activePage = document.querySelector('[id^="page-"]:not([style*="none"])');
-    if(activePage){
-      const pid = activePage.id.replace('page-','');
-      if(['afh','caregivers','patients'].includes(pid)){
-        activePage.innerHTML='';
-        showPage(pid);
-      }
-    }
-    // Always refresh dashboard counts after data loads
-    refreshDashboard();
-  });
+  await loadAllDataThenShow();
 }
 
 async function loadAllData(){
@@ -5390,62 +5396,8 @@ document.addEventListener('DOMContentLoaded', () => {
       supa.from('facilities').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       supa.from('caregivers').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       supa.from('clients').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
-    ]).then(([profileRes, facRes, cgRes, clRes]) => {
-      currentProfile = profileRes.data;
-      window.facilities = (facRes.data || []).map(f => ({
-        ...f,
-        licenseExp: f.license_exp, contactName: f.contact_name,
-        contactRole: f.contact_role, clientCount: f.client_count
-      }));
-      window.caregivers = (cgRes.data || []).map(c => {
-        const today=new Date();
-        const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
-        const cprExp=c.cpr_expiry?new Date(c.cpr_expiry):null;
-        const in90=new Date();in90.setDate(today.getDate()+90);
-        return {
-          ...c,
-          credType: c.cred_type, certNum: c.cert_num,
-          certIssued: c.cert_issued, certExpiry: c.cert_expiry,
-          trainingStatus: c.training_status,
-          cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
-          cprProvider: c.cpr_provider, trainingDate: c.training_date,
-          trainingNotes: c.training_notes,
-          facilityId: c.facility_id, facilityName: c.facility_name,
-          delegationEligible: c.delegation_eligible,
-          assignedClients: c.assigned_clients || [],
-          certExpired: certExp ? certExp < today : false,
-          cprExpired:  cprExp  ? cprExp  < today : false,
-          certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
-          cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
-        };
-      });
-      window.clients = (clRes.data || []).map(c => ({
-        ...c,
-        facilityId: c.facility_id, facilityName: c.facility_name,
-        caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
-        dshsId: c.dshs_id, acesId: c.aces_id,
-        rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
-        diagnosisSecondary: c.diagnosis_secondary,
-        pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
-        carePlan: c.care_plan, delegationReq: c.delegation_req,
-        physicianPhone: c.physician_phone, physicianAddress: c.physician_address,
-        emergencyName: c.emergency_name, emergencyRel: c.emergency_rel,
-        emergencyPhone: c.emergency_phone,
-        isSpecialCase: c.is_special_case, specialCaseType: c.special_case_type,
-        specialCaseNotes: c.special_case_notes,
-        specialReassessDates: typeof c.special_reassess_dates==='string'
-          ? JSON.parse(c.special_reassess_dates||'[]')
-          : c.special_reassess_dates||[],
-      }));
-      const nameEl = document.getElementById('sidebarUserName');
-      const roleEl = document.getElementById('sidebarUserRole');
-      if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
-      if(roleEl) roleEl.textContent = currentProfile?.role || 'Golden Years RN';
-      loadCasesFromSupabase();
-      let savedPage='dashboard';
-      try{savedPage=localStorage.getItem(_pageKey())||'dashboard';}catch(e){}
-      showPage(savedPage);
     });
+    loadAllDataThenShow();
   });
 });
 
