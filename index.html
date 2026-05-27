@@ -1495,7 +1495,7 @@ async function loadAllData(){
   const uid = currentUser.id;
   const [facRes, cgRes, clRes] = await Promise.all([
     supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_expiry,cpr_expiry,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
+    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_issued,cert_expiry,training_status,cpr_issued,cpr_expiry,cpr_provider,training_date,training_notes,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
     supa.from('clients').select('id,first,last,dob,facility_id,facility_name,caregiver_id,caregiver_name,diagnosis,allergies,physician,status,created_at').eq('user_id', uid).order('created_at', { ascending: false })
   ]);
   window.facilities = (facRes.data || []).map(f => ({
@@ -5284,7 +5284,28 @@ document.addEventListener('DOMContentLoaded', () => {
     ]).then(([profileRes, facRes, cgRes, clRes]) => {
       currentProfile = profileRes.data;
       window.facilities = facRes.data || [];
-      window.caregivers = (cgRes.data || []).map(c => ({ ...c, assignedClients: c.assigned_clients || [] }));
+      window.caregivers = (cgRes.data || []).map(c => {
+        const today=new Date();
+        const certExp=c.cert_expiry?new Date(c.cert_expiry):null;
+        const cprExp=c.cpr_expiry?new Date(c.cpr_expiry):null;
+        const in90=new Date();in90.setDate(today.getDate()+90);
+        return {
+          ...c,
+          credType: c.cred_type, certNum: c.cert_num,
+          certIssued: c.cert_issued, certExpiry: c.cert_expiry,
+          trainingStatus: c.training_status,
+          cprIssued: c.cpr_issued, cprExpiry: c.cpr_expiry,
+          cprProvider: c.cpr_provider, trainingDate: c.training_date,
+          trainingNotes: c.training_notes,
+          facilityId: c.facility_id, facilityName: c.facility_name,
+          delegationEligible: c.delegation_eligible,
+          assignedClients: c.assigned_clients || [],
+          certExpired: certExp ? certExp < today : false,
+          cprExpired:  cprExp  ? cprExp  < today : false,
+          certExpiring: certExp ? (certExp >= today && certExp <= in90) : false,
+          cprExpiring:  cprExp  ? (cprExp  >= today && cprExp  <= in90) : false,
+        };
+      });
       window.clients    = clRes.data || [];
       const nameEl = document.getElementById('sidebarUserName');
       const roleEl = document.getElementById('sidebarUserRole');
