@@ -1212,7 +1212,15 @@ textarea.form-input{resize:vertical;min-height:80px}
       </div>
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Credential &amp; Certification</div>
-        <div class="form-row"><div class="form-group"><label class="form-label">Credential Type *</label><select class="form-input form-select" id="cgCredType"><option value="">Select…</option><option>NAC – Nursing Assistant Certified</option><option>HCA – Home Care Aide</option><option>CNA – Certified Nursing Assistant</option><option>LPN – Licensed Practical Nurse</option><option>Other</option></select></div><div class="form-group"><label class="form-label">Certification Number</label><input class="form-input" id="cgCertNum" placeholder="Cert #"></div></div>
+        <div class="form-row"><div class="form-group"><label class="form-label">Credential Type *</label><select class="form-input form-select" id="cgCredType" onchange="onCgCredTypeChange(this)"><option value="">Select…</option><option>NAC/CNA – Nursing Assistant Certified</option><option>NAR – Nursing Assistant Registered</option><option>HCA – Home Care Aide</option><option>LPN – Licensed Practical Nurse</option><option>RN – Registered Nurse</option><option id="cgCredTypeOtherOpt">Other (specify below)</option></select></div><div class="form-group"><label class="form-label">Certification Number</label><input class="form-input" id="cgCertNum" placeholder="Cert #"></div></div>
+        <div id="cgCredTypeOtherPanel" style="display:none;margin-top:-8px;margin-bottom:8px;padding:12px 14px;background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm)">
+          <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px">Add a custom credential type</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="cgCredTypeCustomInput" placeholder="e.g. QMHA, NCMA, RN, LPN-C…" style="flex:1;font-size:12px">
+            <button type="button" class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap" onclick="addCustomCredType()">+ Add to List</button>
+          </div>
+          <p style="font-size:11px;color:var(--blue);margin-top:6px">Type the credential abbreviation or full name and click Add. It will be selected automatically and saved to the list for this session.</p>
+        </div>
         <div class="form-row"><div class="form-group"><label class="form-label">Cert Issue Date</label><input class="form-input" type="date" id="cgCertIssued"></div><div class="form-group"><label class="form-label">Cert Expiry Date *</label><input class="form-input" type="date" id="cgCertExpiry"></div></div>
         <div class="form-group" style="margin-bottom:0"><label class="form-label">Training Verification</label><select class="form-input form-select" id="cgTrainingStatus"><option value="">Select…</option><option>Verified</option><option>Pending Verification</option><option>Not Verified</option></select></div>
       </div>
@@ -3122,6 +3130,11 @@ function openCaregiverModal(editId){
   document.getElementById('cgStatus').value='Active';
   document.getElementById('cgDelegationEligible').value='Eligible';
   document.getElementById('cgModalTitle').textContent=editId?'Edit Caregiver':'Add Caregiver Profile';
+  // reset custom credential panel
+  const cgCredPanel=document.getElementById('cgCredTypeOtherPanel');
+  if(cgCredPanel)cgCredPanel.style.display='none';
+  const cgCredCustom=document.getElementById('cgCredTypeCustomInput');
+  if(cgCredCustom)cgCredCustom.value='';
   if(editId){const c=window.caregivers.find(x=>x.id===editId);if(c){['First','Last','Phone','Email','Address','CredType','CertNum','CertIssued','CertExpiry','TrainingStatus','CprIssued','CprExpiry','CprProvider','TrainingDate','Inservice','TrainingNotes'].forEach(k=>{const el=document.getElementById('cg'+k);if(el)el.value=c[k.charAt(0).toLowerCase()+k.slice(1)]||'';});document.getElementById('cgStatus').value=c.status;document.getElementById('cgDelegationEligible').value=c.delegationEligible;document.getElementById('cgFacility').value=c.facilityId||'';}}
   openModal('caregiverModal');
 }
@@ -3198,6 +3211,42 @@ function updateCaregiverStats(){
 }
 function filterCaregivers(q){renderCaregiverTable(window.caregivers.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||(c.facilityName||'').toLowerCase().includes(q.toLowerCase())));}
 function filterCaregiversByStatus(s){let f=window.caregivers;if(s==='Active')f=f.filter(c=>c.status==='Active');else if(s==='Inactive')f=f.filter(c=>c.status==='Inactive');else if(s==='Credential Expired')f=f.filter(c=>c.certExpired||c.cprExpired);renderCaregiverTable(f);}
+// ── CUSTOM CREDENTIAL TYPE ────────────────────────
+function onCgCredTypeChange(sel){
+  const panel=document.getElementById('cgCredTypeOtherPanel');
+  if(!panel)return;
+  if(sel.value==='Other (specify below)'){
+    panel.style.display='block';
+    const inp=document.getElementById('cgCredTypeCustomInput');
+    if(inp){inp.value='';setTimeout(()=>inp.focus(),50);}
+  } else {
+    panel.style.display='none';
+  }
+}
+
+function addCustomCredType(){
+  const inp=document.getElementById('cgCredTypeCustomInput');
+  const val=(inp?.value||'').trim();
+  if(!val){inp?.focus();return;}
+  const sel=document.getElementById('cgCredType');
+  if(!sel)return;
+  // check if already exists (case-insensitive)
+  const exists=[...sel.options].some(o=>o.value.toLowerCase()===val.toLowerCase());
+  if(!exists){
+    // insert before the "Other (specify below)" option
+    const otherOpt=document.getElementById('cgCredTypeOtherOpt');
+    const newOpt=document.createElement('option');
+    newOpt.value=val;newOpt.text=val;
+    sel.insertBefore(newOpt,otherOpt);
+  }
+  // select the newly added (or existing) option
+  sel.value=val;
+  // hide the panel
+  const panel=document.getElementById('cgCredTypeOtherPanel');
+  if(panel)panel.style.display='none';
+  if(inp)inp.value='';
+}
+
 function switchCgTab(el,tab){document.querySelectorAll('#cgTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Alerts','History'].forEach(t=>{const d=document.getElementById('cgTab'+t);if(d)d.style.display='none';});const d=document.getElementById('cgTab'+tab);if(d)d.style.display='block';}
 
 // ── REASSESSMENT DATE HELPERS ─────────────────────
