@@ -1477,8 +1477,7 @@ async function submitSignIn(){
     // Load cases data
     loadCasesFromSupabase().then(()=>{
       if(document.getElementById('page-cases')&&document.getElementById('page-cases').style.display!=='none'){updateCaseStats();renderCasesView();}
-      // Refresh dashboard counts now that cases are loaded
-      if(document.getElementById('dash-active-cases')) refreshDashboard();
+      refreshDashboard();
     });
     // Refresh whichever page is currently visible with the loaded data
     const activePage = document.querySelector('[id^="page-"]:not([style*="none"])');
@@ -1489,6 +1488,8 @@ async function submitSignIn(){
         showPage(pid);
       }
     }
+    // Always refresh dashboard counts after data loads
+    refreshDashboard();
   });
 }
 
@@ -1972,6 +1973,8 @@ pageRenderers.archive = () => `
 
 // ── DASHBOARD REFRESH ─────────────────────────────
 function refreshDashboard(){
+  // Only run when the dashboard DOM is actually rendered
+  if(!document.getElementById('dash-active-cases')) return;
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   const today=new Date();
   const in90=new Date();in90.setDate(today.getDate()+90);
@@ -2283,6 +2286,7 @@ async function saveCase(){
   clearModalDraft('newCaseModal');
   updateCaseStats();
   renderCasesView();
+  refreshDashboard();
 }
 
 function renderCasesView(list){
@@ -2351,6 +2355,7 @@ async function deleteCase(id){
   window.delegationCases=window.delegationCases.filter(c=>c.id!==id);
   updateCaseStats();
   renderCasesView();
+  refreshDashboard();
 }
 
 function openCaseDetail(id){
@@ -3459,6 +3464,7 @@ async function saveFacility(){
   clearModalDraft('facilityModal');
   renderFacilityTable(window.facilities);
   updateFacilityStats();
+  refreshDashboard();
 }
 function renderFacilityTable(list){
   const tbody=document.getElementById('facilityTableBody');if(!tbody)return;
@@ -3477,6 +3483,7 @@ async function deleteFacility(id){
   window.facilities=window.facilities.filter(f=>f.id!==id);
   renderFacilityTable(window.facilities);
   updateFacilityStats();
+  refreshDashboard();
 }
 function filterFacilities(q){renderFacilityTable(window.facilities.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())||(f.city||'').toLowerCase().includes(q.toLowerCase())));}
 function filterFacilitiesByType(t){renderFacilityTable(t?window.facilities.filter(f=>f.type===t):window.facilities);}
@@ -3570,6 +3577,7 @@ async function saveCaregiver(){
   clearModalDraft('caregiverModal');
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
+  refreshDashboard();
 }
 function renderCaregiverTable(list){
   const tbody=document.getElementById('caregiverTableBody');if(!tbody)return;
@@ -3590,6 +3598,7 @@ async function deleteCaregiver(id){
   window.caregivers=window.caregivers.filter(c=>c.id!==id);
   renderCaregiverTable(window.caregivers);
   updateCaregiverStats();
+  refreshDashboard();
 }
 function updateCaregiverStats(){
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};
@@ -3845,6 +3854,7 @@ async function saveClient(){
   updateClientStats();
   refreshClientFilters();
   renderLinksTable();
+  refreshDashboard();
   if(cl.isNewClient){
     setTimeout(()=>alert(`✅ Client registered.\n\nA Delegation Case has been auto-created with the following compulsory reassessment schedule:\n• 1st: ${cl.reassess1||'—'} (2 weeks — compulsory)\n• 2nd: ${cl.reassess2||'—'} (4 weeks — compulsory)\n• 3rd: ${cl.reassess3||'—'} (3-month statutory max)\n${cl.isSpecialCase?'\n⚠ Special Case flagged: '+cl.specialCaseType:''}\n\nOpen the Delegation Cases page to review and add tasks.`),200);
   }
@@ -3866,6 +3876,7 @@ async function deleteClient(id){
   updateClientStats();
   refreshClientFilters();
   renderLinksTable();
+  refreshDashboard();
 }
 function updateClientStats(){const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v||'—';};s('cl-total',window.clients.length||'—');s('cl-active',window.clients.filter(c=>c.status==='Active').length||'—');s('cl-linked',window.clients.filter(c=>c.caregiverId).length||'—');s('cl-unlinked',window.clients.filter(c=>!c.caregiverId).length||'—');}
 function filterClients(q){renderClientTable(window.clients.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||(c.facilityName||'').toLowerCase().includes(q.toLowerCase())||(c.diagnosis||'').toLowerCase().includes(q.toLowerCase())));}
