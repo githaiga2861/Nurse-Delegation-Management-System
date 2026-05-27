@@ -1355,7 +1355,22 @@ window.signedDocs  = [];
 function openModal(id){
   const el=document.getElementById(id);
   if(el){el.style.display='flex';el.classList.add('open');}
-  if(PERSISTENT_MODALS&&PERSISTENT_MODALS.includes(id)) restoreModalDraft(id);
+  if(typeof PERSISTENT_MODALS!=='undefined'&&PERSISTENT_MODALS.includes(id)){
+    const hadDraft=hasDraftData(id);
+    restoreModalDraft(id);
+    if(hadDraft){
+      // Show a brief "draft restored" toast inside the modal header
+      const header=el?.querySelector('.modal-header');
+      if(header&&!header.querySelector('.draft-restore-badge')){
+        const badge=document.createElement('div');
+        badge.className='draft-restore-badge';
+        badge.style.cssText='font-size:11px;color:var(--blue);background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px;margin-top:6px;';
+        badge.innerHTML='↩ Unsaved draft restored — <button onclick="clearModalDraftAndReset(\''+id+'\')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:0;font-family:var(--font);text-decoration:underline;margin-left:2px">Discard</button>';
+        header.appendChild(badge);
+        setTimeout(()=>{if(badge.parentNode)badge.style.opacity='0.5';},4000);
+      }
+    }
+  }
 }
 function closeModal(id){
   const el=document.getElementById(id);
@@ -1445,7 +1460,7 @@ async function loadAllData(){
 }
 
 function showPage(id){
-  sessionStorage.setItem('gy_active_page', id);
+  try{localStorage.setItem(_pageKey(), id);}catch(e){}
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display='none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const el = document.getElementById('page-'+id);
@@ -4760,7 +4775,26 @@ function build13681PrintHtml(fd,draft){
 }
 
 // ── MODAL DRAFT PERSISTENCE ───────────────────────
-// Collects all input/select/textarea values inside a modal and saves to sessionStorage
+// All drafts are keyed by user ID in localStorage so they survive
+// sign-out and are restored when the same user signs back in.
+// A different user will never see another user's drafts.
+
+const PERSISTENT_MODALS=[
+  'generateModal','generate14484Modal','generate13678aModal',
+  'generate13680Modal','generate13681Modal',
+  'caregiverModal','clientModal','facilityModal','newCaseModal'
+];
+
+function _draftKey(modalId){
+  const uid=currentUser?.id||'anonymous';
+  return 'gy_draft_'+uid+'_'+modalId;
+}
+
+function _pageKey(){
+  const uid=currentUser?.id||'anonymous';
+  return 'gy_page_'+uid;
+}
+
 function saveModalDraft(modalId){
   const modal=document.getElementById(modalId);
   if(!modal)return;
@@ -4770,68 +4804,111 @@ function saveModalDraft(modalId){
     if(el.type==='checkbox'||el.type==='radio') data[el.id]=el.checked;
     else data[el.id]=el.value;
   });
-  sessionStorage.setItem('gy_modal_draft_'+modalId, JSON.stringify(data));
+  try{localStorage.setItem(_draftKey(modalId), JSON.stringify(data));}catch(e){}
 }
 
 function restoreModalDraft(modalId){
-  const raw=sessionStorage.getItem('gy_modal_draft_'+modalId);
+  let raw;
+  try{raw=localStorage.getItem(_draftKey(modalId));}catch(e){}
   if(!raw)return;
   let data;try{data=JSON.parse(raw);}catch{return;}
   const modal=document.getElementById(modalId);
   if(!modal)return;
+  // First pass: set all values
   Object.entries(data).forEach(([id,val])=>{
     const el=document.getElementById(id);
     if(!el)return;
     if(el.type==='checkbox'||el.type==='radio') el.checked=!!val;
     else el.value=val||'';
-    // fire onchange for elements that have dependent UI
-    if(el.tagName==='SELECT'&&el.onchange) el.onchange.call(el);
   });
-  // show any dependent panels that depend on checkbox state
-  const medCheck=document.getElementById('genMedCheck');
-  if(medCheck&&modalId==='generateModal') document.getElementById('genMedSection').style.display=medCheck.checked?'block':'none';
-  const pg2=document.getElementById('nv_pg2_notes');
-  if(pg2&&modalId==='generate14484Modal') document.getElementById('nv_page2_panel').style.display=pg2.checked?'block':'none';
-  const verbalEl=document.getElementById('chg_receivedVerbal');
-  if(verbalEl&&modalId==='generate13681Modal') document.getElementById('chg_verbalSection').style.display=verbalEl.checked?'block':'none';
-  const cgCredType=document.getElementById('cgCredType');
-  if(cgCredType&&modalId==='caregiverModal'){
-    const panel=document.getElementById('cgCredTypeOtherPanel');
-    if(panel) panel.style.display=cgCredType.value==='Other (specify below)'?'block':'none';
+  // Second pass: fire onchange for selects that drive dependent UI
+  Object.entries(data).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(!el||el.tagName!=='SELECT')return;
+    if(el.onchange) el.onchange.call(el);
+  });
+  // Dependent panel visibility fixes per modal
+  if(modalId==='generateModal'){
+    const mc=document.getElementById('genMedCheck');
+    const ms=document.getElementById('genMedSection');
+    if(mc&&ms) ms.style.display=mc.checked?'block':'none';
   }
-  const clIsNew=document.getElementById('clIsNew');
-  if(clIsNew&&modalId==='clientModal'){
-    const panel=document.getElementById('clNewClientPanel');
-    if(panel) panel.style.display=clIsNew.value==='yes'?'block':'none';
-    const scCheck=document.getElementById('clIsSpecialCase');
-    if(scCheck){const sp=document.getElementById('clSpecialCasePanel');if(sp)sp.style.display=scCheck.checked?'block':'none';}
+  if(modalId==='generate14484Modal'){
+    const pg2=document.getElementById('nv_pg2_notes');
+    const pg2p=document.getElementById('nv_page2_panel');
+    if(pg2&&pg2p) pg2p.style.display=pg2.checked?'block':'none';
   }
-  const rscR=document.getElementById('rsc_rK');
-  if(rscR&&modalId==='generate13680Modal'){
-    // re-trigger caregiver container if client was selected
+  if(modalId==='generate13681Modal'){
+    const vb=document.getElementById('chg_receivedVerbal');
+    const vs=document.getElementById('chg_verbalSection');
+    if(vb&&vs) vs.style.display=vb.checked?'block':'none';
+  }
+  if(modalId==='caregiverModal'){
+    const ct=document.getElementById('cgCredType');
+    const cp=document.getElementById('cgCredTypeOtherPanel');
+    if(ct&&cp) cp.style.display=ct.value==='Other (specify below)'?'block':'none';
+  }
+  if(modalId==='clientModal'){
+    const isNew=document.getElementById('clIsNew');
+    const np=document.getElementById('clNewClientPanel');
+    if(isNew&&np) np.style.display=isNew.value==='yes'?'block':'none';
+    const sc=document.getElementById('clIsSpecialCase');
+    const sp=document.getElementById('clSpecialCasePanel');
+    if(sc&&sp) sp.style.display=sc.checked?'block':'none';
+  }
+  if(modalId==='generate13680Modal'){
     const cs=document.getElementById('rsc_client');
     if(cs&&cs.value) onRscClientChange(cs);
+  }
+  if(modalId==='newCaseModal'){
+    const nc=document.getElementById('ncClient');
+    if(nc&&nc.value) onNcClientChange(nc);
+  }
+  if(modalId==='facilityModal'){
+    const ft=document.getElementById('facilityType');
+    if(ft&&ft.value){
+      document.querySelectorAll('[data-type]').forEach(c=>{
+        c.style.border=c.dataset.type===ft.value?'1.5px solid var(--blue)':'1.5px solid var(--border2)';
+      });
+      const other=document.getElementById('facilityTypeOther');
+      if(other) other.style.display=ft.value==='Other'?'block':'none';
+    }
   }
 }
 
 function clearModalDraft(modalId){
-  sessionStorage.removeItem('gy_modal_draft_'+modalId);
+  try{localStorage.removeItem(_draftKey(modalId));}catch(e){}
 }
 
-// List of all modal IDs that have persistent drafts
-const PERSISTENT_MODALS=[
-  'generateModal','generate14484Modal','generate13678aModal',
-  'generate13680Modal','generate13681Modal',
-  'caregiverModal','clientModal','facilityModal','newCaseModal'
-];
+function clearModalDraftAndReset(modalId){
+  clearModalDraft(modalId);
+  // Remove the badge
+  const modal=document.getElementById(modalId);
+  const badge=modal?.querySelector('.draft-restore-badge');
+  if(badge)badge.remove();
+  // Reset all fields to blank
+  modal?.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.type==='checkbox'||el.type==='radio') el.checked=false;
+    else el.value='';
+  });
+  // Hide all dependent panels
+  ['genMedSection','nv_page2_panel','chg_verbalSection',
+   'cgCredTypeOtherPanel','clNewClientPanel','clSpecialCasePanel'].forEach(pid=>{
+    const p=document.getElementById(pid);if(p)p.style.display='none';
+  });
+  document.querySelectorAll('[data-type]').forEach(c=>c.style.border='1.5px solid var(--border2)');
+}
 
-// Attach auto-save listeners to all persistent modals
+function hasDraftData(modalId){
+  try{return !!localStorage.getItem(_draftKey(modalId));}catch(e){return false;}
+}
+
+// Attach auto-save listeners (called once on DOMContentLoaded)
 function attachModalDraftListeners(){
   PERSISTENT_MODALS.forEach(modalId=>{
     const modal=document.getElementById(modalId);
     if(!modal)return;
-    // Save on any input/change inside the modal
-    modal.addEventListener('input', ()=>saveModalDraft(modalId));
+    modal.addEventListener('input',  ()=>saveModalDraft(modalId));
     modal.addEventListener('change', ()=>saveModalDraft(modalId));
   });
 }
@@ -4848,8 +4925,10 @@ async function signOut(){
   document.getElementById('sidebarUserName').textContent = 'Registered Nurse';
   document.getElementById('sidebarUserRole').textContent = 'DelegateRN Platform';
   // reset all pages so they re-render fresh on next login
-  sessionStorage.removeItem('gy_active_page');
-  PERSISTENT_MODALS.forEach(id=>clearModalDraft(id));
+  // Only clear the active page pointer for this user on sign-out.
+  // Modal drafts are intentionally kept in localStorage so the same
+  // user finds their unsaved work when they sign back in.
+  try{localStorage.removeItem(_pageKey());}catch(e){}
   document.querySelectorAll('[id^="page-"]').forEach(p => { p.innerHTML=''; p.style.display='none'; });
   document.getElementById('page-dashboard').style.display='block';
 }
@@ -4884,7 +4963,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if(nameEl) nameEl.textContent = currentProfile?.full_name || currentUser.email;
       if(roleEl) roleEl.textContent = currentProfile?.role || 'Golden Years RN';
       loadCasesFromSupabase();
-      const savedPage = sessionStorage.getItem('gy_active_page') || 'dashboard';
+      let savedPage='dashboard';
+      try{savedPage=localStorage.getItem(_pageKey())||'dashboard';}catch(e){}
       showPage(savedPage);
     });
   });
