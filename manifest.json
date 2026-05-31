@@ -1,0 +1,18 @@
+{
+  "name": "My App",
+  "short_name": "MyApp",
+  "description": "Mobile app experience for My App",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ff4fa3",
+  "icons": [
+    {
+      "src": "/icon1.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
