@@ -3488,12 +3488,15 @@ async function submitGenerate14484(){
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
 
+  // Auto-derive / enrich delegation case from nursing visit form
+  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-14484', formData});
+
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate14484Modal');
   clearModalDraft('generate14484Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 14-484 saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+  alert(`✅ 14-484 saved to Drafts.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 // ── 13-678A PRN MEDICATION FORM ───────────────────
@@ -3613,12 +3616,15 @@ async function submitGenerate13678a(){
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
 
+  // Auto-derive / enrich delegation case from PRN medication form
+  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13678a', formData});
+
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678aModal');
   clearModalDraft('generate13678aModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-678A saved to Drafts with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+  alert(`✅ 13-678A saved to Drafts with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 async function loadCasesFromSupabase(){
@@ -5180,15 +5186,17 @@ async function submitGenerate(){
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
 
+  // Auto-derive / enrich delegation case from this form
+  await upsertCaseFromForm({clientId, caregiverId, formId: generateFormId, formData});
+
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generateModal');
   clearModalDraft('generateModal');
-  // navigate to drafts tab
   if(document.getElementById('page-documents').style.display!=='none'){
     docsShowTab('Drafts');
     renderDraftsTable(window.formDrafts);
   }
-  alert('✅ Form saved to Drafts. Print it from the Drafts tab, then upload the signed copy in Signed Documents.');
+  alert('✅ Form saved to Drafts.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
 }
 
 async function loadDraftsList(){
@@ -5917,12 +5925,15 @@ async function submitGenerate13680(){
   if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
+  // Auto-update delegation case — mark as closed/rescinded
+  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13680', formData});
+
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13680Modal');
   clearModalDraft('generate13680Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-680 Rescinding Delegation saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+  alert(`✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case marked as Closed — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 function openGenerateFromCase13680(caseId){
@@ -6176,12 +6187,15 @@ async function submitGenerate13681(){
   if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
+  // Auto-derive / enrich delegation case from change in orders form
+  await upsertCaseFromForm({clientId, caregiverId: cg?.id||cl?.caregiverId||null, formId:'form-13681', formData});
+
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13681Modal');
   clearModalDraft('generate13681Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-681 Change in Medical Orders saved to Drafts.\n\nPrint it from the Drafts tab, then upload the signed copy in Signed Documents.`);
+  alert(`✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 function openGenerateFromCase13681(caseId){
@@ -6968,6 +6982,283 @@ function openMedImageLightbox(src, name){
   caption.textContent=name;caption.style.cssText='color:rgba(255,255,255,0.7);font-size:12px';
   overlay.appendChild(img);overlay.appendChild(caption);
   document.body.appendChild(overlay);
+}
+
+// ── AUTO-UPSERT DELEGATION CASE FROM FORM DATA ────
+// Called whenever any form is generated. Finds the existing case for
+// this client (or creates one) and merges the new information in.
+async function upsertCaseFromForm({clientId, caregiverId, formId, formData}){
+  if(!clientId) return;
+  initSupa();
+  const cl  = window.clients.find(x=>x.id===clientId);
+  const cg  = window.caregivers.find(x=>x.id===(caregiverId||cl?.caregiverId));
+  const fac = window.facilities.find(x=>x.id===cl?.facilityId);
+  if(!cl) return;
+
+  const now = new Date().toISOString();
+
+  // ── Find or create the single case for this client ──────────────
+  let dc = (window.delegationCases||[]).find(c=>c.clientId===clientId);
+  const isNew = !dc;
+
+  if(isNew){
+    dc = {
+      id: 'case-'+clientId+'-auto',
+      user_id: currentUser?.id,
+      clientId, clientName: `${cl.first} ${cl.last}`,
+      caregiverId: cg?.id||cl.caregiverId||null,
+      caregiverName: cg?`${cg.first} ${cg.last}`:(cl.caregiverName||'—'),
+      facilityId: cl.facilityId||null,
+      facilityName: fac?.name||'—',
+      rnName: currentProfile?.full_name||'',
+      startDate: now.split('T')[0],
+      reassessDate: '',
+      status: 'Active',
+      supervision: '',
+      notes: '',
+      instructions: '',
+      precautions: '',
+      escalation: '',
+      consentClient: true, consentGuardian: false, consentCaregiver: true,
+      consentClientSigned: false, consentGuardianSigned: false, consentCaregiverSigned: false,
+      tasks: [], visits: [], timeline: [],
+      reassessSchedule: [],
+      isSpecialCase: cl.isSpecialCase||false,
+      specialCaseType: cl.specialCaseType||'',
+      specialCaseNotes: cl.specialCaseNotes||'',
+      specialReassessDates: cl.specialReassessDates||[],
+      created_at: now, updated_at: now
+    };
+  }
+
+  const timelineEntry = (action) => ({date:now, action, by: currentProfile?.full_name||'RN'});
+
+  // ── Merge data from the specific form type ───────────────────────
+  const fd = formData || {};
+
+  if(formId === 'form-13678'){
+    // Nursing task instructions → tasks list + case-level fields
+    if(fd.delegatedTask && fd.delegatedTask.trim()){
+      const taskName = fd.delegatedTask.trim();
+      const existing = dc.tasks.find(t=>t.name.toLowerCase()===taskName.toLowerCase());
+      if(existing){
+        // Update existing task with richer info
+        if(fd.steps)            existing.instructions  = fd.steps;
+        if(fd.whatRnd)          existing.escalation    = [existing.escalation, fd.whatRnd].filter(Boolean).join('\n');
+        if(fd.whatEmergency)    existing.thresholds    = fd.whatEmergency;
+        existing.updatedDate = now.split('T')[0];
+        dc.timeline.push(timelineEntry(`Task updated from 13-678: ${taskName}`));
+      } else {
+        dc.tasks.push({
+          id: 'task-'+Date.now()+Math.random().toString(36).slice(2),
+          name: taskName,
+          type: 'Medication Administration',
+          status: 'Active',
+          instructions: fd.steps||'',
+          precautions: '',
+          thresholds: fd.whatEmergency||'',
+          escalation: fd.whatRnd||'',
+          version: 'v1.0',
+          updatedDate: now.split('T')[0],
+          history: [],
+          createdAt: now
+        });
+        dc.timeline.push(timelineEntry(`Task added from 13-678: ${taskName}`));
+      }
+    }
+    // Case-level fields
+    if(fd.steps)          dc.instructions = [dc.instructions, fd.steps].filter(Boolean).join('\n\n---\n\n');
+    if(fd.whatRnd)        dc.escalation   = [dc.escalation,   fd.whatRnd].filter(Boolean).join('\n');
+    if(fd.whatEmergency)  dc.precautions  = [dc.precautions,  fd.whatEmergency].filter(Boolean).join('\n');
+    if(fd.medications)    dc.notes        = [dc.notes, `Medications (${now.split('T')[0]}): ${fd.medications}`].filter(Boolean).join('\n');
+    if(isNew) dc.timeline.push(timelineEntry('Case auto-created from DSHS 13-678'));
+    else       dc.timeline.push(timelineEntry('Case enriched from DSHS 13-678'));
+  }
+
+  if(formId === 'form-13678a'){
+    // PRN medications → tasks
+    (fd.orders||[]).forEach(o=>{
+      if(!o.medName) return;
+      const taskName = `PRN: ${o.medName}`;
+      const existing = dc.tasks.find(t=>t.name.toLowerCase()===taskName.toLowerCase());
+      if(existing){
+        if(o.symptoms)   existing.thresholds    = o.symptoms;
+        if(o.notes)      existing.instructions  = o.notes;
+        if(o.doseFreq)   existing.name          = taskName; // keep consistent
+        existing.updatedDate = now.split('T')[0];
+        dc.timeline.push(timelineEntry(`PRN task updated from 13-678A: ${o.medName}`));
+      } else {
+        dc.tasks.push({
+          id: 'task-'+Date.now()+Math.random().toString(36).slice(2),
+          name: taskName,
+          type: 'PRN Medication',
+          status: 'Active',
+          instructions: [o.notes, o.doseFreq ? `Dose/Freq: ${o.doseFreq}` : '', o.route ? `Route: ${o.route}` : '', o.notExceed ? `Not to exceed: ${o.notExceed}` : ''].filter(Boolean).join('\n'),
+          precautions: o.reason||'',
+          thresholds: o.symptoms||'',
+          escalation: '',
+          version: 'v1.0',
+          updatedDate: now.split('T')[0],
+          history: [],
+          createdAt: now
+        });
+        dc.timeline.push(timelineEntry(`PRN medication added from 13-678A: ${o.medName}`));
+      }
+    });
+    if(isNew) dc.timeline.push(timelineEntry('Case auto-created from DSHS 13-678A'));
+    else       dc.timeline.push(timelineEntry('Case enriched from DSHS 13-678A'));
+  }
+
+  if(formId === 'form-14484'){
+    // Nursing visit → supervision visit log
+    if(fd.visitDate){
+      const visitId = 'visit-'+Date.now();
+      const alreadyLogged = dc.visits.find(v=>v.date===fd.visitDate);
+      if(!alreadyLogged){
+        dc.visits.push({
+          id: visitId,
+          date: fd.visitDate,
+          type: (fd.visitTypes||[]).join(', ')||'Supervisory Visit',
+          performance: 'Not Observed',
+          stability: fd.clientStable ? 'Stable' : 'Declining',
+          notes: fd.notes||'',
+          competency: (fd.ltcwRows||[]).map(r=>r.name).filter(Boolean).join(', '),
+          followup: '',
+          nextDue: fd.returnDate||'',
+          rnSig: fd.rndSig||fd.rndName||'',
+          createdAt: now
+        });
+        dc.timeline.push(timelineEntry(`Supervision visit logged from 14-484: ${fd.visitDate}`));
+      }
+    }
+    // Merge tasks mentioned in visit
+    if(fd.tasks && fd.tasks.trim()){
+      fd.tasks.split(',').map(t=>t.trim()).filter(Boolean).forEach(taskName=>{
+        if(!dc.tasks.find(t=>t.name.toLowerCase()===taskName.toLowerCase())){
+          dc.tasks.push({
+            id: 'task-'+Date.now()+Math.random().toString(36).slice(2),
+            name: taskName,
+            type: 'Medication Administration',
+            status: 'Active',
+            instructions: '',
+            precautions: '',
+            thresholds: '',
+            escalation: '',
+            version: 'v1.0',
+            updatedDate: now.split('T')[0],
+            history: [],
+            createdAt: now
+          });
+        }
+      });
+    }
+    if(fd.returnDate) dc.reassessDate = fd.returnDate;
+    if(fd.continueDelegation) dc.status = 'Active';
+    if(fd.seeRescind)         dc.status = 'Suspended';
+    if(isNew) dc.timeline.push(timelineEntry('Case auto-created from DSHS 14-484'));
+    else       dc.timeline.push(timelineEntry('Case enriched from DSHS 14-484'));
+  }
+
+  if(formId === 'form-13680'){
+    // Rescinding → close the case
+    dc.status = 'Closed';
+    const reasons = (fd.reasons||[]).join('; ');
+    dc.notes = [dc.notes, `Delegation rescinded (${now.split('T')[0]}): ${reasons}`].filter(Boolean).join('\n');
+    dc.timeline.push(timelineEntry(`Delegation rescinded via 13-680: ${reasons||'see form'}`));
+    // Archive all active tasks
+    dc.tasks.forEach(t=>{ if(t.status==='Active') t.status='Archived'; });
+  }
+
+  if(formId === 'form-13681'){
+    // Change in orders → update or add task, update medication
+    if(fd.medName && fd.medName.trim()){
+      const taskName = fd.medName.trim();
+      const existing = dc.tasks.find(t=>t.name.toLowerCase()===taskName.toLowerCase());
+      if(existing){
+        if(fd.dose)      existing.instructions = [existing.instructions, `Dose updated: ${fd.dose} ${fd.frequency||''} ${fd.route||''}`].filter(Boolean).join('\n');
+        if(fd.steps)     existing.instructions = [existing.instructions, fd.steps].filter(Boolean).join('\n');
+        if(fd.whatRnd)   existing.escalation   = fd.whatRnd;
+        if(fd.whatEmergency) existing.thresholds = fd.whatEmergency;
+        existing.updatedDate = now.split('T')[0];
+        dc.timeline.push(timelineEntry(`Medication order updated via 13-681: ${taskName}`));
+      } else {
+        dc.tasks.push({
+          id: 'task-'+Date.now()+Math.random().toString(36).slice(2),
+          name: taskName,
+          type: 'Medication Administration',
+          status: 'Active',
+          instructions: [fd.steps, fd.dose ? `Dose: ${fd.dose} ${fd.frequency||''} ${fd.route||''}`.trim() : ''].filter(Boolean).join('\n'),
+          precautions: fd.medReason||'',
+          thresholds: fd.whatEmergency||'',
+          escalation: fd.whatRnd||'',
+          version: 'v1.0',
+          updatedDate: now.split('T')[0],
+          history: [],
+          createdAt: now
+        });
+        dc.timeline.push(timelineEntry(`New order added via 13-681: ${taskName}`));
+      }
+    }
+    if(fd.taskOrder) dc.instructions = [dc.instructions, fd.taskOrder].filter(Boolean).join('\n\n---\n\n');
+    if(fd.delegateImmediately) dc.status = 'Active';
+    if(fd.siteVisitRequired)   dc.status = 'Pending Consent';
+    if(isNew) dc.timeline.push(timelineEntry('Case auto-created from DSHS 13-681'));
+    else       dc.timeline.push(timelineEntry('Case enriched from DSHS 13-681'));
+  }
+
+  dc.updated_at = now;
+  // Assign caregiver if not set yet
+  if(!dc.caregiverId && (caregiverId||cl?.caregiverId)){
+    dc.caregiverId = caregiverId||cl.caregiverId;
+    const cgx = window.caregivers.find(x=>x.id===dc.caregiverId);
+    if(cgx) dc.caregiverName = `${cgx.first} ${cgx.last}`;
+  }
+
+  // ── Persist to Supabase ──────────────────────────────────────────
+  if(supa && currentUser){
+    const row = {
+      id: dc.id, user_id: dc.user_id,
+      client_id: dc.clientId, client_name: dc.clientName,
+      caregiver_id: dc.caregiverId||null, caregiver_name: dc.caregiverName,
+      facility_id: dc.facilityId||null, facility_name: dc.facilityName,
+      rn_name: dc.rnName, start_date: dc.startDate,
+      reassess_date: dc.reassessDate||null,
+      status: dc.status, supervision: dc.supervision||null,
+      notes: dc.notes||null, instructions: dc.instructions||null,
+      precautions: dc.precautions||null, escalation: dc.escalation||null,
+      consent_client: dc.consentClient, consent_guardian: dc.consentGuardian,
+      consent_caregiver: dc.consentCaregiver,
+      consent_client_signed: dc.consentClientSigned,
+      consent_guardian_signed: dc.consentGuardianSigned,
+      consent_caregiver_signed: dc.consentCaregiverSigned,
+      tasks: JSON.stringify(dc.tasks),
+      visits: JSON.stringify(dc.visits),
+      timeline: JSON.stringify(dc.timeline),
+      reassess_schedule: JSON.stringify(dc.reassessSchedule||[]),
+      is_special_case: dc.isSpecialCase||false,
+      special_case_type: dc.specialCaseType||null,
+      special_case_notes: dc.specialCaseNotes||null,
+      special_reassess_dates: JSON.stringify(dc.specialReassessDates||[]),
+      created_at: dc.created_at, updated_at: dc.updated_at
+    };
+    await supa.from('delegation_cases').upsert(row);
+  }
+
+  // ── Update in-memory store ───────────────────────────────────────
+  window.delegationCases = (window.delegationCases||[]).filter(c=>c.id!==dc.id);
+  window.delegationCases.unshift(dc);
+
+  // ── Refresh any visible UI ───────────────────────────────────────
+  refreshDashboard();
+  if(document.getElementById('casesTableBody')) { updateCaseStats(); renderCasesView(); }
+  // If case detail is open for this client, re-render it
+  const detail = document.getElementById('caseDetailView');
+  if(detail && detail.style.display!=='none'){
+    const open = window.delegationCases.find(c=>c.id===dc.id);
+    if(open) detail.innerHTML = buildCaseDetailHtml(open);
+  }
+
+  return dc;
 }
 
 // ── SIGN OUT ──────────────────────────────────────
