@@ -1146,6 +1146,203 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- 13-678 Nurse Delegation: Consent for Delegation Process Modal -->
+<div class="overlay" id="generate13678ConsentModal">
+  <div class="modal" style="width:min(700px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Generate 13-678 — Nurse Delegation: Consent for Delegation Process</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill from client profile — generates the DSHS consent form (Rev. 05/2025)</p>
+      </div>
+      <button onclick="closeModal('generate13678ConsentModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue)">
+        ℹ️ Select a client — fields 1–14 auto-populate. Obtain and record client or representative consent below before generating.
+      </div>
+
+      <!-- Fields 1–3: Client identity -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Client Identity — Fields 1–3</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">1. Client Name *</label>
+            <select class="form-input form-select" id="con_client" onchange="onConClientChange(this)">
+              <option value="">Select client…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">2. ACES Client ID Number</label>
+            <input class="form-input" id="con_acesId" placeholder="Auto-fills from client profile">
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label">3. Date of Birth</label>
+            <input class="form-input" type="date" id="con_dob">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 4–5: Address & phone -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Client Contact — Fields 4–5</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">4. Client Address (Street, City, State, ZIP)</label>
+            <input class="form-input" id="con_address" placeholder="Auto-fills from client profile">
+          </div>
+          <div class="form-group">
+            <label class="form-label">5. Telephone Number</label>
+            <input class="form-input" id="con_clientPhone" placeholder="Client phone number">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 6–7: Diagnosis & Allergies -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Medical Summary — Fields 6–7</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">6. Client Diagnosis</label>
+            <input class="form-input" id="con_diagnosis" placeholder="Diagnoses that affect the delegated task">
+          </div>
+          <div class="form-group">
+            <label class="form-label">7. Client Allergies</label>
+            <input class="form-input" id="con_allergies" placeholder="Known allergies or NKDA">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 8–11: Facility contact -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Facility / Program Contact — Fields 8–11</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">8. Facility or Program Contact</label>
+            <input class="form-input" id="con_facilityContact" placeholder="Auto-fills from facility">
+          </div>
+          <div class="form-group">
+            <label class="form-label">9. Telephone Number</label>
+            <input class="form-input" id="con_facilityPhone" placeholder="Facility phone">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">10. Fax Number <span style="font-size:10px;color:var(--text3)">(optional)</span></label>
+            <input class="form-input" id="con_facilityFax" placeholder="Facility fax number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">11. Email Address <span style="font-size:10px;color:var(--text3)">(optional)</span></label>
+            <input class="form-input" id="con_facilityEmail" placeholder="Facility or client email">
+          </div>
+        </div>
+      </div>
+
+      <!-- Field 12: Setting -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:10px">12. Setting — Check One</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 12px;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm)"><input type="radio" name="con_setting" value="DSHS Certified Community Residential Program for Developmentally Disabled" id="con_set_dda" style="accent-color:var(--blue)"> DSHS Certified Community Residential Program for Developmentally Disabled</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 12px;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm)"><input type="radio" name="con_setting" value="Licensed Adult Family Home" id="con_set_afh" style="accent-color:var(--blue)"> Licensed Adult Family Home</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 12px;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm)"><input type="radio" name="con_setting" value="Licensed Assisted Living Facilities" id="con_set_alf" style="accent-color:var(--blue)"> Licensed Assisted Living Facilities</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:10px 12px;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm)"><input type="radio" name="con_setting" value="Private Home" id="con_set_home" style="accent-color:var(--blue)"> Private Home</label>
+        </div>
+      </div>
+
+      <!-- Fields 13–14: Health Care Provider -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Health Care Provider — Fields 13–14</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">13. Health Care Provider</label>
+            <input class="form-input" id="con_hcpName" placeholder="Auto-fills from client profile">
+          </div>
+          <div class="form-group">
+            <label class="form-label">14. Telephone Number</label>
+            <input class="form-input" id="con_hcpPhone" placeholder="HCP phone number">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 15–17: Written consent -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div style="background:var(--green-dim);border:1px solid #2dba7a30;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
+          <strong style="color:var(--green)">Consent Statement (read to client before signing):</strong><br>
+          I have been informed the delegating Registered Nurse (RN) will only delegate to Long Term Care Workers (LTCW) who are capable and willing to properly perform the delegated nursing task(s). The LTCW must have an active Nursing Assistant or Home Care Aide - Certified credential. Nurse delegation will only occur after the delegating RN has assessed the ability of the Nursing Assistant or Home Care Aide to competently perform the delegated nursing task in the absence of direct or immediate nurse supervision and has completed required DSHS training per RCW 18.79.260 and WAC 246-840-930.
+        </div>
+        <div class="label" style="margin-bottom:12px">Fields 15–17 — Written / Signature Consent</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">15. Client or Authorized Representative Signature (print name as signature)</label>
+            <input class="form-input" id="con_clientSig" placeholder="Full name as signature">
+          </div>
+          <div class="form-group">
+            <label class="form-label">16. Telephone Number</label>
+            <input class="form-input" id="con_sigPhone" placeholder="Their telephone number">
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label">17. Date</label>
+            <input class="form-input" type="date" id="con_sigDate">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 18–20: Verbal consent -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber)">
+          ⚠ Complete Fields 18–20 <strong>only</strong> if written consent was not obtained and verbal consent was given. Written consent must be obtained within 30 days of verbal consent.
+        </div>
+        <div class="label" style="margin-bottom:12px">Fields 18–20 — Verbal Consent (if applicable)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">18. Verbal Consent Obtained From (print name)</label>
+            <input class="form-input" id="con_verbalFrom" placeholder="Name of person giving verbal consent">
+          </div>
+          <div class="form-group">
+            <label class="form-label">19. Relationship to Client</label>
+            <input class="form-input" id="con_verbalRel" placeholder="e.g. Client, Daughter, Son, Guardian">
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label">20. Date</label>
+            <input class="form-input" type="date" id="con_verbalDate">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fields 21–24: RN signature -->
+      <div>
+        <div class="label" style="margin-bottom:12px">Fields 21–24 — Delegating RN</div>
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">
+          My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">21. Delegation RN Name — Print</label>
+            <input class="form-input" id="con_rnName" placeholder="RN full name (printed)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">22. Telephone Number</label>
+            <input class="form-input" id="con_rnPhone" placeholder="RN phone number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">23. Delegation RN Signature (print name as signature)</label>
+            <input class="form-input" id="con_rnSig" placeholder="RN signature">
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label">24. Date</label>
+            <input class="form-input" type="date" id="con_rnDate">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generate13678ConsentModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="con_submitBtn" class="btn btn-primary btn-sm" onclick="submitGenerate13678Consent()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
@@ -2210,7 +2407,7 @@ pageRenderers.documents = () => {
       ${docShellGen('13-678, Nurse Delegation: Instructions for Nursing Task','DSHS 13-678 · Rev. 06/2021','form-13678')}
       ${docShell('Referral Form','DSHS · Not yet generated')}
       ${docShell('Credentials & Training Verification','DSHS · Not yet generated')}
-      ${docShell('Consent for Delegation','DSHS · Not yet generated')}
+      ${docShellGen('13-678, Nurse Delegation: Consent for Delegation Process','DSHS 13-678 · Rev. 05/2025','form-13678-consent')}
       ${docShellGen('13-678A, Nurse Delegation: PRN Medication','DSHS 13-678A · Rev. 07/2023','form-13678a')}
       ${docShell('Assumption of Delegation','DSHS · Not yet generated')}
       ${docShellGen('13-680, Nurse Delegation: Rescinding Delegation','DSHS 13-680 · Rev. 09/2021','form-13680')}
@@ -5098,6 +5295,7 @@ function openGenerateModal(formId, formName){
   if(formId==='form-14484'){ open14484Modal(); return; }
   if(formId==='form-13680'){ open13680Modal(); return; }
   if(formId==='form-13681'){ open13681Modal(); return; }
+  if(formId==='form-13678-consent'){ open13678ConsentModal(); return; }
   generateFormId=formId; generateFormName=formName;
   // populate selects
   const cs=document.getElementById('genClient'),cgs=document.getElementById('genCaregiver');
@@ -5235,7 +5433,9 @@ function printDraft(id){
   if(!d){alert('Draft not found.');return;}
   const fd=d.form_data||{};
   const printWin=window.open('','_blank','width=850,height=1100');
-  if(d.form_id==='form-13678a'){
+  if(d.form_id==='form-13678-consent'){
+    printWin.document.write(build13678ConsentPrintHtml(fd,d));
+  } else if(d.form_id==='form-13678a'){
     printWin.document.write(build13678aPrintHtml(fd,d));
   } else if(d.form_id==='form-14484'){
     printWin.document.write(build14484PrintHtml(fd,d));
@@ -6984,6 +7184,399 @@ function openMedImageLightbox(src, name){
   document.body.appendChild(overlay);
 }
 
+// ── 13-678 CONSENT FOR DELEGATION PROCESS ─────────
+function open13678ConsentModal(){
+  // Populate client select
+  const cs = document.getElementById('con_client');
+  if(cs){
+    cs.innerHTML = '<option value="">Select client…</option>';
+    window.clients.filter(c=>c.status==='Active').forEach(c=>
+      cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
+    );
+  }
+  // Reset all fields
+  ['con_acesId','con_dob','con_address','con_clientPhone','con_diagnosis','con_allergies',
+   'con_facilityContact','con_facilityPhone','con_facilityFax','con_facilityEmail',
+   'con_hcpName','con_hcpPhone','con_clientSig','con_sigPhone','con_sigDate',
+   'con_verbalFrom','con_verbalRel','con_verbalDate','con_rnName','con_rnPhone',
+   'con_rnSig','con_rnDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('input[name="con_setting"]').forEach(r=>r.checked=false);
+  // Defaults
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('con_sigDate').value  = today;
+  document.getElementById('con_rnDate').value   = today;
+  if(currentProfile?.full_name){
+    document.getElementById('con_rnName').value = currentProfile.full_name;
+    document.getElementById('con_rnSig').value  = currentProfile.full_name;
+  }
+  if(currentProfile?.phone) document.getElementById('con_rnPhone').value = currentProfile.phone;
+  openModal('generate13678ConsentModal');
+}
+
+function onConClientChange(sel){
+  const cl = window.clients.find(x=>x.id===sel.value);
+  if(!cl) return;
+  const s = (id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('con_acesId',   cl.acesId||cl.dshsId||'');
+  s('con_dob',      cl.dob||'');
+  s('con_address',  cl.address||'');
+  s('con_diagnosis', cl.diagnosis||'');
+  s('con_allergies', cl.allergies||'');
+  s('con_hcpName',  cl.physician||'');
+  s('con_hcpPhone', cl.physicianPhone||'');
+  // Facility
+  const fac = window.facilities.find(f=>f.id===cl.facilityId);
+  if(fac){
+    s('con_facilityContact', fac.contactName||fac.name||'');
+    s('con_facilityPhone',   fac.phone||'');
+    s('con_facilityEmail',   fac.email||'');
+    // Auto-select setting radio
+    const type = (fac.type||'').toLowerCase();
+    if(type.includes('adult family'))     document.getElementById('con_set_afh').checked  = true;
+    else if(type.includes('assisted'))    document.getElementById('con_set_alf').checked  = true;
+    else if(type.includes('residential') || type.includes('private')) document.getElementById('con_set_home').checked = true;
+    else if(type.includes('dda') || type.includes('community'))       document.getElementById('con_set_dda').checked  = true;
+  }
+}
+
+async function submitGenerate13678Consent(){
+  const clientId = document.getElementById('con_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const rnName = document.getElementById('con_rnName').value.trim();
+  if(!rnName){alert('Delegating RN name (Field 21) is required.');return;}
+
+  const settingVal = document.querySelector('input[name="con_setting"]:checked')?.value||'';
+
+  const cl  = window.clients.find(x=>x.id===clientId);
+  const fac = window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg  = window.caregivers.find(x=>x.id===cl?.caregiverId);
+
+  const formData = {
+    clientName:      cl ? `${cl.last}, ${cl.first}` : '',
+    acesId:          document.getElementById('con_acesId').value   || cl?.acesId||cl?.dshsId||'',
+    dob:             document.getElementById('con_dob').value      || cl?.dob||'',
+    address:         document.getElementById('con_address').value  || cl?.address||'',
+    clientPhone:     document.getElementById('con_clientPhone').value,
+    diagnosis:       document.getElementById('con_diagnosis').value|| cl?.diagnosis||'',
+    allergies:       document.getElementById('con_allergies').value|| cl?.allergies||'',
+    facilityContact: document.getElementById('con_facilityContact').value,
+    facilityPhone:   document.getElementById('con_facilityPhone').value,
+    facilityFax:     document.getElementById('con_facilityFax').value,
+    facilityEmail:   document.getElementById('con_facilityEmail').value,
+    setting:         settingVal,
+    hcpName:         document.getElementById('con_hcpName').value  || cl?.physician||'',
+    hcpPhone:        document.getElementById('con_hcpPhone').value || cl?.physicianPhone||'',
+    clientSig:       document.getElementById('con_clientSig').value,
+    sigPhone:        document.getElementById('con_sigPhone').value,
+    sigDate:         document.getElementById('con_sigDate').value,
+    verbalFrom:      document.getElementById('con_verbalFrom').value,
+    verbalRel:       document.getElementById('con_verbalRel').value,
+    verbalDate:      document.getElementById('con_verbalDate').value,
+    rnName,
+    rnPhone:         document.getElementById('con_rnPhone').value,
+    rnSig:           document.getElementById('con_rnSig').value,
+    rnDate:          document.getElementById('con_rnDate').value,
+  };
+
+  const btn = document.getElementById('con_submitBtn');
+  btn.textContent='Generating…'; btn.disabled=true;
+
+  const now = new Date().toISOString();
+  const draft = {
+    id:            Date.now().toString(),
+    user_id:       currentUser?.id,
+    form_id:       'form-13678-consent',
+    form_name:     '13-678, Nurse Delegation: Consent for Delegation Process',
+    client_id:     clientId,
+    client_name:   cl ? `${cl.first} ${cl.last}` : '—',
+    caregiver_id:  cl?.caregiverId||null,
+    caregiver_name: cg ? `${cg.first} ${cg.last}` : '—',
+    facility_id:   cl?.facilityId||null,
+    facility_name: fac?.name||'—',
+    form_data:     formData,
+    status:        'Draft — Printed, Awaiting Signature',
+    created_at:    now,
+    updated_at:    now
+  };
+
+  initSupa();
+  if(supa&&currentUser){
+    const {error}=await supa.from('form_drafts').insert(draft);
+    if(error) console.error(error);
+  }
+  window.formDrafts = window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+
+  // Mark consent as obtained on the delegation case
+  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13678-consent', formData});
+
+  btn.textContent='Generate & Save to Drafts'; btn.disabled=false;
+  closeModal('generate13678ConsentModal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts'); renderDraftsTable(window.formDrafts);},100);
+  alert('✅ 13-678 Consent for Delegation saved to Drafts.\n\nConsent recorded on the delegation case.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+}
+
+function build13678ConsentPrintHtml(fd, draft){
+  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const chk = v => v ? '☑' : '☐';
+  const settings = [
+    'DSHS Certified Community Residential Program for Developmentally Disabled',
+    'Licensed Adult Family Home',
+    'Licensed Assisted Living Facilities',
+    'Private Home'
+  ];
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 13-678 Consent — ${esc(draft.client_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
+  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:2px;letter-spacing:0.01em}
+  table{width:100%;border-collapse:collapse}
+  td,th{border:1px solid #000;padding:3.5px 6px;vertical-align:top;font-size:8.5pt}
+  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
+  .fv{font-size:9pt;min-height:14px;display:block}
+  .sig-row td{height:40px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:24px}
+  .consent-box{border:1px solid #000;padding:7px 9px;font-size:8pt;line-height:1.6;margin:0}
+  .rn-stmt{border:1px solid #000;padding:7px 9px;font-size:8pt;line-height:1.6;margin:0}
+  .settings-row td{border:1px solid #000;padding:5px 8px;font-size:8.5pt}
+  .footer-area{font-size:7.5pt;margin-top:6px;display:flex;justify-content:space-between;align-items:flex-end}
+  .instructions-box{border:1px solid #000;padding:7px 9px;margin-top:6px;font-size:7.5pt;line-height:1.55}
+  .instructions-box ol{margin-left:16px;margin-top:3px}
+  .instructions-box li{margin-bottom:2px}
+  @media print{
+    body{padding:0.35in 0.4in}
+    @page{size:letter portrait;margin:0}
+  }
+</style>
+</head><body>
+
+<div class="doc-title">Nurse Delegation: Consent for Delegation Process</div>
+
+<!-- Fields 1–3 -->
+<table style="margin-bottom:0">
+  <tr>
+    <td style="width:38%">
+      <span class="fl">1. Client Name</span>
+      <span class="fv">${esc(fd.clientName)}</span>
+    </td>
+    <td style="width:32%">
+      <span class="fl">2. ACES Client ID Number</span>
+      <span class="fv">${esc(fd.acesId)}</span>
+    </td>
+    <td style="width:30%">
+      <span class="fl">3. Date of Birth</span>
+      <span class="fv">${esc(fd.dob)}</span>
+    </td>
+  </tr>
+
+  <!-- Fields 4–5 -->
+  <tr>
+    <td colspan="2">
+      <span class="fl">4. Client Address &nbsp; City &nbsp; State &nbsp; ZIP Code</span>
+      <span class="fv">${esc(fd.address)}</span>
+    </td>
+    <td>
+      <span class="fl">5. Telephone Number</span>
+      <span class="fv">${esc(fd.clientPhone)}</span>
+    </td>
+  </tr>
+
+  <!-- Field 6 -->
+  <tr>
+    <td colspan="3">
+      <span class="fl">6. Client Diagnosis</span>
+      <span class="fv">${esc(fd.diagnosis)}</span>
+    </td>
+  </tr>
+
+  <!-- Field 7 -->
+  <tr>
+    <td colspan="3">
+      <span class="fl">7. Client Allergies</span>
+      <span class="fv">${esc(fd.allergies)}</span>
+    </td>
+  </tr>
+
+  <!-- Fields 8–9 -->
+  <tr>
+    <td colspan="2">
+      <span class="fl">8. Facility or Program Contact</span>
+      <span class="fv">${esc(fd.facilityContact)}</span>
+    </td>
+    <td>
+      <span class="fl">9. Telephone Number</span>
+      <span class="fv">${esc(fd.facilityPhone)}</span>
+    </td>
+  </tr>
+
+  <!-- Fields 10–11 -->
+  <tr>
+    <td>
+      <span class="fl">10. Fax Number</span>
+      <span class="fv">${esc(fd.facilityFax)}</span>
+    </td>
+    <td colspan="2">
+      <span class="fl">11. Email Address</span>
+      <span class="fv">${esc(fd.facilityEmail)}</span>
+    </td>
+  </tr>
+
+  <!-- Field 12: Setting -->
+  <tr>
+    <td colspan="3" class="settings-row" style="padding:5px 7px">
+      <span class="fl" style="margin-bottom:5px">12. Setting</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;font-size:8.5pt;line-height:1.8">
+        ${settings.map(s=>`<div>${fd.setting===s?'☑':'☐'} ${s}</div>`).join('')}
+      </div>
+    </td>
+  </tr>
+
+  <!-- Fields 13–14 -->
+  <tr>
+    <td colspan="2">
+      <span class="fl">13. Health Care Provider</span>
+      <span class="fv">${esc(fd.hcpName)}</span>
+    </td>
+    <td>
+      <span class="fl">14. Telephone Number</span>
+      <span class="fv">${esc(fd.hcpPhone)}</span>
+    </td>
+  </tr>
+
+  <!-- Consent statement heading -->
+  <tr>
+    <td colspan="3" style="background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:3px 7px;letter-spacing:0.02em">
+      Consent for the Delegation Process
+    </td>
+  </tr>
+
+  <!-- Consent body text -->
+  <tr>
+    <td colspan="3" style="padding:6px 8px;font-size:8pt;line-height:1.65">
+      I have been informed the delegating Registered Nurse (RN) will only delegate to Long Term Care Workers (LTCW) who are capable and willing to properly perform the delegated nursing task(s). The LTCW must have an active Nursing Assistant or Home Care Aide - Certified credential. Nurse delegation will only occur after the delegating RN has assessed the ability of the Nursing Assistant or Home Care Aide to competently perform the delegated nursing task in the absence of direct or immediate nurse supervision and has completed required Department of Social and Health Services training per <u>RCW 18.79.260</u> and <u>WAC 246-840-930.</u> I further understand that the following task(s) may never be delegated per <u>WAC 246-840-910</u>:
+      <ul style="margin:5px 0 5px 18px;line-height:1.7;font-size:8pt">
+        <li>Administration of medications by injections (IM, Sub Q, IV) <strong>except insulin injections.</strong></li>
+        <li>Sterile procedures.</li>
+        <li>Central line maintenance.</li>
+        <li>Acts that require nursing judgment</li>
+      </ul>
+      <strong>If verbal consent is obtained, written consent is required within 30 days of verbal consent.</strong>
+    </td>
+  </tr>
+
+  <!-- Fields 15–17: Signature consent -->
+  <tr class="sig-row">
+    <td colspan="2" style="width:65%">
+      <span class="fl">15. Client or Authorized Representative Signature</span>
+      <span class="fv sig-line">${esc(fd.clientSig)}</span>
+    </td>
+    <td style="width:20%">
+      <span class="fl">16. Telephone Number</span>
+      <span class="fv sig-line">${esc(fd.sigPhone)}</span>
+    </td>
+    <td style="width:15%;border-left:1px solid #000">
+      <span class="fl">17. Date</span>
+      <span class="fv sig-line">${esc(fd.sigDate)}</span>
+    </td>
+  </tr>
+
+  <!-- Fields 18–20: Verbal consent -->
+  <tr>
+    <td>
+      <span class="fl">18. Verbal Consent Obtained From</span>
+      <span class="fv sig-line">${esc(fd.verbalFrom)}</span>
+    </td>
+    <td>
+      <span class="fl">19. Relationship to Client</span>
+      <span class="fv sig-line">${esc(fd.verbalRel)}</span>
+    </td>
+    <td>
+      <span class="fl">20. Date</span>
+      <span class="fv sig-line">${esc(fd.verbalDate)}</span>
+    </td>
+  </tr>
+
+  <!-- Blank spacer row (matches original) -->
+  <tr><td colspan="3" style="height:10px;border:1px solid #000"></td></tr>
+
+  <!-- RN statement -->
+  <tr>
+    <td colspan="3" style="padding:6px 8px;font-size:8pt;line-height:1.65;font-style:italic">
+      My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.
+    </td>
+  </tr>
+
+  <!-- Fields 21–22 -->
+  <tr>
+    <td colspan="2">
+      <span class="fl">21. Delegation RN Name — Print</span>
+      <span class="fv">${esc(fd.rnName)}</span>
+    </td>
+    <td>
+      <span class="fl">22. Telephone Number</span>
+      <span class="fv">${esc(fd.rnPhone)}</span>
+    </td>
+  </tr>
+
+  <!-- Fields 23–24 -->
+  <tr class="sig-row">
+    <td colspan="2">
+      <span class="fl">23. Delegation RN Signature</span>
+      <span class="fv sig-line">${esc(fd.rnSig)}</span>
+    </td>
+    <td>
+      <span class="fl">24. Date</span>
+      <span class="fv sig-line">${esc(fd.rnDate)}</span>
+    </td>
+  </tr>
+</table>
+
+<!-- Instructions block (page 2 of original) -->
+<div class="instructions-box" style="margin-top:8px">
+  <strong>Instructions for Completing Nurse Delegation: Consent for Delegation Process</strong> &nbsp; All fields are required unless indicated <strong>"OPTIONAL."</strong>
+  <ol>
+    <li><strong>Client Name:</strong> Enter delegated client's name (last name, first name).</li>
+    <li><strong>ACES Client ID Number:</strong> Enter the client's ACES ID number.</li>
+    <li><strong>Date of Birth:</strong> Enter client's date of birth (month, day, year).</li>
+    <li><strong>Client Address:</strong> Enter the address where the client currently resides, including street address, city, state and zip code.</li>
+    <li><strong>Telephone Number:</strong> Enter the telephone including area code where the client can be reached.</li>
+    <li><strong>Client Diagnosis:</strong> Enter client's diagnoses that affect the delegated task.</li>
+    <li><strong>Allergies:</strong> List known allergies or No Known Allergies.</li>
+    <li><strong>Facility or Program Contact:</strong> Enter the name of facility or name of individual to contact at the facility or home.</li>
+    <li><strong>Telephone Number:</strong> Enter the telephone number.</li>
+    <li><strong>Fax Number:</strong> Enter the fax number at the facility if available.</li>
+    <li><strong>E-mail Address:</strong> Enter email address of client or facility if available.</li>
+    <li><strong>Setting:</strong> Check the appropriate box.</li>
+    <li><strong>Health Care Provider:</strong> Enter name of client's health care provider.</li>
+    <li><strong>Telephone Number:</strong> Enter telephone number of health care provider.</li>
+    <li><strong>Client or Authorized Representative Signature:</strong> Read the statement to the client/authorized representative and explain the nurse delegation process to them before they sign.</li>
+    <li><strong>Telephone Number:</strong> Ask them to enter their telephone number.</li>
+    <li><strong>Date:</strong> Date the signature.</li>
+    <li><strong>Verbal Consent Obtained From:</strong> Read the statement to the client/authorized representative and explain the nurse delegation process to them before obtaining verbal consent. Print their name. Written consent <strong>must</strong> be obtained within 30 days of verbal consent. Electronic signature is acceptable.</li>
+    <li><strong>Relationship to Client:</strong> Enter the relationship to client of the person giving consent.</li>
+    <li><strong>Date:</strong> Date when you obtained verbal consent.</li>
+    <li><strong>Delegating RN Name:</strong> Print your name.</li>
+    <li><strong>Telephone Number:</strong> Enter your telephone number.</li>
+    <li><strong>23. and 24. Delegating RN Signature and Date:</strong> Sign and date verifying consent.</li>
+  </ol>
+</div>
+
+<div class="footer-area" style="margin-top:6px">
+  <span><strong>To report Nurse Delegation concerns, call the DSHS Complaint Resolution Unit Toll-free Hotline 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:3px;font-size:7.5pt">
+  <span><strong>DSHS 13-678 (REV. 05/2025)</strong></span>
+  <span><strong>NURSE DELEGATION: CONSENT FOR DELEGATION PROCESS</strong> &nbsp;&nbsp; Page 1 of 2</span>
+</div>
+
+</body></html>`;
+}
+
 // ── AUTO-UPSERT DELEGATION CASE FROM FORM DATA ────
 // Called whenever any form is generated. Finds the existing case for
 // this client (or creates one) and merges the new information in.
@@ -7157,6 +7750,16 @@ async function upsertCaseFromForm({clientId, caregiverId, formId, formData}){
     if(fd.seeRescind)         dc.status = 'Suspended';
     if(isNew) dc.timeline.push(timelineEntry('Case auto-created from DSHS 14-484'));
     else       dc.timeline.push(timelineEntry('Case enriched from DSHS 14-484'));
+  }
+
+  if(formId === 'form-13678-consent'){
+    // Record that consent has been obtained
+    dc.consentClientSigned  = !!(fd.clientSig||fd.verbalFrom);
+    dc.consentCaregiverSigned = false; // still needs caregiver sig separately
+    const consentType = fd.clientSig ? 'Written' : fd.verbalFrom ? `Verbal (from ${fd.verbalFrom})` : 'Recorded';
+    dc.notes = [dc.notes, `Consent obtained (${fd.sigDate||fd.verbalDate||'date not recorded'}): ${consentType}`].filter(Boolean).join('\n');
+    if(dc.status==='Draft') dc.status = 'Active';
+    dc.timeline.push(timelineEntry(`Consent for Delegation recorded via 13-678: ${consentType}`));
   }
 
   if(formId === 'form-13680'){
