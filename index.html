@@ -2473,7 +2473,9 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const el = document.getElementById('page-'+id);
   if(!el) return;
-  if(!el.innerHTML.trim()) el.innerHTML = pageRenderers[id]();
+  // Always re-render data-heavy pages so lists stay fresh
+  const alwaysRefresh=['dashboard','compliance','alerts','archive'];
+  if(!el.innerHTML.trim() || alwaysRefresh.includes(id)) el.innerHTML = pageRenderers[id]();
   el.style.display = 'block';
   document.querySelectorAll('.nav-item').forEach(n => {
     if(n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+id+"'"))
@@ -2545,7 +2547,7 @@ function docShellComingSoon(name, prefix){
 const pageRenderers = {};
 
 pageRenderers.dashboard = () => {
-  setTimeout(()=>refreshDashboard(), 0);
+  setTimeout(()=>{refreshDashboard();updateAlertsBadge();}, 0);
   return `
 <div class="topbar">
   <div class="topbar-title">RN Dashboard</div>
@@ -8862,16 +8864,18 @@ async function renderSessionsPage(){
             </div>
             <div id="tfa_qr_container" style="text-align:center;padding:20px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px">
               <div id="tfa_qr_loading" style="font-size:12px;color:var(--text3)">Generating your setup code…</div>
-              <canvas id="tfa_qr_canvas" style="display:none;margin:0 auto;border-radius:8px"></canvas>
+              <div id="tfa_qr_canvas" style="display:block;margin:0 auto"></div>
               <div id="tfa_qr_error" style="display:none;font-size:12px;color:var(--red)"></div>
             </div>
             <div style="margin-bottom:14px">
-              <div style="font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:6px">Or enter this setup key manually in your app:</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <input class="form-input" id="tfa_secret_display" readonly style="font-family:var(--mono);font-size:13px;letter-spacing:0.08em;background:var(--bg1);flex:1" value="Generating…">
-                <button class="btn btn-ghost btn-sm" onclick="copyTotpSecret()" style="flex-shrink:0">Copy key</button>
+              <div style="margin-bottom:14px">
+              <div style="background:var(--amber-dim);border:1px solid #d4873a40;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--amber);line-height:1.6">
+                <strong>Manual setup key</strong> — if you cannot scan the QR code, open your authenticator app → tap <strong>+</strong> → <strong>Enter a setup key</strong> → type your email, paste the key below, choose <strong>Time-based</strong>, and tap <strong>Add</strong>.
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:5px">In the app: tap + → Enter a setup key → type your email + paste this key → choose Time-based → tap Add.</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input class="form-input" id="tfa_secret_display" readonly style="font-family:var(--mono);font-size:13px;letter-spacing:0.08em;background:var(--bg1);flex:1;color:var(--text)" value="Generating…">
+                <button class="btn btn-primary btn-sm" onclick="copyTotpSecret()" style="flex-shrink:0">Copy key</button>
+              </div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="tfa2FAStep(3)">I've added it — Continue</button>
             <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="tfa2FAStep(1)">Back</button>
@@ -9043,28 +9047,27 @@ async function initTotpEnrollment(){
     if(secretDisplay)secretDisplay.value=secret;
     // Render QR code using qrcode.js from CDN
     if(qrCanvas){
-      qrCanvas.style.display='block';
-      if(qrLoading)qrLoading.style.display='none';
-      await loadQRLib();
-      if(window.QRCode){
-        qrCanvas.width=200;qrCanvas.height=200;
-        const qr=new QRCode(null,{text:totpUri,width:200,height:200,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
-        const img=qr._el?.querySelector('img');
-        if(img){
-          const ctx=qrCanvas.getContext('2d');
-          const i=new Image();
-          i.onload=()=>{ctx.drawImage(i,0,0,200,200);};
-          i.src=img.src;
-        }else{
-          // Fallback: show secret key only
-          if(qrCanvas)qrCanvas.style.display='none';
-          if(qrLoading){qrLoading.textContent='QR not available — use the setup key below.';qrLoading.style.display='block';}
+        if(qrLoading)qrLoading.style.display='none';
+        // Use Google Charts QR API — no library needed, works in all browsers
+        const qrImg=document.createElement('img');
+        qrImg.src='https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl='+encodeURIComponent(totpUri);
+        qrImg.width=200;qrImg.height=200;
+        qrImg.style.cssText='border-radius:8px;display:block;margin:0 auto';
+        qrImg.alt='Scan this QR code with your authenticator app';
+        qrImg.onerror=function(){
+          this.style.display='none';
+          if(qrLoading){qrLoading.textContent='QR image could not load — use the setup key below instead.';qrLoading.style.display='block';}
+        };
+        qrCanvas.replaceWith(qrImg);
+        // Show a prominent alert banner above the QR
+        const container=document.getElementById('tfa_qr_container');
+        if(container){
+          const banner=document.createElement('div');
+          banner.style.cssText='background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6;text-align:left';
+          banner.innerHTML='<strong>Scan this QR code</strong> with your authenticator app. If you cannot scan, copy the setup key below and enter it manually in the app.';
+          container.insertAdjacentElement('beforebegin',banner);
         }
-      }else{
-        if(qrCanvas)qrCanvas.style.display='none';
-        if(qrLoading){qrLoading.textContent='Use the setup key below to add your account.';qrLoading.style.display='block';}
       }
-    }
   }catch(err){
     _totpFactorId=null;
     if(qrLoading)qrLoading.style.display='none';
