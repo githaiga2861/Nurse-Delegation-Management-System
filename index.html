@@ -1343,6 +1343,155 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- 13-678B Nurse Delegation: Assumption of Delegation Modal -->
+<div class="overlay" id="generate13678bModal">
+  <div class="modal" style="width:min(620px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Generate 13-678B — Nurse Delegation: Assumption of Delegation</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill from client profile — documents transfer of delegation responsibility to a new RN</p>
+      </div>
+      <button onclick="closeModal('generate13678bModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue)">
+        ℹ️ Complete this form when a new RN assumes delegation responsibility from another RN. Select the client and fill in the reason and dates for assumption.
+      </div>
+
+      <!-- Fields 1–4 -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Client &amp; Setting — Fields 1–4</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">1. Client Name *</label><select class="form-input form-select" id="asmp_client" onchange="onAsmpClientChange(this)"><option value="">Select client…</option></select></div>
+          <div class="form-group"><label class="form-label">2. ACES ID Number</label><input class="form-input" id="asmp_acesId" placeholder="Auto-fills from client profile"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">3. Date of Birth</label><input class="form-input" type="date" id="asmp_dob"></div>
+          <div class="form-group"><label class="form-label">4. Setting <span style="font-size:10px;color:var(--text3)">(optional)</span></label><select class="form-input form-select" id="asmp_setting"><option value="">Select…</option><option value="AFH">AFH — Adult Family Home</option><option value="ALF">ALF — Assisted Living Facility</option><option value="DDA">DDA Program</option><option value="In-home">In-home</option></select></div>
+        </div>
+      </div>
+
+      <!-- Fields 5–6 -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Facility — Fields 5–6 <span style="font-size:10px;color:var(--text3);font-weight:400">(optional)</span></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">5. Facility or Program Name</label><input class="form-input" id="asmp_facilityName" placeholder="Auto-fills from client facility"></div>
+          <div class="form-group"><label class="form-label">6. Telephone Number</label><input class="form-input" id="asmp_facilityPhone" placeholder="Facility phone number"></div>
+        </div>
+      </div>
+
+      <!-- Field 7: Reason -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">7. Reason for Assuming Delegation *</div>
+        <div style="background:var(--bg1);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.65">
+          I agree that I know the client through my assessment, the plan of care, the skills of the Long Term Care Worker(s) (LTCW), and the delegated task(s). I agree to assume responsibility and accountability for the delegated task(s) and to perform the nursing supervision. I have informed the client and/or authorized representative of this change. I have informed the LTCW, case manager, and client of this change.
+        </div>
+        <div class="form-group"><label class="form-label">Reason the Previous RN Rescinded &amp; Date Assuming Responsibility *</label><textarea class="form-input" id="asmp_reason" rows="4" placeholder="Enter reason the other RND rescinded delegation and the date you are assuming responsibility for delegation. Include the previous RN's name if known…"></textarea></div>
+      </div>
+
+      <!-- Fields 8–9: Signature -->
+      <div>
+        <div class="label" style="margin-bottom:12px">Fields 8–9 — Assuming RND Signature &amp; Date</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">8. RND Signature (print name as signature) *</label><input class="form-input" id="asmp_rndSig" placeholder="Assuming RN full name as signature"></div>
+          <div class="form-group"><label class="form-label">9. Date *</label><input class="form-input" type="date" id="asmp_date"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generate13678bModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="asmp_submitBtn" class="btn btn-primary btn-sm" onclick="submitGenerate13678b()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
+<!-- 10-217 Nurse Delegation: Credentials and Training Verification Modal -->
+<div class="overlay" id="generate10217Modal">
+  <div class="modal" style="width:min(680px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4>Generate 10-217 — Nurse Delegation: Credentials and Training Verification</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Auto-fill from caregiver profile — verifies LTCW credential, delegation training, and basic training</p>
+      </div>
+      <button onclick="closeModal('generate10217Modal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue)">
+        ℹ️ Select a caregiver — credential fields auto-populate from their profile. Verify and complete training dates below before generating. A copy of training verification must be attached to this form.
+      </div>
+
+      <!-- LTCW Name & Credential -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">LTCW Name &amp; Active Credential Verification</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Long-Term Care Worker Name (print) *</label><select class="form-input form-select" id="ctv_caregiver" onchange="onCtvCaregiverChange(this)"><option value="">Select caregiver…</option></select></div>
+          <div class="form-group"><label class="form-label">Credential Number</label><input class="form-input" id="ctv_credNum" placeholder="Auto-fills from caregiver profile"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Washington State Credential Type — Check One</label>
+          <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="ctv_credType" value="NAR" id="ctv_nar" style="accent-color:var(--blue)"> Nursing Assistant Registered (NAR)</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="ctv_credType" value="NAC" id="ctv_nac" style="accent-color:var(--blue)"> Nursing Assistant Certified (NAC)</label>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer"><input type="radio" name="ctv_credType" value="HCA-C" id="ctv_hca" style="accent-color:var(--blue)"> Home Care Aide Certified (HCA-C)</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Credential Expiration Date *</label><input class="form-input" type="date" id="ctv_credExpiry" placeholder="Auto-fills from caregiver profile"></div>
+      </div>
+
+      <!-- Required Training -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">Required LTCW Nurse Delegation Training Verification</div>
+        <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px">
+          ⚠ A copy of training verification must be attached to this form before filing.
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">9-Hour Nurse Delegation Core Training for Nursing Assistants — Date Completed *</label><input class="form-input" type="date" id="ctv_coreTrainingDate" placeholder="Date of completion"></div>
+          <div class="form-group"><label class="form-label">3-Hour Nurse Delegation Special Focus on Diabetes — Date Completed <span style="color:var(--text3);font-size:10px">(insulin delegation only)</span></label><input class="form-input" type="date" id="ctv_diabetesTrainingDate" placeholder="Only required for insulin delegation"></div>
+        </div>
+      </div>
+
+      <!-- Basic Training for NAR (DDA Only) -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">Basic Training Verification for NAR — DDA Setting Only</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">An NAR employed by a community residential service business (WAC 246-980-025) is exempt from HCA certification. They must have an active NAR credential and meet one of the training requirements below.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px">
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_basicCoreComp" style="accent-color:var(--blue)"> Basic Training (Core Competency) Certificate</label><input class="form-input" type="date" id="ctv_basicCoreDateVal" placeholder="Date completed" style="font-size:12px"></div>
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_basic75hr" style="accent-color:var(--blue)"> 75 Hours DSHS Approved HCA Basic Training</label><input class="form-input" type="date" id="ctv_basic75hrDate" placeholder="Date completed" style="font-size:12px"></div>
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_basicFoc" style="accent-color:var(--blue)"> Fundamentals of Care (FOC)</label><input class="form-input" type="date" id="ctv_basicFocDate" placeholder="Date completed" style="font-size:12px"></div>
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_basicRfoc" style="accent-color:var(--blue)"> Revised Fundamentals of Care (RFOC)</label><input class="form-input" type="date" id="ctv_basicRfocDate" placeholder="Date completed" style="font-size:12px"></div>
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_basicDda32" style="accent-color:var(--blue)"> DDA 32 Hour Letter</label><input class="form-input" type="date" id="ctv_basicDda32Date" placeholder="Date completed" style="font-size:12px"></div>
+        </div>
+      </div>
+
+      <!-- Exempt LTCW -->
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:8px">Exempt Long-Term Care Workers</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">The HCS LTCW employed between January 1, 2011 and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer stating they completed the basic training requirements in effect on the date of their hire.</p>
+        <div class="form-row">
+          <div class="form-group"><label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;margin-bottom:6px"><input type="checkbox" id="ctv_exemptLetter" style="accent-color:var(--blue)"> Letter of Employment Verification Attached</label></div>
+          <div class="form-group"><label class="form-label">Date of RND Verification</label><input class="form-input" type="date" id="ctv_exemptDate"></div>
+        </div>
+      </div>
+
+      <!-- RN Signature -->
+      <div>
+        <div class="label" style="margin-bottom:8px">RN Delegator Signature</div>
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+          RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">RN Signature (print name) *</label><input class="form-input" id="ctv_rnSig" placeholder="RN full name as signature"></div>
+          <div class="form-group"><label class="form-label">RN Printed Name</label><input class="form-input" id="ctv_rnName" placeholder="RN full name (printed)"></div>
+          <div class="form-group"><label class="form-label">Date Verified *</label><input class="form-input" type="date" id="ctv_dateVerified"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('generate10217Modal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button id="ctv_submitBtn" class="btn btn-primary btn-sm" onclick="submitGenerate10217()">Generate &amp; Save to Drafts</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
@@ -2406,10 +2555,10 @@ pageRenderers.documents = () => {
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
       ${docShellGen('13-678, Nurse Delegation: Instructions for Nursing Task','DSHS 13-678 · Rev. 06/2021','form-13678')}
       ${docShell('Referral Form','DSHS · Not yet generated')}
-      ${docShell('Credentials & Training Verification','DSHS · Not yet generated')}
+      ${docShellGen('10-217, Nurse Delegation: Credentials and Training Verification','DSHS 10-217 · Rev. 05/2026','form-10-217')}
       ${docShellGen('13-678, Nurse Delegation: Consent for Delegation Process','DSHS 13-678 · Rev. 05/2025','form-13678-consent')}
       ${docShellGen('13-678A, Nurse Delegation: PRN Medication','DSHS 13-678A · Rev. 07/2023','form-13678a')}
-      ${docShell('Assumption of Delegation','DSHS · Not yet generated')}
+      ${docShellGen('13-678B, Nurse Delegation: Assumption of Delegation','DSHS 13-678B · Rev. 09/2021','form-13678b')}
       ${docShellGen('13-680, Nurse Delegation: Rescinding Delegation','DSHS 13-680 · Rev. 09/2021','form-13680')}
       ${docShellGen('13-681, Nurse Delegation: Change in Medical Orders','DSHS 13-681 · Rev. 02/2022','form-13681')}
       ${docShell('Request for Additional Unit','DSHS · Not yet generated')}
@@ -3071,7 +3220,7 @@ function buildCaseDetailHtml(c){
       <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Consent for Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💊</div><div class="doc-meta"><div class="doc-name">13-678A, Nurse Delegation: PRN Medication</div><div class="doc-info">Auto-fill with client PRN medication data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13678a('${c.id}')">Generate</button></div>
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏥</div><div class="doc-meta"><div class="doc-name">14-484, Nurse Delegation: Nursing Visit</div><div class="doc-info">Auto-fill with case tasks, caregiver &amp; visit data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase14484('${c.id}')">Generate</button></div>
-      <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Assumption of Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
+      <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name">13-678B, Nurse Delegation: Assumption of Delegation</div><div class="doc-info">Auto-fill with client &amp; RN data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13678b('${c.id}')">Generate</button></div>
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🚫</div><div class="doc-meta"><div class="doc-name">13-680, Nurse Delegation: Rescinding Delegation</div><div class="doc-info">Auto-fill with client, caregiver &amp; reason data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13680('${c.id}')">Generate</button></div>
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name">13-681, Nurse Delegation: Change in Medical Orders</div><div class="doc-info">Auto-fill with client, order &amp; task change data</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase13681('${c.id}')">Generate</button></div>
       <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Nursing Visit Form</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
@@ -5296,6 +5445,8 @@ function openGenerateModal(formId, formName){
   if(formId==='form-13680'){ open13680Modal(); return; }
   if(formId==='form-13681'){ open13681Modal(); return; }
   if(formId==='form-13678-consent'){ open13678ConsentModal(); return; }
+  if(formId==='form-13678b'){ open13678bModal(); return; }
+  if(formId==='form-10-217'){ open10217Modal(); return; }
   generateFormId=formId; generateFormName=formName;
   // populate selects
   const cs=document.getElementById('genClient'),cgs=document.getElementById('genCaregiver');
@@ -5443,6 +5594,10 @@ function printDraft(id){
     printWin.document.write(build13680PrintHtml(fd,d));
   } else if(d.form_id==='form-13681'){
     printWin.document.write(build13681PrintHtml(fd,d));
+  } else if(d.form_id==='form-13678b'){
+    printWin.document.write(build13678bPrintHtml(fd,d));
+  } else if(d.form_id==='form-10-217'){
+    printWin.document.write(build10217PrintHtml(fd,d));
   } else {
     printWin.document.write(build13678PrintHtml(fd,d));
   }
@@ -6410,6 +6565,18 @@ function openGenerateFromCase13681(caseId){
   },100);
 }
 
+function openGenerateFromCase13678b(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13678bModal();
+    setTimeout(()=>{
+      const cs=document.getElementById('asmp_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onAsmpClientChange(cs);}
+    },200);
+  },100);
+}
+
 function build13681PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
@@ -6592,6 +6759,7 @@ function build13681PrintHtml(fd,draft){
 const PERSISTENT_MODALS=[
   'generateModal','generate14484Modal','generate13678aModal',
   'generate13680Modal','generate13681Modal',
+  'generate13678bModal','generate10217Modal',
   'caregiverModal','clientModal','facilityModal','newCaseModal'
 ];
 
@@ -7862,6 +8030,392 @@ async function upsertCaseFromForm({clientId, caregiverId, formId, formData}){
   }
 
   return dc;
+}
+
+// ── 13-678B ASSUMPTION OF DELEGATION ─────────────
+function open13678bModal(){
+  const cs=document.getElementById('asmp_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['asmp_acesId','asmp_dob','asmp_facilityName','asmp_facilityPhone','asmp_reason','asmp_rndSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('asmp_setting').value='';
+  document.getElementById('asmp_date').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name)document.getElementById('asmp_rndSig').value=currentProfile.full_name;
+  openModal('generate13678bModal');
+}
+
+function onAsmpClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('asmp_acesId', cl.acesId||cl.dshsId||'');
+  s('asmp_dob', cl.dob||'');
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  if(fac){
+    s('asmp_facilityName', fac.name||'');
+    s('asmp_facilityPhone', fac.phone||'');
+    const settingEl=document.getElementById('asmp_setting');
+    if(settingEl){
+      if(fac.type.includes('Adult Family'))settingEl.value='AFH';
+      else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
+      else if(fac.type.includes('Residential'))settingEl.value='In-home';
+    }
+  }
+}
+
+async function submitGenerate13678b(){
+  const clientId=document.getElementById('asmp_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const reason=document.getElementById('asmp_reason').value.trim();
+  if(!reason){alert('Reason for Assuming Delegation (Field 7) is required.');return;}
+  const rndSig=document.getElementById('asmp_rndSig').value.trim();
+  if(!rndSig){alert('RND Signature (Field 8) is required.');return;}
+  const signDate=document.getElementById('asmp_date').value;
+  if(!signDate){alert('Date (Field 9) is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const formData={
+    clientName: cl?`${cl.last}, ${cl.first}`:'',
+    acesId: document.getElementById('asmp_acesId').value||cl?.acesId||cl?.dshsId||'',
+    dob: document.getElementById('asmp_dob').value||cl?.dob||'',
+    setting: document.getElementById('asmp_setting').value,
+    facilityName: document.getElementById('asmp_facilityName').value||fac?.name||'',
+    facilityPhone: document.getElementById('asmp_facilityPhone').value||fac?.phone||'',
+    reason, rndSig, signDate,
+    rndName: currentProfile?.full_name||currentUser?.email||'',
+  };
+  const btn=document.getElementById('asmp_submitBtn');
+  btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={
+    id: Date.now().toString(), user_id: currentUser?.id,
+    form_id: 'form-13678b',
+    form_name: '13-678B, Nurse Delegation: Assumption of Delegation',
+    client_id: clientId,
+    client_name: cl?`${cl.first} ${cl.last}`:'—',
+    caregiver_id: cl?.caregiverId||null,
+    caregiver_name: cg?`${cg.first} ${cg.last}`:'—',
+    facility_id: cl?.facilityId||null,
+    facility_name: fac?.name||'—',
+    form_data: formData,
+    status: 'Draft — Printed, Awaiting Signature',
+    created_at: now, updated_at: now
+  };
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13678bModal');
+  clearModalDraft('generate13678bModal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert('✅ 13-678B Assumption of Delegation saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+}
+
+function build13678bPrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 13-678B — ${esc(draft.client_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
+  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:6px}
+  table{width:100%;border-collapse:collapse}
+  td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8.5pt}
+  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
+  .fv{font-size:9pt;min-height:14px;display:block}
+  .sig-row td{height:42px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:26px}
+  .stmt-cell{padding:10px 8px;font-size:8.5pt;line-height:1.65;font-style:normal}
+  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:7.5pt;line-height:1.6}
+  .instructions-box ol{margin-left:16px;margin-top:3px}
+  .instructions-box li{margin-bottom:2px}
+  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:7.5pt}
+  @media print{body{padding:0.4in} @page{size:letter portrait;margin:0}}
+</style>
+</head><body>
+
+<div class="doc-title">Nurse Delegation: Assumption of Delegation</div>
+
+<table style="margin-bottom:0">
+  <!-- Fields 1–4 -->
+  <tr>
+    <td style="width:32%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:22%"><span class="fl">2. ACES ID</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:20%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:26%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
+  </tr>
+  <!-- Fields 5–6 -->
+  <tr>
+    <td colspan="3"><span class="fl">5. Facility or Program Name</span><span class="fv">${esc(fd.facilityName)}</span></td>
+    <td><span class="fl">6. Telephone Number</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
+  </tr>
+  <!-- Field 7 heading -->
+  <tr>
+    <td colspan="4"><span class="fl">7. Reason for Assuming Delegation</span><span class="fv" style="white-space:pre-wrap;min-height:40px">${esc(fd.reason)}</span></td>
+  </tr>
+  <!-- Consent statement -->
+  <tr>
+    <td colspan="4" class="stmt-cell">
+      I agree that I know the client through my assessment, the plan of care, the skills of the Long Term Care Worker(s) (LTCW), and the delegated task(s). I agree to assume responsibility and accountability for the delegated task(s) and to perform the nursing supervision. I have informed the client and/or authorized representative of this change. I have informed the LTCW, case manager, and client of this change.
+    </td>
+  </tr>
+  <!-- Fields 8–9 signature -->
+  <tr class="sig-row">
+    <td colspan="3"><span class="fl">8. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
+    <td><span class="fl">9. Date</span><span class="fv sig-line">${esc(fd.signDate)}</span></td>
+  </tr>
+</table>
+
+<div class="instructions-box">
+  <strong>Instructions for Completing Nurse Delegation: Assumption of Delegation</strong> &nbsp; All fields are required unless indicated <strong>"OPTIONAL."</strong>
+  <ol>
+    <li><strong>Client Name:</strong> Enter ND client's name (last name, first name).</li>
+    <li><strong>ACES ID:</strong> Enter client's ACES Identification number.</li>
+    <li><strong>Date of Birth:</strong> Enter ND client's date of birth (month, day, year).</li>
+    <li><strong>ID Setting:</strong> OPTIONAL – Enter client's ID number as assigned by your business OR enter settings "AFH", "ALF", DDA Program, "In-home".</li>
+    <li><strong>Facility or Program Name:</strong> OPTIONAL – Enter name of facility/program contact.</li>
+    <li><strong>Telephone Number:</strong> OPTIONAL – Enter telephone number of facility/program contact including area code.</li>
+    <li><strong>Reason/Dates for Another RND to Assume Delegation:</strong> Enter reason other RND rescinded and the date you assume responsibility for delegation.</li>
+    <li><strong>8. and 9. Assuming RND Signature and Date:</strong> Sign and date your signature.</li>
+  </ol>
+</div>
+
+<div class="footer-area">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:3px;font-size:7.5pt">
+  <span><strong>DSHS 13-678B (REV. 09/2021)</strong></span>
+  <span><strong>NURSE DELEGATION: ASSUMPTION OF DELEGATION</strong></span>
+</div>
+
+</body></html>`;
+}
+
+// ── 10-217 CREDENTIALS AND TRAINING VERIFICATION ──
+function open10217Modal(){
+  const cgs=document.getElementById('ctv_caregiver');
+  if(cgs){cgs.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['ctv_credNum','ctv_credExpiry','ctv_coreTrainingDate','ctv_diabetesTrainingDate',
+   'ctv_basicCoreDateVal','ctv_basic75hrDate','ctv_basicFocDate','ctv_basicRfocDate',
+   'ctv_basicDda32Date','ctv_exemptDate','ctv_rnSig','ctv_rnName','ctv_dateVerified']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('input[name="ctv_credType"]').forEach(r=>r.checked=false);
+  ['ctv_basicCoreComp','ctv_basic75hr','ctv_basicFoc','ctv_basicRfoc','ctv_basicDda32','ctv_exemptLetter']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  document.getElementById('ctv_dateVerified').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name){
+    document.getElementById('ctv_rnSig').value=currentProfile.full_name;
+    document.getElementById('ctv_rnName').value=currentProfile.full_name;
+  }
+  openModal('generate10217Modal');
+}
+
+function onCtvCaregiverChange(sel){
+  const cg=window.caregivers.find(x=>x.id===sel.value);if(!cg)return;
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('ctv_credNum', cg.certNum||'');
+  s('ctv_credExpiry', cg.certExpiry||'');
+  s('ctv_coreTrainingDate', cg.trainingDate||'');
+  // Auto-select credential type radio based on cred type string
+  const ct=(cg.credType||'').toUpperCase();
+  if(ct.includes('NAR'))document.getElementById('ctv_nar').checked=true;
+  else if(ct.includes('NAC')||ct.includes('CERTIFIED'))document.getElementById('ctv_nac').checked=true;
+  else if(ct.includes('HCA'))document.getElementById('ctv_hca').checked=true;
+}
+
+async function submitGenerate10217(){
+  const caregiverId=document.getElementById('ctv_caregiver').value;
+  if(!caregiverId){alert('Please select a caregiver.');return;}
+  const credType=document.querySelector('input[name="ctv_credType"]:checked')?.value||'';
+  if(!credType){alert('Please select the Washington State Credential Type.');return;}
+  const coreDate=document.getElementById('ctv_coreTrainingDate').value;
+  if(!coreDate){alert('9-Hour Nurse Delegation Core Training date is required.');return;}
+  const rnSig=document.getElementById('ctv_rnSig').value.trim();
+  if(!rnSig){alert('RN Signature is required.');return;}
+  const dateVerified=document.getElementById('ctv_dateVerified').value;
+  if(!dateVerified){alert('Date Verified is required.');return;}
+
+  const cg=window.caregivers.find(x=>x.id===caregiverId);
+  const chk=id=>document.getElementById(id)?.checked||false;
+  const val=id=>document.getElementById(id)?.value||'';
+
+  const formData={
+    ltcwName: cg?`${cg.first} ${cg.last}`:'',
+    credType, credNum: val('ctv_credNum'),
+    credExpiry: val('ctv_credExpiry'),
+    coreTrainingDate: coreDate,
+    diabetesTrainingDate: val('ctv_diabetesTrainingDate'),
+    basicCoreComp: chk('ctv_basicCoreComp'), basicCoreDateVal: val('ctv_basicCoreDateVal'),
+    basic75hr: chk('ctv_basic75hr'), basic75hrDate: val('ctv_basic75hrDate'),
+    basicFoc: chk('ctv_basicFoc'), basicFocDate: val('ctv_basicFocDate'),
+    basicRfoc: chk('ctv_basicRfoc'), basicRfocDate: val('ctv_basicRfocDate'),
+    basicDda32: chk('ctv_basicDda32'), basicDda32Date: val('ctv_basicDda32Date'),
+    exemptLetter: chk('ctv_exemptLetter'), exemptDate: val('ctv_exemptDate'),
+    rnSig, rnName: val('ctv_rnName'),
+    dateVerified,
+    facilityName: cg?.facilityName||'—',
+  };
+
+  const btn=document.getElementById('ctv_submitBtn');
+  btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={
+    id: Date.now().toString(), user_id: currentUser?.id,
+    form_id: 'form-10-217',
+    form_name: '10-217, Nurse Delegation: Credentials and Training Verification',
+    client_id: null, client_name: '—',
+    caregiver_id: caregiverId,
+    caregiver_name: cg?`${cg.first} ${cg.last}`:'—',
+    facility_id: cg?.facilityId||null,
+    facility_name: cg?.facilityName||'—',
+    form_data: formData,
+    status: 'Draft — Printed, Awaiting Signature',
+    created_at: now, updated_at: now
+  };
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate10217Modal');
+  clearModalDraft('generate10217Modal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert('✅ 10-217 Credentials and Training Verification saved to Drafts.\n\nRemember to attach a copy of the training verification before filing.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+}
+
+function build10217PrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const chk=v=>v?'☑':'☐';
+  const dateLine=(label,date,checked)=>`
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">
+      <span>${chk(checked)} ${label}</span>
+      <span style="border-bottom:1px solid #000;flex:1;min-width:80px;display:inline-block"></span>
+      <span style="font-size:8pt">Date: ${esc(date)||'____________'}</span>
+    </div>`;
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>DSHS 10-217 — ${esc(draft.caregiver_name)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
+  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:1px}
+  .doc-sub{font-size:10pt;font-weight:bold;text-align:center;margin-bottom:6px}
+  table{width:100%;border-collapse:collapse}
+  td{border:1px solid #000;padding:5px 8px;vertical-align:top;font-size:8.5pt}
+  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:3px 8px;letter-spacing:0.02em}
+  .fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
+  .fv{font-size:9pt;min-height:14px;display:block}
+  .sig-row td{height:44px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:28px}
+  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:7.5pt;line-height:1.6}
+  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:7.5pt}
+  a{color:#000;text-decoration:underline}
+  @media print{body{padding:0.4in} @page{size:letter portrait;margin:0}}
+</style>
+</head><body>
+
+<div class="doc-title">Nurse Delegation:</div>
+<div class="doc-sub">Credentials and Training Verification</div>
+
+<table style="margin-bottom:0">
+
+  <!-- LTCW Name & Credential section -->
+  <tr><td colspan="3" class="section-hdr">LTCW Name and Active Credential Verification</td></tr>
+  <tr>
+    <td colspan="3">
+      <span class="fl">Long-Term Care Worker's (LTCW's) Name (print)</span>
+      <span class="fv">${esc(fd.ltcwName)}</span>
+      <div style="margin-top:6px;font-size:8pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
+      <div style="margin-top:8px;font-size:8pt;font-weight:bold">Provide the Washington State Credential Information:</div>
+      <div style="margin-top:6px;display:flex;gap:20px;font-size:8.5pt;line-height:1.9;flex-wrap:wrap">
+        ${chk(fd.credType==='NAR')} Nursing Assistant Registered (NAR) &nbsp;&nbsp;
+        ${chk(fd.credType==='NAC')} Nursing Assistant Certified (NAC) &nbsp;&nbsp;
+        ${chk(fd.credType==='HCA-C')} Home Care Aide Certified (HCA-C)
+      </div>
+      <div style="margin-top:6px;display:flex;gap:30px;font-size:8.5pt">
+        <span><strong>Credential Number:</strong> ${esc(fd.credNum)||'________________________'}</span>
+        <span><strong>Expiration Date:</strong> ${esc(fd.credExpiry)||'________________________'}</span>
+      </div>
+    </td>
+  </tr>
+
+  <!-- Required Training -->
+  <tr><td colspan="3" class="section-hdr">Required LTCW Nurse Delegation Training Verification. Must attach copy of verification.</td></tr>
+  <tr>
+    <td colspan="3">
+      <div style="font-size:8.5pt;line-height:1.9">
+        Before accepting nurse delegation <strong>all LTCWs must complete:</strong><br>
+        ${dateLine('9-hour Nurse Delegation Core Training for Nursing Assistants', fd.coreTrainingDate, !!fd.coreTrainingDate)}
+        ${dateLine('3-hour Nurse Delegation Special Focus on Diabetes for insulin administration', fd.diabetesTrainingDate, !!fd.diabetesTrainingDate)}
+      </div>
+    </td>
+  </tr>
+
+  <!-- NAR Basic Training (DDA Only) -->
+  <tr><td colspan="3" class="section-hdr">Basic Training Verification for Nursing Assistant Registered (NAR) before Delegation</td></tr>
+  <tr>
+    <td colspan="3">
+      <div style="font-size:8pt;margin-bottom:6px;line-height:1.55"><strong>DDA Setting Only:</strong> An NAR employed by a community residential service business defined by WAC Chapter 246-980-025 are exempt from obtaining HCA certification. They must have an active NAR credential and meet one of the training requirements as listed below.</div>
+      <div style="font-size:8.5pt;line-height:2">
+        ${dateLine('Basic Training (Core Competency) Certificate or Transcript of Completion', fd.basicCoreDateVal, fd.basicCoreComp)}
+        ${dateLine('75 Hours of DSHS Approved HCA Basic Training certificate or transcript', fd.basic75hrDate, fd.basic75hr)}
+        ${dateLine('Fundamentals of Care (FOC)', fd.basicFocDate, fd.basicFoc)}
+        ${dateLine('Revised Fundamentals of Care (RFOC)', fd.basicRfocDate, fd.basicRfoc)}
+        ${dateLine('DDA 32 Hour Letter', fd.basicDda32Date, fd.basicDda32)}
+      </div>
+    </td>
+  </tr>
+
+  <!-- Exempt LTCW -->
+  <tr><td colspan="3" class="section-hdr">Exempt Long-Term Care Workers</td></tr>
+  <tr>
+    <td colspan="3">
+      <div style="font-size:8.5pt;line-height:1.6;margin-bottom:6px">
+        The HCS LTCW employed between January 1, 2011, and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer who employed them stating they have completed the basic training requirements in effect on the date of their hire.
+      </div>
+      <div style="font-size:8.5pt">
+        ${chk(fd.exemptLetter)} Letter of employment verification attached &nbsp;&nbsp;
+        <strong>Date of RND Verification:</strong> ${esc(fd.exemptDate)||'__________________'}
+      </div>
+    </td>
+  </tr>
+
+  <!-- RN Delegator Signature -->
+  <tr><td colspan="3" class="section-hdr">RN Delegator Signature</td></tr>
+  <tr>
+    <td colspan="3" style="font-size:8.5pt;padding:5px 8px;font-style:italic">
+      RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.
+    </td>
+  </tr>
+  <tr class="sig-row">
+    <td style="width:38%"><span class="fl">RN Signature</span><span class="fv sig-line">${esc(fd.rnSig)}</span></td>
+    <td style="width:38%"><span class="fl">RN Printed Name</span><span class="fv sig-line">${esc(fd.rnName)}</span></td>
+    <td style="width:24%"><span class="fl">Date Verified</span><span class="fv sig-line">${esc(fd.dateVerified)}</span></td>
+  </tr>
+
+</table>
+
+<div class="instructions-box">
+  <strong>Nurse Delegation: Credentials and Training Verification Instructions</strong><br>
+  <strong>Long Term Care Worker's (LTCW) Name:</strong> Enter name of Long Term Care Worker (print). &nbsp;
+  <strong>Credential Verification:</strong> Identify credential and certification type (NAR, NAC, HCA-C), credential number and the expiration date of the credential. &nbsp;
+  <strong>Required LTCW Nurse Delegation Training Verification:</strong> Verify the following nurse delegation training and attach copy of verification. The LTCW must complete the 9-hour Nurse Delegation Core Training for Nursing Assistants and Home Care Aides prior to delegation. Enter date of completion. If the LTCW will also be administering insulin, they must also complete the 3-hour Nurse Delegation Special Focus on Diabetes. Enter date of completion. &nbsp;
+  <strong>Basic Training Verification for NAR (DDA Setting ONLY):</strong> Verify which training the LTCW completed and the date of completion. This can be a DDA letter, certificate or transcript. &nbsp;
+  <strong>Exempt Long-Term Care Workers:</strong> Verification letter must be attached with this document and date of RND's verification entered. &nbsp;
+  <strong>RND Signature:</strong> The delegating nurse must sign verifying they have observed approved training and credentials for the LTCW.
+</div>
+
+<div class="footer-area">
+  <span><strong>DSHS 10-217 (REV. 05/2026)</strong></span>
+  <span><strong>NURSE DELEGATION: CREDENTIALS AND TRAINING VERIFICATION</strong></span>
+</div>
+
+</body></html>`;
 }
 
 // ── SIGN OUT ──────────────────────────────────────
