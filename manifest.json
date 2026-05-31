@@ -1,18 +1,19 @@
 {
-  "name": "My App",
-  "short_name": "MyApp",
-  "description": "Mobile app experience for My App",
+  "name": "Golden Years Home Health RN Management System",
+  "short_name": "Golden Years RN",
+  "description": "A precision-built clinical platform for Registered Nurses at Golden Years Home Health Supported Living LLC — centralizing caregiver oversight, DSHS compliance, and delegation documentation into a single intelligent workspace.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#ff4fa3",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icon1.png",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
