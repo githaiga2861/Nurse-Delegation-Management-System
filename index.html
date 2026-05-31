@@ -6620,1060 +6620,406 @@ function printDraft(id){
 function build14484PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
+  const LOGO='assets/logo.png';
+
+  const sharedCSS=`
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}
+@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}
+@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}
+section{padding:0;width:100%}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}
+.page-header-logo{width:88px;flex-shrink:0}
+.page-header-logo img{width:88px}
+.page-header-title{flex:1;text-align:center}
+.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}
+.form-subtitle{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}
+.form-number{font-size:7.5pt;color:#333;margin-top:2px}
+.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:7pt;color:#555}
+table{width:100%;border-collapse:collapse;margin-bottom:3px}
+td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word}
+th{background:#d9d9d9;font-weight:bold;font-size:7.5pt;text-align:center;text-transform:uppercase}
+.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em;line-height:1.3}
+.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word;white-space:pre-wrap}
+.fv-inline{font-size:8.5pt;word-wrap:break-word}
+.sig-row td{height:36px;vertical-align:bottom}
+.sig-line{border-bottom:1px solid #000;display:block;height:22px;width:100%}
+.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px;letter-spacing:0.03em}
+.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}
+.instructions ol{margin-left:14px;margin-top:3px}
+.instructions li{margin-bottom:2px}
+.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}
+.ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px 6px;font-size:7.5pt;padding:2px 4px;line-height:1.8}
+.ros-item{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.check-row{font-size:8pt;line-height:1.9;padding:3px 5px}
+.check-row span{margin-right:10px}
+.two-col td{width:50%}
+.three-col td{width:33.33%}`;
+
+  const pageHeader=(title,subtitle,formNum,page)=>`
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS logo" onerror="this.style.display='none'"></div>
+  <div class="page-header-title">
+    <div class="form-title">${title}</div>
+    ${subtitle?`<div class="form-subtitle">${subtitle}</div>`:''}
+    <div class="form-number">${formNum}</div>
+  </div>
+  <div class="page-header-right">${page||''}</div>
+</div>`;
 
   const ltcwTableRows=(rows,startNum)=>{
-    if(!rows||!rows.length){
-      // blank rows
-      return Array.from({length:5},(_,i)=>`
-      <tr>
-        <td style="width:22%"><span class="fl">${startNum+i})</span><span class="fv" style="min-height:14px"></span></td>
-        <td style="width:10%;text-align:center"></td><td style="width:10%;text-align:center"></td>
-        <td style="width:10%;text-align:center"></td><td style="width:14%"></td>
-        <td style="width:18%"></td>
-        <td style="width:16%;text-align:center">☐ Yes &nbsp; ☐ No</td>
-      </tr>`).join('');
-    }
-    return rows.map((r,i)=>`
-    <tr>
-      <td><span class="fl">${startNum+i}) LTCW EVALUATED</span><span class="fv">${esc(r.name)}</span></td>
-      <td style="text-align:center;vertical-align:middle">${r.obsDemo||''}</td>
-      <td style="text-align:center;vertical-align:middle">${r.verbal||''}</td>
-      <td style="text-align:center;vertical-align:middle">${r.recordRev||''}</td>
-      <td><span class="fv">${esc(r.training)}</span></td>
-      <td><span class="fv">${esc(r.other)}</span></td>
-      <td style="text-align:center">${r.activeCred==='Yes'?'☑ Yes &nbsp; ☐ No':r.activeCred==='No'?'☐ Yes &nbsp; ☑ No':'☐ Yes &nbsp; ☐ No'}</td>
-    </tr>`).join('');
+    const blanks=Math.max(0,5-(rows||[]).length);
+    const filled=(rows||[]).map((r,i)=>`
+<tr>
+  <td><span class="fl">${startNum+i})</span><span class="fv">${esc(r.name)}</span></td>
+  <td style="text-align:center;vertical-align:middle">${esc(r.obsDemo)}</td>
+  <td style="text-align:center;vertical-align:middle">${esc(r.verbal)}</td>
+  <td style="text-align:center;vertical-align:middle">${esc(r.recordRev)}</td>
+  <td><span class="fv">${esc(r.training)}</span></td>
+  <td><span class="fv">${esc(r.other)}</span></td>
+  <td style="text-align:center;font-size:7.5pt">${r.activeCred==='Yes'?'☑ Yes ☐ No':r.activeCred==='No'?'☐ Yes ☑ No':'☐ Yes ☐ No'}</td>
+</tr>`).join('');
+    const empty=Array.from({length:blanks},(_,i)=>`
+<tr>
+  <td style="height:18px"><span class="fl">${startNum+(rows||[]).length+i})</span></td>
+  <td></td><td></td><td></td><td></td><td></td>
+  <td style="text-align:center;font-size:7.5pt">☐ Yes ☐ No</td>
+</tr>`).join('');
+    return filled+empty;
   };
 
   const rosChecked=fd.rosChecked||[];
-  const rosAll=['No Change','Cardiovascular','Diet / Weight / Nutrition','Neurological','GU / Reproductive','GI','Respiratory','Endocrine','ADL','Sensory','Pain','Integumentary','Psych / Social','Musculoskeletal','Cognition'];
   const visitTypes=fd.visitTypes||[];
-
-  const styles=`
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff;padding:0.4in 0.45in}
-  .doc-title{font-size:11.5pt;font-weight:bold;text-align:center;margin-bottom:1px}
-  .doc-sub{font-size:8pt;font-weight:bold;text-align:center;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em}
-  table{width:100%;border-collapse:collapse}
-  td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt}
-  th{background:#d9d9d9;font-weight:bold;font-size:7.5pt;text-align:center;text-transform:uppercase}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.04em}
-  .fv{font-size:8.5pt;min-height:13px;display:block}
-  .sig-row td{height:34px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:20px}
-  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:3px 6px;letter-spacing:0.03em}
-  .footer-area{font-size:7pt;margin-top:5px}
-  .page-break{page-break-before:always;padding-top:0.35in}
-  .ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;font-size:7.5pt;padding:3px 4px}
-  .ros-item{display:flex;align-items:center;gap:3px}
-  @media print{body{padding:0.35in 0.4in} @page{size:letter portrait;margin:0}}`;
+  const rosAll=['No Change','Cardiovascular','Diet / Weight / Nutrition','Neurological','GU / Reproductive','GI','Respiratory','Endocrine','ADL','Sensory','Pain','Integumentary','Psych / Social','Musculoskeletal','Cognition'];
 
   const page1=`
-  <div class="doc-title">Nurse Delegation: Nursing Visit</div>
-  <table style="margin-bottom:2px">
-    <tr>
-      <td style="width:32%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
-      <td style="width:20%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
-      <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
-      <td style="width:30%"><span class="fl">4. Setting</span>
-        <span class="fv" style="display:flex;gap:8px;flex-wrap:wrap">
-          ${['AFH','DDA','In-home','Other'].map(s=>`${fd.setting===s||fd.setting?.startsWith(s)?'☑':'☐'} ${s}`).join(' &nbsp; ')}
-        </span>
-      </td>
-    </tr>
-    <tr><td colspan="4">
-      <span class="fl">5. Check All That Apply</span>
-      <span class="fv" style="display:flex;gap:12px;flex-wrap:wrap">
-        ${['Client Assessment (See attached)','Supervisory Visit','Initial Caregiver Delegation','Condition Change','Initial Insulin Delegation'].map(t=>`${visitTypes.includes(t)?'☑':'☐'} ${t}`).join(' &nbsp; ')}
-        &nbsp; ${visitTypes.find(t=>t.startsWith('Other:'))?`☑ ${esc(visitTypes.find(t=>t.startsWith('Other:')))}`:' ☐ Other: _____________'}
+<section>
+${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','Page 1'+(fd.hasPg2Notes?' of 2':' of 1'))}
+<table>
+  <tr>
+    <td style="width:30%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:18%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:16%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:36%"><span class="fl">4. Setting</span>
+      <span class="fv" style="font-size:7.5pt">
+        ${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}
       </span>
-    </td></tr>
-    <tr>
-      <td colspan="2"><span class="fl">6. Client Requires Nurse Delegation For These Task(s)</span><span class="fv" style="white-space:pre-wrap">${esc(fd.tasks)}</span></td>
-      <td colspan="2"><span class="fl">Related To</span><span class="fv" style="white-space:pre-wrap">${esc(fd.tasksRelated)}</span></td>
-    </tr>
-    <tr><td colspan="4">
-      <span class="fl">7. Review of Systems — Only check changes in condition from last assessment</span>
-      <div class="ros-grid">
-        ${rosAll.map(r=>`<div class="ros-item">${rosChecked.includes(r)||rosChecked.find(x=>x.startsWith(r))?'☑':'☐'} ${r}</div>`).join('')}
-        <div class="ros-item">${rosChecked.find(x=>x.startsWith('Other:'))?`☑ ${esc(rosChecked.find(x=>x.startsWith('Other:')))}`:' ☐ Other: ____________'}</div>
-      </div>
-    </td></tr>
-    <tr><td colspan="4"><span class="fl">8. Notes</span><span class="fv" style="white-space:pre-wrap;min-height:48px">${esc(fd.notes)}</span></td></tr>
-  </table>
+    </td>
+  </tr>
+  <tr><td colspan="4">
+    <span class="fl">5. Check All That Apply</span>
+    <div class="check-row">
+      ${['Client Assessment (See attached)','Supervisory Visit','Initial Caregiver Delegation','Condition Change','Initial Insulin Delegation'].map(t=>`<span>${visitTypes.includes(t)?'☑':'☐'} ${t}</span>`).join('')}
+      <span>${visitTypes.find(t=>t.startsWith('Other:'))?'☑ '+esc(visitTypes.find(t=>t.startsWith('Other:'))):'☐ Other: ___________'}</span>
+    </div>
+  </td></tr>
+  <tr>
+    <td colspan="2"><span class="fl">6. Client Requires Nurse Delegation For These Task(s)</span><span class="fv">${esc(fd.tasks)}</span></td>
+    <td colspan="2"><span class="fl">Related To</span><span class="fv">${esc(fd.tasksRelated)}</span></td>
+  </tr>
+  <tr><td colspan="4">
+    <span class="fl">7. Review of Systems — Only check changes in condition from last assessment</span>
+    <div class="ros-grid">
+      ${rosAll.map(r=>`<div class="ros-item">${rosChecked.includes(r)?'☑':'☐'} ${r}</div>`).join('')}
+      <div class="ros-item">${rosChecked.find(x=>x.startsWith('Other:'))?'☑ '+esc(rosChecked.find(x=>x.startsWith('Other:'))):'☐ Other: ____________'}</div>
+    </div>
+  </td></tr>
+  <tr><td colspan="4"><span class="fl">8. Notes</span><span class="fv" style="min-height:50px">${esc(fd.notes)}</span></td></tr>
+</table>
 
-  <table style="margin-bottom:2px">
-    <tr><td colspan="7" class="section-hdr">9. Long Term Care Worker (LTCW) Training / Competency — Check or date all that apply</td></tr>
-    <tr>
-      <th style="width:22%">A. LTCW Evaluated</th>
-      <th style="width:10%">B. Observation or Demo</th>
-      <th style="width:10%">C. Verbal Description</th>
-      <th style="width:10%">D. Record Review</th>
-      <th style="width:14%">E. Training Needed / Completed</th>
-      <th style="width:18%">F. Other (specify)</th>
-      <th style="width:16%">G. Active Credential</th>
-    </tr>
-    ${ltcwTableRows(fd.ltcwRows,1)}
-  </table>
+<table>
+  <tr><td colspan="7" class="section-hdr">9. Long Term Care Worker (LTCW) Training / Competency — Check or date all that apply</td></tr>
+  <tr>
+    <th style="width:22%">A. LTCW Evaluated</th>
+    <th style="width:10%">B. Observation or Demo</th>
+    <th style="width:10%">C. Verbal Description</th>
+    <th style="width:10%">D. Record Review</th>
+    <th style="width:14%">E. Training Needed / Completed</th>
+    <th style="width:18%">F. Other (specify)</th>
+    <th style="width:16%">G. Active Credential</th>
+  </tr>
+  ${ltcwTableRows(fd.ltcwRows,1)}
+</table>
 
-  <table style="margin-bottom:2px">
-    <tr><td colspan="3" style="font-size:7.5pt;padding:3px 5px">
-      ${chk(fd.hasPg2Notes)} <strong>10.</strong> Check here if additional notes / LTCW name on page 2.
-      &nbsp;&nbsp;&nbsp;
-      ${chk(fd.clientStable)} <strong>11.</strong> Client stable and predictable
-      &nbsp; ${chk(fd.continueDelegation)} Continue delegation
-      &nbsp; ${chk(fd.seeRescind)} See rescind form
-    </td></tr>
-    <tr><td colspan="3" style="font-size:7pt;padding:3px 5px;font-style:italic">
-      I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given the information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.
-    </td></tr>
-    <tr class="sig-row">
-      <td style="width:50%"><span class="fl">12. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
-      <td style="width:20%"><span class="fl">13. Date</span><span class="fv sig-line">${esc(fd.visitDate)}</span></td>
-      <td style="width:30%"><span class="fl">14. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate)}</span></td>
-    </tr>
-  </table>
+<table>
+  <tr><td colspan="3" style="font-size:7.5pt;padding:3px 5px">
+    ${chk(fd.hasPg2Notes)} <strong>10.</strong> Check here if additional notes / LTCW name on page 2. &nbsp;&nbsp;
+    ${chk(fd.clientStable)} <strong>11.</strong> Client stable and predictable &nbsp;
+    ${chk(fd.continueDelegation)} Continue delegation &nbsp;
+    ${chk(fd.seeRescind)} See rescind form
+  </td></tr>
+  <tr><td colspan="3" style="font-size:7pt;padding:3px 5px;font-style:italic">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given the information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.</td></tr>
+  <tr class="sig-row">
+    <td style="width:50%"><span class="fl">12. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
+    <td style="width:20%"><span class="fl">13. Date</span><span class="fv sig-line">${esc(fd.visitDate)}</span></td>
+    <td style="width:30%"><span class="fl">14. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate)}</span></td>
+  </tr>
+</table>
 
-  <div class="footer-area" style="display:flex;justify-content:space-between">
-    <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
-    <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
-  </div>
-  <div class="footer-area" style="display:flex;justify-content:space-between;margin-top:2px">
-    <span><strong>DSHS 14-484 (REV. 07/2023)</strong></span>
-    <span><strong>NURSE DELEGATION NURSING VISIT</strong> &nbsp;&nbsp; Page 1 of ${fd.hasPg2Notes?'2':'1'}</span>
-  </div>`;
+<div class="footer">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 14-484 (REV. 07/2023)</strong></span>
+</div>
+</section>`;
 
   const page2=fd.hasPg2Notes?`
-  <div class="page-break">
-    <div class="doc-title">Nurse Delegation: Nursing Visit – Page 2</div>
-    <table style="margin-bottom:2px">
-      <tr>
-        <td style="width:40%"><span class="fl">15. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
-        <td style="width:20%"><span class="fl">16. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
-        <td style="width:40%"><span class="fl">17. Setting</span>
-          <span class="fv" style="display:flex;gap:8px;flex-wrap:wrap">
-            ${['AFH','DDA','In-home','Other'].map(s=>`${fd.setting===s?'☑':'☐'} ${s}`).join(' &nbsp; ')}
-          </span>
-        </td>
-      </tr>
-      <tr><td colspan="3"><span class="fl">18. Notes</span><span class="fv" style="white-space:pre-wrap;min-height:64px">${esc(fd.pg2Notes)}</span></td></tr>
-    </table>
+<section>
+${pageHeader('Nurse Delegation: Nursing Visit — Page 2','','DSHS 14-484 (REV. 07/2023)','Page 2 of 2')}
+<table>
+  <tr>
+    <td style="width:38%"><span class="fl">15. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:20%"><span class="fl">16. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:42%"><span class="fl">17. Setting</span>
+      <span class="fv" style="font-size:7.5pt">${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}</span>
+    </td>
+  </tr>
+  <tr><td colspan="3"><span class="fl">18. Notes</span><span class="fv" style="min-height:60px">${esc(fd.pg2Notes)}</span></td></tr>
+</table>
+<table>
+  <tr><td colspan="7" class="section-hdr">19. Long Term Care Worker (LTCW) Training / Competency — Check or date all that apply</td></tr>
+  <tr>
+    <th style="width:22%">A. LTCW Evaluated</th><th style="width:10%">B. Obs/Demo</th>
+    <th style="width:10%">C. Verbal</th><th style="width:10%">D. Record Rev.</th>
+    <th style="width:14%">E. Training</th><th style="width:18%">F. Other</th>
+    <th style="width:16%">G. Active Cred.</th>
+  </tr>
+  ${ltcwTableRows(fd.ltcwRowsPg2,6)}
+</table>
+<table>
+  <tr><td colspan="3" style="font-size:7pt;font-style:italic;padding:3px 5px">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated.</td></tr>
+  <tr class="sig-row">
+    <td style="width:50%"><span class="fl">20. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig2)}</span></td>
+    <td style="width:20%"><span class="fl">21. Date</span><span class="fv sig-line">${esc(fd.visitDate2)}</span></td>
+    <td style="width:30%"><span class="fl">22. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate2)}</span></td>
+  </tr>
+</table>
+<div class="footer">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 14-484 (REV. 07/2023)</strong></span>
+</div>
+</section>`:'';
 
-    <table style="margin-bottom:2px">
-      <tr><td colspan="7" class="section-hdr">19. Long Term Care Worker (LTCW) Training / Competency — Check or date all that apply</td></tr>
-      <tr>
-        <th style="width:22%">A. LTCW Evaluated</th>
-        <th style="width:10%">B. Observation or Demo</th>
-        <th style="width:10%">C. Verbal Description</th>
-        <th style="width:10%">D. Record Review</th>
-        <th style="width:14%">E. Training Needed / Completed</th>
-        <th style="width:18%">F. Other (specify)</th>
-        <th style="width:16%">G. Active Credential</th>
-      </tr>
-      ${ltcwTableRows(fd.ltcwRowsPg2,6)}
-    </table>
-
-    <table style="margin-bottom:2px">
-      <tr><td colspan="3" style="font-size:7pt;padding:3px 5px;font-style:italic">
-        I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.
-      </td></tr>
-      <tr class="sig-row">
-        <td style="width:50%"><span class="fl">20. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig2)}</span></td>
-        <td style="width:20%"><span class="fl">21. Date</span><span class="fv sig-line">${esc(fd.visitDate2)}</span></td>
-        <td style="width:30%"><span class="fl">22. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate2)}</span></td>
-      </tr>
-    </table>
-
-    <div class="footer-area" style="display:flex;justify-content:space-between">
-      <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
-      <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
-    </div>
-    <div class="footer-area" style="display:flex;justify-content:space-between;margin-top:2px">
-      <span><strong>DSHS 14-484 (REV. 07/2023)</strong></span>
-      <span><strong>NURSE DELEGATION NURSING VISIT</strong> &nbsp;&nbsp; Page 2 of 2</span>
-    </div>
-  </div>`:'';
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>DSHS 14-484 — ${esc(draft.client_name)}</title>
-<style>${styles}</style>
-</head><body>${page1}${page2}</body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 14-484 — ${esc(draft.client_name)}</title><style>${sharedCSS}</style></head><body>${page1}${page2}</body></html>`;
 }
 
 function build13678aPrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const LOGO='assets/logo.png';
+  const sharedCSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-subtitle{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:7pt;color:#555}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const pageHeader=(title,sub,num,pg)=>`<div class="page-header"><div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div><div class="page-header-title"><div class="form-title">${title}</div>${sub?`<div class="form-subtitle">${sub}</div>`:''}<div class="form-number">${num}</div></div><div class="page-header-right">${pg||''}</div></div>`;
   const orders=fd.orders||[];
-  // pad to always show 3 order blocks
-  while(orders.length<3)orders.push({dateOrdered:'',medName:'',doseFreq:'',route:'',notExceed:'',reason:'',symptoms:'',notes:''});
-
+  while(orders.length<3)orders.push({});
   const orderBlock=(o,idx)=>`
-  <tr><td colspan="4" style="background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:4px 6px;letter-spacing:0.03em">Order ${idx+1}</td></tr>
+<table>
+  <tr><td colspan="4" class="section-hdr">Order ${idx+1}${!o.medName?' (Optional)':''}</td></tr>
   <tr>
-    <td style="width:25%"><span class="fl">5. DATE ORDERED</span><span class="fv">${esc(o.dateOrdered)}</span></td>
-    <td style="width:25%"><span class="fl">6. NAME OF MEDICATION</span><span class="fv">${esc(o.medName)}</span></td>
-    <td style="width:25%"><span class="fl">7. DOSE / FREQUENCY</span><span class="fv">${esc(o.doseFreq)}</span></td>
-    <td style="width:25%"><span class="fl">8. ROUTE</span><span class="fv">${esc(o.route)}</span></td>
+    <td style="width:22%"><span class="fl">5. Date Ordered</span><span class="fv">${esc(o.dateOrdered)}</span></td>
+    <td style="width:30%"><span class="fl">6. Name of Medication</span><span class="fv">${esc(o.medName)}</span></td>
+    <td style="width:25%"><span class="fl">7. Dose / Frequency</span><span class="fv">${esc(o.doseFreq)}</span></td>
+    <td style="width:23%"><span class="fl">8. Route</span><span class="fv">${esc(o.route)}</span></td>
   </tr>
   <tr>
-    <td colspan="2"><span class="fl">9. NOT TO EXCEED</span><span class="fv">${esc(o.notExceed)}</span></td>
-    <td colspan="2"><span class="fl">10. REASON FOR MEDICATION</span><span class="fv">${esc(o.reason)}</span></td>
+    <td colspan="2"><span class="fl">9. Not to Exceed</span><span class="fv">${esc(o.notExceed)}</span></td>
+    <td colspan="2"><span class="fl">10. Reason for Medication</span><span class="fv">${esc(o.reason)}</span></td>
   </tr>
-  <tr>
-    <td colspan="4"><span class="fl">11. SYMPTOMS FOR ADMINISTRATION AND AMOUNT TO BE GIVEN</span><span class="fv" style="white-space:pre-wrap;min-height:30px;display:block">${esc(o.symptoms)}</span></td>
-  </tr>
-  <tr>
-    <td colspan="4"><span class="fl">12. NOTES</span><span class="fv" style="white-space:pre-wrap;min-height:22px;display:block">${esc(o.notes)}</span></td>
-  </tr>
+  <tr><td colspan="4"><span class="fl">11. Symptoms for Administration and Amount to Be Given</span><span class="fv" style="min-height:30px">${esc(o.symptoms)}</span></td></tr>
+  <tr><td colspan="4"><span class="fl">12. Notes</span><span class="fv" style="min-height:22px">${esc(o.notes)}</span></td></tr>
   <tr class="sig-row">
-    <td colspan="3"><span class="fl">13. RN DELEGATOR'S SIGNATURE</span><span class="fv sig-line"></span></td>
-    <td><span class="fl">14. DATE</span><span class="fv sig-line"></span></td>
-  </tr>`;
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>DSHS 13-678A — ${esc(draft.client_name)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
-  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:1px}
-  .doc-sub{font-size:8.5pt;font-weight:bold;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}
-  .form-num{font-size:7.5pt;text-align:center;margin-bottom:8px;color:#333}
-  table{width:100%;border-collapse:collapse}
-  td{border:1px solid #000;padding:4px 6px;vertical-align:top}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.04em}
-  .fv{font-size:9pt;min-height:14px;display:block}
-  .sig-row td{height:38px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:22px}
-  .instructions-box{border:1px solid #000;padding:6px 8px;margin-top:6px;font-size:7.5pt;line-height:1.55}
-  .instructions-box ol{margin-left:14px;margin-top:4px}
-  .instructions-box li{margin-bottom:2px}
-  .footer-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:6px;font-size:7.5pt}
-  .bold{font-weight:bold}
-  @media print{body{padding:0.4in 0.45in} @page{size:letter portrait;margin:0}}
-</style>
-</head><body>
-
-<div class="doc-title">Nurse Delegation: PRN Medication</div>
-<div class="doc-sub">To be completed for delegated as needed medications</div>
-
-<table style="margin-bottom:0">
-  <tr>
-    <td colspan="2" style="width:40%"><span class="fl">1. CLIENT NAME</span><span class="fv">${esc(fd.clientName)}</span></td>
-    <td style="width:20%"><span class="fl">2. ACES ID NUMBER</span><span class="fv">${esc(fd.acesId)}</span></td>
-    <td style="width:20%"><span class="fl">3. DATE OF BIRTH</span><span class="fv">${esc(fd.dob)}</span></td>
-    <td style="width:20%"><span class="fl">4. SETTING</span><span class="fv">${esc(fd.setting)}</span></td>
+    <td colspan="3"><span class="fl">13. RN Delegator Signature</span><span class="fv sig-line"></span></td>
+    <td><span class="fl">14. Date</span><span class="fv sig-line"></span></td>
   </tr>
-  ${orders.map((o,i)=>orderBlock(o,i)).join('')}
+</table>`;
+
+  const body=`
+<section>
+${pageHeader('Nurse Delegation: PRN Medication','To be completed for delegated as needed medications','DSHS 13-678A (REV. 07/2023)','Page 1 of 2')}
+<table>
+  <tr>
+    <td style="width:35%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:20%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:27%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
+  </tr>
 </table>
-
-<div class="instructions-box">
-  <span class="bold">Instructions for Completing Nurse Delegation: PRN Medication</span> &nbsp;All fields are required unless indicated <span class="bold">"OPTIONAL"</span>.
-  <ol>
-    <li><span class="bold">Client Name:</span> Enter ND client's name (last name, first name).</li>
-    <li><span class="bold">ACES ID Number:</span> Enter Client's ACES ID Number.</li>
-    <li><span class="bold">Date of Birth:</span> Enter ND client's date of birth (month, day, year).</li>
-    <li><span class="bold">ID Setting:</span> Enter Settings "AFH", "ALF", DDA Program, or "In-home".</li>
-    <li><span class="bold">Date Ordered:</span> Enter the date PRN medication was ordered.</li>
-    <li><span class="bold">Name of Medication:</span> Enter the name of the medication ordered.</li>
-    <li><span class="bold">Dose / Frequency:</span> Enter dose, frequency of medication to be given.</li>
-    <li><span class="bold">Route:</span> Enter administrative route of medicine. Examples: PO, Supp, Topical, Drops, etc.</li>
-    <li><span class="bold">Not to Exceed:</span> Enter maximum number of doses in a specified time period, if applicable.</li>
-    <li><span class="bold">Reason For Medication:</span> Enter action or reason medication is given.</li>
-    <li><span class="bold">Symptoms for Administration and Amount To Be Given:</span> Enter behavior / symptom client will display when this medication is needed. Enter the dose that should be given when this behavior / symptom is observed.</li>
-    <li><span class="bold">Notes:</span> Enter any additional information regarding administration of this medication such as side effects and expected outcome.</li>
-    <li><span class="bold">13. and 14. RND Signature and Date:</span> Sign and date. Please make legible.</li>
-  </ol>
-  <p style="margin-top:5px"><span class="bold">Repeat boxes 5 through 14 for each additional PRN medication ordered at this time.</span></p>
+${orders.map((o,i)=>orderBlock(o,i)).join('')}
+<div class="instructions">
+  <strong>Instructions for Completing Nurse Delegation: PRN Medication</strong> All fields required unless "OPTIONAL".<br>
+  <strong>1. Client Name:</strong> Last name, first name. &nbsp;<strong>2. ACES ID Number.</strong> &nbsp;<strong>3. Date of Birth:</strong> month/day/year. &nbsp;<strong>4. Setting:</strong> AFH, ALF, DDA, or In-home. &nbsp;<strong>5. Date Ordered.</strong> &nbsp;<strong>6. Medication Name.</strong> &nbsp;<strong>7. Dose/Frequency.</strong> &nbsp;<strong>8. Route:</strong> PO, Supp, Topical, Drops, etc. &nbsp;<strong>9. Not to Exceed:</strong> max doses in time period. &nbsp;<strong>10. Reason.</strong> &nbsp;<strong>11. Symptoms &amp; Amount.</strong> &nbsp;<strong>12. Notes:</strong> side effects, expected outcome. &nbsp;<strong>13–14. RN Signature &amp; Date.</strong>
 </div>
-
-<div class="footer-row">
-  <div><span class="bold">To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</span></div>
-  <div style="text-align:right"><span class="bold">DISTRIBUTION:</span> Copy in client chart and in RND file</div>
+<div class="footer">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 13-678A (REV. 07/2023)</strong></span>
 </div>
-<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:7.5pt">
-  <div><span class="bold">DSHS 13-678A (REV. 07/2023)</span></div>
-  <div><span class="bold">NURSE DELEGATION: PRN MEDICATION</span> &nbsp;&nbsp; Page 1 of 2</div>
-</div>
+</section>`;
 
-</body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678A — ${esc(draft.client_name)}</title><style>${sharedCSS}</style></head><body>${body}</body></html>`;
 }
 
 function build13678PrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>DSHS 13-678 — ${esc(draft.client_name)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
-  h2{font-size:11pt;font-weight:bold;text-align:center;margin-bottom:2px}
-  .form-num{font-size:8pt;text-align:center;margin-bottom:8px}
-  table{width:100%;border-collapse:collapse;margin-bottom:0}
-  td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8.5pt}
-  .field-label{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px}
-  .field-val{font-size:9pt;min-height:14px;display:block}
-  .header-cell{background:#d9d9d9;font-weight:bold;font-size:9pt;text-align:center;border:1px solid #000;padding:5px}
-  .section-label{font-weight:bold;font-size:8pt}
-  .call-list{font-size:8pt;margin-top:6px}
-  .call-list td{border:none;padding:1px 4px;font-size:8pt}
-  .footer-note{font-size:7.5pt;margin-top:8px;border:1px solid #000;padding:6px}
-  .two-col td{width:50%}
-  .three-col td{width:33.33%}
-  .five-col td{width:20%}
-  @media print{body{padding:0.4in} @page{size:letter;margin:0.5in}}
-  .sig-row td{height:36px;vertical-align:bottom}
-</style>
-</head><body>
-<h2>Nurse Delegation: Instructions for Nursing Task</h2>
-<p class="form-num">DSHS 13-678 (REV. 06/2021)</p>
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.footer-note{border:1px solid #000;padding:5px 7px;font-size:7.5pt;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Instructions for Nursing Task</div><div class="form-number">DSHS 13-678 PAGE 2 (REV. 09/2021)</div></div>
+  <div class="page-header-right">Page 1 of 2</div>
+</div>
 <table>
-  <tr class="five-col">
-    <td><span class="field-label">1. CLIENT NAME</span><span class="field-val">${esc(fd.clientName)}</span></td>
-    <td><span class="field-label">2. ACES CLIENT ID NUMBER</span><span class="field-val">${esc(fd.acesId)}</span></td>
-    <td><span class="field-label">3. DATE OF BIRTH</span><span class="field-val">${esc(fd.dob)}</span></td>
-    <td><span class="field-label">4. ID / SETTING (OPTIONAL)</span><span class="field-val">${esc(fd.idSetting)}</span></td>
-    <td><span class="field-label">5. DATE TASK DELEGATED</span><span class="field-val">${esc(fd.dateDelegated)}</span></td>
-  </tr>
-  <tr><td colspan="5"><span class="field-label">6. DELEGATED TASK AND EXPECTED OUTCOME</span><span class="field-val">${esc(fd.delegatedTask)}${fd.expectedOutcome?'  —  Expected outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
-  <tr><td colspan="5" style="font-size:8pt;font-style:italic;background:#f5f5f5"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
   <tr>
-    <td colspan="3"><span class="field-label">7. LIST SPECIFIC MEDICATION(S), DOSAGES AND FREQUENCY OF MEDICATIONS DELEGATED ON THIS DATE</span><span class="field-val">${esc(fd.medications)||' '}</span></td>
+    <td style="width:26%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:18%"><span class="fl">2. ACES Client ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:16%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:20%"><span class="fl">4. ID / Setting (Optional)</span><span class="fv">${esc(fd.idSetting)}</span></td>
+    <td style="width:20%"><span class="fl">5. Date Task Delegated</span><span class="fv">${esc(fd.dateDelegated)}</span></td>
+  </tr>
+  <tr><td colspan="5"><span class="fl">6. Delegated Task and Expected Outcome</span><span class="fv" style="min-height:20px">${esc(fd.delegatedTask)}${fd.expectedOutcome?'\nExpected Outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-style:italic;padding:2px 5px"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
+  <tr>
+    <td colspan="3"><span class="fl">7. List Specific Medication(s), Dosages and Frequency Delegated on This Date</span><span class="fv" style="min-height:22px">${esc(fd.medications)||' '}</span></td>
     <td colspan="2">
-      <span class="field-label">8. VERIFICATION OF DELEGATED MEDICATION DATE</span>
-      <span class="field-val">${esc(fd.verifDate)}</span>
-      <span class="field-label" style="margin-top:6px">NAME / TITLE</span>
-      <span class="field-val">${esc(fd.verifName)}</span>
-      <span class="field-label" style="margin-top:6px">METHOD OF VERIFICATION</span>
-      <span class="field-val">${esc(fd.verifMethod)}</span>
+      <span class="fl">8. Verification of Delegated Medication</span>
+      <span class="fv"><strong>Date:</strong> ${esc(fd.verifDate)}</span>
+      <span class="fv"><strong>Name / Title:</strong> ${esc(fd.verifName)}</span>
+      <span class="fv"><strong>Method:</strong> ${esc(fd.verifMethod)}</span>
     </td>
   </tr>
-  <tr><td colspan="5"><span class="field-label">9. STEPS TO PERFORM THE TASK: <input type="checkbox" style="margin-left:6px"> Check here if additional teaching aide(s) attached.</span><span class="field-val" style="white-space:pre-wrap;min-height:60px">${esc(fd.steps)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">9. Steps to Perform the Task: ☐ Check here if additional teaching aide(s) attached.</span><span class="fv" style="min-height:70px">${esc(fd.steps)}</span></td></tr>
 </table>
-<p class="section-label" style="margin:6px 0 3px;padding-left:2px">Report Side Effects or Unexpected Outcomes To:</p>
 <table>
-  <tr class="two-col">
-    <td><span class="field-label">10. RND NAME (PRINT)</span><span class="field-val">${esc(fd.rndName)}</span></td>
-    <td><span class="field-label">11. TELEPHONE NUMBER</span><span class="field-val">${esc(fd.rndPhone)}</span></td>
+  <tr>
+    <td style="width:50%"><span class="fl">10. RND Name (Print)</span><span class="fv">${esc(fd.rndName)}</span></td>
+    <td style="width:50%"><span class="fl">11. Telephone Number</span><span class="fv">${esc(fd.rndPhone)}</span></td>
   </tr>
-  <tr><td colspan="2"><span class="field-label">12. WHAT TO REPORT TO RND</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatRnd)}</span></td></tr>
-  <tr class="two-col">
-    <td><span class="field-label">13. HEALTH CARE PROVIDER NAME</span><span class="field-val">${esc(fd.hcpName)}</span></td>
-    <td><span class="field-label">14. TELEPHONE NUMBER</span><span class="field-val">${esc(fd.hcpPhone)}</span></td>
+  <tr><td colspan="2"><span class="fl">12. What to Report to RND</span><span class="fv" style="min-height:22px">${esc(fd.whatRnd)}</span></td></tr>
+  <tr>
+    <td><span class="fl">13. Health Care Provider Name</span><span class="fv">${esc(fd.hcpName)}</span></td>
+    <td><span class="fl">14. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
-  <tr><td colspan="2"><span class="field-label">15. WHAT TO REPORT TO HEALTH CARE PROVIDER</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatHcp)}</span></td></tr>
-  <tr><td colspan="2"><span class="field-label">16. WHAT TO REPORT TO 911</span><span class="field-val" style="white-space:pre-wrap">${esc(fd.whatEmergency)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">15. What to Report to Health Care Provider</span><span class="fv" style="min-height:22px">${esc(fd.whatHcp)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">16. What to Report to 911</span><span class="fv" style="min-height:22px">${esc(fd.whatEmergency)}</span></td></tr>
   <tr class="sig-row">
-    <td><span class="field-label">17. RND SIGNATURE</span><span class="field-val" style="border-bottom:1px solid #000;min-width:200px;display:block;height:28px"></span></td>
-    <td><span class="field-label">18. DATE</span><span class="field-val" style="border-bottom:1px solid #000;min-width:100px;display:block;height:28px"></span></td>
+    <td><span class="fl">17. RND Signature</span><span class="fv sig-line"></span></td>
+    <td><span class="fl">18. Date</span><span class="fv sig-line"></span></td>
   </tr>
-</table>
-<table style="margin-top:4px">
-  <tr class="two-col">
-    <td><span class="field-label">19. FOR CONSUMER DIRECTED EMPLOYER: INDIVIDUAL PROVIDER'S (IP) NAME</span><span class="field-val">${esc(fd.ipName)}</span></td>
-    <td><span class="field-label">20. PROVIDERONE NUMBER</span><span class="field-val">${esc(fd.providerOne)}</span></td>
+  <tr>
+    <td><span class="fl">19. For Consumer Directed Employer: Individual Provider (IP) Name</span><span class="fv">${esc(fd.ipName)}</span></td>
+    <td><span class="fl">20. ProviderOne Number</span><span class="fv">${esc(fd.providerOne)}</span></td>
   </tr>
 </table>
 <div class="footer-note">
-  <table class="call-list"><tr>
-    <td><strong>Call RND when:</strong></td>
-    <td>Medications change</td><td>New orders received</td><td>Client dies</td>
-    <td>Client admitted to ER, hospital, or SNF</td><td>Client moves</td>
-    <td>Client condition changes</td><td>Problem / unable to perform nursing task.</td>
-  </tr></table>
-  <p style="margin-top:6px;font-size:7.5pt">To register concerns or complaints about Nurse Delegation, please call <strong>1-800-562-6078</strong> &nbsp;&nbsp; <strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</p>
+  <strong>Call RND when:</strong> Medications change &bull; New orders received &bull; Client dies &bull; Client admitted to ER, hospital, or SNF &bull; Client moves &bull; Client condition changes &bull; Problem / unable to perform nursing task.<br>
+  To register concerns or complaints about Nurse Delegation, please call <strong>1-800-562-6078</strong> &nbsp;&nbsp; <strong>DISTRIBUTION:</strong> Copy in client chart and in RND file
 </div>
+<div class="footer"><span><strong>DSHS 13-678 PAGE 2 (REV. 09/2021)</strong></span><span><strong>NURSE DELEGATION: INSTRUCTIONS FOR NURSING TASK</strong> &nbsp; Page 1 of 2</span></div>
+</section>
 </body></html>`;
-}
-
-function editDraft(id){
-  const d=(window.formDrafts||[]).find(x=>x.id===id);
-  if(!d){alert('Draft not found.');return;}
-  // open edit modal pre-populated
-  openEditDraftModal(d);
-}
-
-function openEditDraftModal(d){
-  const fd=d.form_data||{};
-  document.getElementById('editDraftId').value=d.id;
-  document.getElementById('editDraftFormName').textContent=d.form_name;
-  ['editDelegatedTask','editExpectedOutcome','editMedications','editVerifDate','editVerifName','editVerifMethod','editSteps','editRndName','editRndPhone','editWhatRnd','editHcpName','editHcpPhone','editWhatHcp','editWhatEmergency','editIpName','editProviderOne'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    const key=id.replace('edit','');
-    const camel=key.charAt(0).toLowerCase()+key.slice(1);
-    el.value=fd[camel]||'';
-  });
-  openModal('editDraftModal');
-}
-
-async function saveEditedDraft(){
-  const id=document.getElementById('editDraftId').value;
-  const d=(window.formDrafts||[]).find(x=>x.id===id);
-  if(!d)return;
-  const fd=d.form_data||{};
-  fd.delegatedTask=document.getElementById('editDelegatedTask').value;
-  fd.expectedOutcome=document.getElementById('editExpectedOutcome').value;
-  fd.medications=document.getElementById('editMedications').value;
-  fd.verifDate=document.getElementById('editVerifDate').value;
-  fd.verifName=document.getElementById('editVerifName').value;
-  fd.verifMethod=document.getElementById('editVerifMethod').value;
-  fd.steps=document.getElementById('editSteps').value;
-  fd.rndName=document.getElementById('editRndName').value;
-  fd.rndPhone=document.getElementById('editRndPhone').value;
-  fd.whatRnd=document.getElementById('editWhatRnd').value;
-  fd.hcpName=document.getElementById('editHcpName').value;
-  fd.hcpPhone=document.getElementById('editHcpPhone').value;
-  fd.whatHcp=document.getElementById('editWhatHcp').value;
-  fd.whatEmergency=document.getElementById('editWhatEmergency').value;
-  fd.ipName=document.getElementById('editIpName').value;
-  fd.providerOne=document.getElementById('editProviderOne').value;
-  d.form_data=fd;
-  d.updated_at=new Date().toISOString();
-  initSupa();
-  if(supa&&currentUser) await supa.from('form_drafts').update({form_data:fd,updated_at:d.updated_at}).eq('id',id);
-  closeModal('editDraftModal');
-  renderDraftsTable(window.formDrafts);
-}
-
-async function deleteDraft(id){
-  if(!confirm('Delete this draft?'))return;
-  initSupa();
-  if(supa&&currentUser) await supa.from('form_drafts').delete().eq('id',id);
-  window.formDrafts=(window.formDrafts||[]).filter(x=>x.id!==id);
-  renderDraftsTable(window.formDrafts);
-}
-
-// SIGNED DOCUMENTS
-async function loadSignedList(){
-  initSupa();
-  if(!supa||!currentUser)return;
-  const {data}=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
-  window.signedDocs=data||[];
-  renderSignedTable(window.signedDocs);
-}
-
-function renderSignedTable(list){
-  const tbody=document.getElementById('signedTableBody');if(!tbody)return;
-  const empty=document.getElementById('signedEmptyRow');
-  tbody.querySelectorAll('tr:not(#signedEmptyRow)').forEach(r=>r.remove());
-  const chip=document.getElementById('signedCountChip');if(chip)chip.textContent=list.length+' signed';
-  if(!list.length){if(empty)empty.style.display='';return;}
-  if(empty)empty.style.display='none';
-  tbody.insertAdjacentHTML('afterbegin',list.map(s=>`
-    <tr>
-      <td style="font-weight:600;color:var(--text);font-size:12.5px">${s.form_name}</td>
-      <td style="font-size:12.5px">${s.client_name||'—'}</td>
-      <td style="font-size:12.5px">${s.caregiver_name||'—'}</td>
-      <td style="font-size:12px;color:var(--text3)">${s.facility_name||'—'}</td>
-      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(s.created_at).toLocaleDateString('en-US')}</td>
-      <td><span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed &amp; Filed</span></td>
-      <td>${s.file_url?`<a href="${s.file_url}" target="_blank" class="btn btn-ghost btn-sm">View</a>`:''} <button class="btn btn-ghost btn-sm" onclick="deleteSignedDoc('${s.id}')" style="color:var(--red)">Delete</button></td>
-    </tr>`).join(''));
-}
-
-function handleSignedDrop(e){
-  e.preventDefault();
-  document.getElementById('signedDropzone').style.borderColor='var(--border2)';
-  const files=e.dataTransfer?.files;
-  if(files&&files[0]) processSignedUpload(files[0]);
-}
-
-function handleSignedFileSelect(e){
-  const file=e.target.files?.[0];
-  if(file) processSignedUpload(file);
-}
-
-function processSignedUpload(file){
-  // prompt to match to a draft
-  openMatchDraftModal(file);
-}
-
-function openMatchDraftModal(file){
-  window._pendingSignedFile=file;
-  const sel=document.getElementById('matchDraftSelect');
-  if(sel){
-    sel.innerHTML='<option value="">— Standalone (not linked to a draft) —</option>';
-    (window.formDrafts||[]).forEach(d=>sel.insertAdjacentHTML('beforeend',`<option value="${d.id}">${d.form_name} · ${d.client_name} · ${new Date(d.created_at).toLocaleDateString('en-US')}</option>`));
-    // Auto-select if coming from "Upload Signed" button on a specific draft
-    if(window._preselectedDraftId){
-      sel.value = window._preselectedDraftId;
-      window._preselectedDraftId = null;
-    }
-  }
-  document.getElementById('matchFileLabel').textContent=file.name;
-  openModal('matchDraftModal');
-}
-
-async function submitMatchDraft(){
-  const file=window._pendingSignedFile;
-  if(!file){closeModal('matchDraftModal');return;}
-  const draftId=document.getElementById('matchDraftSelect').value;
-  const draft=draftId?(window.formDrafts||[]).find(x=>x.id===draftId):null;
-
-  const btn=document.getElementById('matchSubmitBtn');
-  btn.textContent='Uploading…';btn.disabled=true;
-
-  let fileUrl=null;
-  initSupa();
-  if(supa&&currentUser){
-    const ext=file.name.split('.').pop();
-    const path=`${currentUser.id}/${Date.now()}.${ext}`;
-    const {data:upData,error:upErr}=await supa.storage.from('signed-documents').upload(path,file,{cacheControl:'3600',upsert:false});
-    if(!upErr&&upData){
-      const {data:urlData}=supa.storage.from('signed-documents').getPublicUrl(path);
-      fileUrl=urlData?.publicUrl||null;
-    }
-  }
-
-  const now=new Date().toISOString();
-  const rec={
-    id: Date.now().toString(),
-    user_id: currentUser?.id,
-    draft_id: draftId||null,
-    form_id: draft?.form_id||'upload',
-    form_name: draft?.form_name||file.name,
-    client_id: draft?.client_id||null,
-    client_name: draft?.client_name||'—',
-    caregiver_id: draft?.caregiver_id||null,
-    caregiver_name: draft?.caregiver_name||'—',
-    facility_id: draft?.facility_id||null,
-    facility_name: draft?.facility_name||'—',
-    file_url: fileUrl,
-    file_name: file.name,
-    status: 'Signed & Filed',
-    created_at: now
-  };
-
-  if(supa&&currentUser){
-    await supa.from('signed_documents').insert(rec);
-    // mark draft as signed
-    if(draftId) await supa.from('form_drafts').update({status:'Signed — Filed'}).eq('id',draftId);
-  }
-
-  window.signedDocs=window.signedDocs||[];
-  window.signedDocs.unshift(rec);
-  if(draft) draft.status='Signed — Filed';
-
-  btn.textContent='Upload & Link';btn.disabled=false;
-  closeModal('matchDraftModal');
-  renderSignedTable(window.signedDocs);
-  renderDraftsTable(window.formDrafts||[]);
-  window._pendingSignedFile=null;
-  document.getElementById('signedFileInput').value='';
-}
-
-async function deleteSignedDoc(id){
-  if(!confirm('Remove this signed document record?'))return;
-  initSupa();
-  if(supa&&currentUser) await supa.from('signed_documents').delete().eq('id',id);
-  window.signedDocs=(window.signedDocs||[]).filter(x=>x.id!==id);
-  renderSignedTable(window.signedDocs);
-}
-
-// ── 13-680 RESCINDING DELEGATION ─────────────────
-function open13680Modal(){
-  const cs=document.getElementById('rsc_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
-  ['rsc_acesId','rsc_dob','rsc_facilityName','rsc_facilityPhone','rsc_caseManager','rsc_altPlan','rsc_rndSig','rsc_rK'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('rsc_setting').value='AFH';
-  document.getElementById('rsc_date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('rsc_notifyDate').value='';
-  ['rsc_rA','rsc_rB','rsc_rC','rsc_rD','rsc_rE','rsc_rF','rsc_rG','rsc_rH','rsc_rI','rsc_rJ'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  document.querySelectorAll('input[name="rsc_notifyMethod"]').forEach(r=>r.checked=false);
-  document.getElementById('rsc_caregiversContainer').innerHTML='';
-  addRscCaregiverRow(); addRscCaregiverRow();
-  if(currentProfile?.full_name)document.getElementById('rsc_rndSig').value=currentProfile.full_name;
-  openModal('generate13680Modal');
-}
-
-function onRscClientChange(sel){
-  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
-  const acesEl=document.getElementById('rsc_acesId');if(acesEl)acesEl.value=cl.acesId||cl.dshsId||'';
-  const dobEl=document.getElementById('rsc_dob');if(dobEl)dobEl.value=cl.dob||'';
-  const fac=window.facilities.find(f=>f.id===cl.facilityId);
-  if(fac){
-    const fn=document.getElementById('rsc_facilityName');if(fn)fn.value=fac.name||'';
-    const fp=document.getElementById('rsc_facilityPhone');if(fp)fp.value=fac.phone||'';
-    const settingEl=document.getElementById('rsc_setting');
-    if(settingEl){
-      if(fac.type.includes('Adult Family'))settingEl.value='AFH';
-      else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
-      else if(fac.type.includes('Residential'))settingEl.value='In-home';
-      else settingEl.value='AFH';
-    }
-  }
-  // pre-fill first caregiver row
-  const cg=window.caregivers.find(c=>c.id===cl.caregiverId);
-  if(cg){
-    const ct=document.getElementById('rsc_caregiversContainer');
-    const first=ct?.querySelector('.rsc-cg-name');
-    if(first)first.value=`${cg.first} ${cg.last}`;
-    const firstMed=ct?.querySelector('.rsc-cg-med');
-    // pre-fill medications/treatments from active case tasks
-    const activeCase=window.delegationCases.find(c=>c.clientId===cl.id&&c.status==='Active');
-    if(activeCase&&firstMed){
-      const tasks=(activeCase.tasks||[]).filter(t=>t.status==='Active').map(t=>t.name).join(', ');
-      firstMed.value=tasks;
-    }
-  }
-}
-
-let rscCgCount=0;
-function addRscCaregiverRow(){
-  rscCgCount++;
-  const ct=document.getElementById('rsc_caregiversContainer');if(!ct)return;
-  const idx=ct.children.length+1;
-  ct.insertAdjacentHTML('beforeend',`
-  <div style="display:grid;grid-template-columns:2fr 3fr 2fr auto;gap:8px;align-items:center;margin-bottom:8px;padding:8px 10px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
-    <div><div class="label" style="margin-bottom:3px">${idx}. Caregiver Name</div><input class="form-input rsc-cg-name" placeholder="Full name" style="font-size:12px"></div>
-    <div><div class="label" style="margin-bottom:3px">Medications / Treatments Rescinded</div><input class="form-input rsc-cg-med" placeholder="Medication or treatment name" style="font-size:12px"></div>
-    <div><div class="label" style="margin-bottom:3px">Notes</div><input class="form-input rsc-cg-notes" placeholder="Notes" style="font-size:12px"></div>
-    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:0 4px;align-self:flex-end;margin-bottom:4px">✕</button>
-  </div>`);
-}
-
-function collectRscCaregivers(){
-  const ct=document.getElementById('rsc_caregiversContainer');if(!ct)return[];
-  return [...ct.querySelectorAll('div[style*="grid"]')].map((row,i)=>{
-    const name=row.querySelector('.rsc-cg-name')?.value||'';
-    const med=row.querySelector('.rsc-cg-med')?.value||'';
-    const notes=row.querySelector('.rsc-cg-notes')?.value||'';
-    return {num:i+1,name,med,notes};
-  }).filter(r=>r.name.trim()||r.med.trim());
-}
-
-function getRscReasons(){
-  const reasons=[];
-  const map={rsc_rA:'A. Client died',rsc_rB:'B. Client\'s condition no longer stable and predictable',rsc_rC:'C. Frequent staff turnover',rsc_rD:'D. Client / authorized representative requested',rsc_rE:'E. NA not competent',rsc_rF:'F. NA not willing',rsc_rG:'G. NA credential expired',rsc_rH:'H. NA no longer working with client',rsc_rI:'I. Client safety compromised',rsc_rJ:'J. Rescinding facility including clients and nurse assistant'};
-  Object.entries(map).forEach(([id,label])=>{if(document.getElementById(id)?.checked)reasons.push(label);});
-  const k=document.getElementById('rsc_rK')?.value.trim();
-  if(k)reasons.push('K. Other: '+k);
-  return reasons;
-}
-
-async function submitGenerate13680(){
-  const clientId=document.getElementById('rsc_client').value;
-  if(!clientId){alert('Please select a client.');return;}
-  const altPlan=document.getElementById('rsc_altPlan').value.trim();
-  if(!altPlan){alert('Alternative Plan (Field 14) is required.');return;}
-  const cl=window.clients.find(x=>x.id===clientId);
-  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
-  const notifyMethod=document.querySelector('input[name="rsc_notifyMethod"]:checked')?.value||'';
-  const caregivers=collectRscCaregivers();
-  const reasons=getRscReasons();
-
-  const formData={
-    clientName: cl?`${cl.last}, ${cl.first}`:'',
-    acesId: document.getElementById('rsc_acesId').value||cl?.acesId||cl?.dshsId||'',
-    dob: document.getElementById('rsc_dob').value||cl?.dob||'',
-    setting: document.getElementById('rsc_setting').value,
-    facilityName: document.getElementById('rsc_facilityName').value||fac?.name||'',
-    facilityPhone: document.getElementById('rsc_facilityPhone').value||fac?.phone||'',
-    reasons, caregivers,
-    caseManager: document.getElementById('rsc_caseManager').value,
-    notifyMethod,
-    notifyDate: document.getElementById('rsc_notifyDate').value,
-    altPlan,
-    rndSig: document.getElementById('rsc_rndSig').value,
-    rescindDate: document.getElementById('rsc_date').value,
-    rndName: currentProfile?.full_name||currentUser?.email||'',
-  };
-
-  const btn=document.getElementById('rsc_submitBtn');
-  btn.textContent='Generating…';btn.disabled=true;
-  const now=new Date().toISOString();
-  const draft={
-    id: Date.now().toString(), user_id: currentUser?.id,
-    form_id: 'form-13680', form_name: '13-680, Nurse Delegation: Rescinding Delegation',
-    client_id: clientId, client_name: cl?`${cl.first} ${cl.last}`:'—',
-    caregiver_id: cl?.caregiverId||null,
-    caregiver_name: caregivers[0]?.name||'—',
-    facility_id: cl?.facilityId||null, facility_name: fac?.name||'—',
-    form_data: formData, status: 'Draft — Printed, Awaiting Signature',
-    created_at: now, updated_at: now
-  };
-  initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
-  // Auto-update delegation case — mark as closed/rescinded
-  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13680', formData});
-
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
-  closeModal('generate13680Modal');
-  clearModalDraft('generate13680Modal');
-  showPage('documents');
-  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case marked as Closed — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
-}
-
-function openGenerateFromCase13680(caseId){
-  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
-  showPage('documents');
-  setTimeout(()=>{
-    open13680Modal();
-    setTimeout(()=>{
-      const cs=document.getElementById('rsc_client');
-      if(cs&&c.clientId){cs.value=c.clientId;onRscClientChange(cs);}
-    },200);
-  },100);
 }
 
 function build13680PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const chk=v=>v?'☑':'☐';
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;font-size:8pt;padding:3px 4px;line-height:1.8}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
   const reasons=fd.reasons||[];
   const cgs=fd.caregivers||[];
-  // pad to 10 rows
   const rows=Array.from({length:10},(_,i)=>cgs[i]||{num:i+1,name:'',med:'',notes:''});
+  const reasonPairs=[
+    ['A. Client died','E. NA not competent'],
+    ["B. Client's condition no longer stable and predictable",'F. NA not willing'],
+    ['C. Frequent staff turnover','G. NA credential expired'],
+    ['D. Client / authorized representative requested','H. NA no longer working with client'],
+    ['I. Client safety compromised','J. Rescinding facility including clients and nurse assistant'],
+  ];
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>DSHS 13-680 — ${esc(draft.client_name)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
-  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:2px}
-  .doc-sub{font-size:8.5pt;font-weight:bold;text-align:center;margin-bottom:1px;letter-spacing:0.03em}
-  table{width:100%;border-collapse:collapse}
-  td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.04em}
-  .fv{font-size:8.5pt;min-height:13px;display:block}
-  .sig-row td{height:36px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:22px}
-  .reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;font-size:8pt;padding:3px 4px}
-  .reason-item{display:flex;align-items:flex-start;gap:3px}
-  .footer-area{font-size:7.5pt;margin-top:5px;display:flex;justify-content:space-between}
-  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 5px}
-  @media print{body{padding:0.35in 0.4in} @page{size:letter portrait;margin:0}}
-</style>
-</head><body>
-
-<div class="doc-title">Nurse Delegation: Rescinding Delegation</div>
-
-<table style="margin-bottom:0">
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-680 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Rescinding Delegation</div><div class="form-number">DSHS 13-680 (REV. 09/2021)</div></div>
+  <div class="page-header-right">Page 1 of 2</div>
+</div>
+<table>
   <tr>
-    <td colspan="2" style="width:38%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td colspan="2" style="width:40%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
     <td style="width:20%"><span class="fl">2. ACES Client ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
-    <td style="width:20%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
     <td style="width:22%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
   </tr>
   <tr>
     <td colspan="3"><span class="fl">5. Facility or Program Name</span><span class="fv">${esc(fd.facilityName)}</span></td>
     <td colspan="2"><span class="fl">6. Telephone Number</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
   </tr>
+  <tr><td colspan="5">
+    <span class="fl">7. Reason for Rescinding (Check all that apply)</span>
+    <div class="reason-grid">
+      ${reasonPairs.map(([a,b])=>`<div>${reasons.some(r=>r.startsWith(a.charAt(0)))?'☑':'☐'} ${esc(a)}</div><div>${reasons.some(r=>r.startsWith(b.charAt(0)))?'☑':'☐'} ${esc(b)}</div>`).join('')}
+    </div>
+    <div style="margin-top:3px;font-size:8pt">${reasons.some(r=>r.startsWith('K.'))?'☑':'☐'} K. Other: <span style="border-bottom:1px solid #000;display:inline-block;min-width:260px">${esc((reasons.find(r=>r.startsWith('K.'))||'').replace('K. Other: ',''))}</span></div>
+  </td></tr>
   <tr>
-    <td colspan="5">
-      <span class="fl">7. Reason for Rescinding (Check all that apply)</span>
-      <div class="reason-grid">
-        ${[
-          ['A. Client died','A. Client died'],
-          ['E. NA not competent','E. NA not competent'],
-          ['B. Client\'s condition no longer stable and predictable','B. Client\'s condition is no longer stable and predictable'],
-          ['F. NA not willing','F. NA not willing'],
-          ['C. Frequent staff turnover','C. Frequent staff turnover'],
-          ['G. NA credential expired','G. NA credential expired'],
-          ['D. Client / authorized representative requested','D. Client / authorized representative requested'],
-          ['H. NA no longer working with client','H. NA No longer working with client'],
-          ['I. Client safety compromised','I. Client safety compromised'],
-          ['J. Rescinding facility including clients and nurse assistant','J. Rescinding facility including clients and nurse assistant'],
-        ].map(([key,label])=>`<div class="reason-item">${reasons.some(r=>r.startsWith(key.charAt(0)))?'☑':'☐'} ${esc(label)}</div>`).join('')}
-      </div>
-      <div style="margin-top:4px;font-size:8pt">${chk(reasons.some(r=>r.startsWith('K.')))} K. Other (specify): <span style="border-bottom:1px solid #000;display:inline-block;min-width:300px">${esc(reasons.find(r=>r.startsWith('K.'))||'').replace('K. Other: ','')}</span></div>
-    </td>
+    <td style="width:5%;background:#d9d9d9"></td>
+    <td style="width:28%;background:#d9d9d9;font-weight:bold;font-size:8pt">8. Names of Caregivers</td>
+    <td colspan="2" style="background:#d9d9d9;font-weight:bold;font-size:8pt">9. Medications and Treatments Rescinded</td>
+    <td style="background:#d9d9d9;font-weight:bold;font-size:8pt">10. Notes</td>
   </tr>
-  <tr>
-    <td style="width:6%;background:#d9d9d9"></td>
-    <td style="width:30%;background:#d9d9d9;font-weight:bold;font-size:8pt">8. NAMES OF CAREGIVERS</td>
-    <td style="width:32%;background:#d9d9d9;font-weight:bold;font-size:8pt" colspan="2">9. MEDICATIONS AND TREATMENTS RESCINDED</td>
-    <td style="width:32%;background:#d9d9d9;font-weight:bold;font-size:8pt">10. NOTES</td>
-  </tr>
-  ${rows.map((r,i)=>`
-  <tr>
-    <td style="text-align:right;font-size:8pt;color:#555">${i+1})</td>
-    <td><span class="fv">${esc(r.name)}</span></td>
-    <td colspan="2"><span class="fv">${esc(r.med)}</span></td>
-    <td><span class="fv">${esc(r.notes)}</span></td>
-  </tr>`).join('')}
+  ${rows.map((r,i)=>`<tr><td style="font-size:8pt;text-align:right;color:#555">${i+1})</td><td style="min-height:16px"><span class="fv">${esc(r.name)}</span></td><td colspan="2"><span class="fv">${esc(r.med)}</span></td><td><span class="fv">${esc(r.notes)}</span></td></tr>`).join('')}
   <tr>
     <td colspan="3"><span class="fl">11. Name of Case Manager Notified</span><span class="fv">${esc(fd.caseManager)}</span></td>
-    <td><span class="fl">12. Method of Notification</span>
-      <span class="fv" style="display:flex;gap:10px">
-        ${fd.notifyMethod==='Telephone'?'☑':'☐'} Telephone &nbsp; ${fd.notifyMethod==='Email'?'☑':'☐'} Email
-      </span>
-    </td>
+    <td><span class="fl">12. Method of Notification</span><span class="fv" style="font-size:8pt">${fd.notifyMethod==='Telephone'?'☑':'☐'} Telephone &nbsp; ${fd.notifyMethod==='Email'?'☑':'☐'} Email</span></td>
     <td><span class="fl">13. Date</span><span class="fv">${esc(fd.notifyDate)}</span></td>
   </tr>
-  <tr>
-    <td colspan="5"><span class="fl">14. Alternative Plan for Continuing the Task</span><span class="fv" style="white-space:pre-wrap;min-height:32px">${esc(fd.altPlan)}</span></td>
-  </tr>
+  <tr><td colspan="5"><span class="fl">14. Alternative Plan for Continuing the Task</span><span class="fv" style="min-height:32px">${esc(fd.altPlan)}</span></td></tr>
   <tr class="sig-row">
     <td colspan="3"><span class="fl">15. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
     <td colspan="2"><span class="fl">16. Date</span><span class="fv sig-line">${esc(fd.rescindDate)}</span></td>
   </tr>
 </table>
-
-<div style="border:1px solid #000;padding:6px 8px;margin-top:5px;font-size:7.5pt;line-height:1.55">
-  <strong>Instructions for Completing Nurse Delegation: Rescinding Delegation</strong> All fields are required unless indicated <strong>"OPTIONAL".</strong><br>
-  <strong>Client Name:</strong> Enter ND client's name (last name, first name). &nbsp;
-  <strong>ACES Client ID Number:</strong> Enter the client's ACES ID number. &nbsp;
-  <strong>3. Date of Birth:</strong> Enter ND client's date of birth (month, day, and year). &nbsp;
-  <strong>4. Setting:</strong> Enter client's setting "AFH", "ALF", DDA Program, or "In-home". &nbsp;
-  <strong>5. Facility or Program Name:</strong> Enter name of facility/program contact. &nbsp;
-  <strong>6. Telephone Number:</strong> Enter telephone number of facility/program contact including area code. &nbsp;
-  <strong>7. Reason for Rescinding:</strong> Mark the boxes next to the reason for rescinding. Mark all that apply. &nbsp;
-  <strong>8. Names of Caregivers:</strong> Enter name of individual caregiver rescinded. &nbsp;
-  <strong>9. Medications and treatments rescinded:</strong> Enter name of individual medication or treatment. &nbsp;
-  <strong>10. Notes:</strong> List notes related to rescinded tasks. &nbsp;
-  <strong>11. Name of Case Manager Notified:</strong> Enter case manager name, if notified. &nbsp;
-  <strong>12. Method of notification:</strong> Identify method of notification to case manager. &nbsp;
-  <strong>13. Date:</strong> Enter date the case manager was notified. &nbsp;
-  <strong>14. Alternative Plan for Continuing the Task:</strong> Describe how client's needs will continue to be met. &nbsp;
-  <strong>15. and 16. RND Signature and Date:</strong> Sign and date your signature. The date the form is signed is the date of rescinding.
+<div class="instructions">
+  <strong>Instructions:</strong> <strong>1.</strong> Client Name (last, first). <strong>2.</strong> ACES ID. <strong>3.</strong> DOB. <strong>4.</strong> Setting: AFH/ALF/DDA/In-home. <strong>5.</strong> Facility/program name. <strong>6.</strong> Phone. <strong>7.</strong> Check all applicable reasons. <strong>8.</strong> Caregiver name. <strong>9.</strong> Medication/treatment name. <strong>10.</strong> Notes. <strong>11.</strong> Case manager name if notified. <strong>12.</strong> Notification method. <strong>13.</strong> Date notified. <strong>14.</strong> How client's needs will be met. <strong>15–16.</strong> RND signature and date — the date signed is the date of rescinding.
 </div>
-
-<div class="footer-area" style="margin-top:6px">
+<div class="footer">
   <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
-  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 13-680 (REV. 09/2021)</strong></span>
 </div>
-<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:7.5pt">
-  <span><strong>DSHS 13-680 (REV. 09/2021)</strong></span>
-  <span><strong>NURSE DELEGATION: RESCINDING DELEGATION</strong> &nbsp;&nbsp; Page 1 of 2</span>
-</div>
-
+</section>
 </body></html>`;
-}
-
-// ── 13-681 CHANGE IN MEDICAL ORDERS ──────────────
-function open13681Modal(){
-  const cs=document.getElementById('chg_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
-  ['chg_acesId','chg_dob','chg_byWhom','chg_effectiveDate','chg_verifyName','chg_verifyTitle','chg_verifyDate','chg_taskOrder','chg_dateOrdered','chg_medName','chg_startDate','chg_stopDate','chg_dose','chg_frequency','chg_route','chg_notExceed','chg_medReason','chg_steps','chg_expectedOutcome','chg_rndName','chg_rndPhone','chg_whatRnd','chg_hcpName','chg_hcpPhone','chg_whatHcp','chg_whatEmergency','chg_rndSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('chg_setting').value='AFH';
-  document.getElementById('chg_notifyDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('chg_date').value=new Date().toISOString().split('T')[0];
-  ['chg_newMed','chg_changeMed','chg_newTask','chg_changeTask','chg_taskNewSheet','chg_taskUpdated','chg_taskNoChange','chg_teachingAid'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  document.querySelectorAll('input[name="chg_received"]').forEach(r=>r.checked=false);
-  document.querySelectorAll('input[name="chg_medIs"]').forEach(r=>r.checked=false);
-  document.querySelectorAll('input[name="chg_delegation"]').forEach(r=>r.checked=false);
-  document.getElementById('chg_verbalSection').style.display='none';
-  if(currentProfile?.full_name){document.getElementById('chg_rndName').value=currentProfile.full_name;document.getElementById('chg_rndSig').value=currentProfile.full_name;}
-  if(currentProfile?.phone)document.getElementById('chg_rndPhone').value=currentProfile.phone;
-  openModal('generate13681Modal');
-}
-
-function onChgClientChange(sel){
-  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
-  const acesEl=document.getElementById('chg_acesId');if(acesEl)acesEl.value=cl.acesId||cl.dshsId||'';
-  const dobEl=document.getElementById('chg_dob');if(dobEl)dobEl.value=cl.dob||'';
-  const fac=window.facilities.find(f=>f.id===cl.facilityId);
-  const settingEl=document.getElementById('chg_setting');
-  if(settingEl&&fac){
-    if(fac.type.includes('Adult Family'))settingEl.value='AFH';
-    else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
-    else if(fac.type.includes('Residential'))settingEl.value='In-home';
-  }
-  // pre-fill HCP from physician
-  const hcpEl=document.getElementById('chg_hcpName');if(hcpEl)hcpEl.value=cl.physician||'';
-  const hcpPhEl=document.getElementById('chg_hcpPhone');if(hcpPhEl)hcpPhEl.value=cl.physicianPhone||'';
-  // pre-fill task order from active case
-  const activeCase=window.delegationCases.find(c=>c.clientId===cl.id&&c.status==='Active');
-  if(activeCase){
-    const taskEl=document.getElementById('chg_taskOrder');
-    if(taskEl){const tasks=(activeCase.tasks||[]).filter(t=>t.status==='Active').map(t=>t.name).join(', ');taskEl.value=tasks;}
-  }
-}
-
-function onChgVerbalToggle(){
-  const v=document.querySelector('input[name="chg_received"]:checked')?.value==='Verbal';
-  document.getElementById('chg_verbalSection').style.display=v?'block':'none';
-}
-
-async function submitGenerate13681(){
-  const clientId=document.getElementById('chg_client').value;
-  if(!clientId){alert('Please select a client.');return;}
-  const notifyDate=document.getElementById('chg_notifyDate').value;
-  if(!notifyDate){alert('Date RND Was Notified (Field 5) is required.');return;}
-  const cl=window.clients.find(x=>x.id===clientId);
-  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
-  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
-  const receivedMethod=document.querySelector('input[name="chg_received"]:checked')?.value||'';
-  const medIs=document.querySelector('input[name="chg_medIs"]:checked')?.value||'';
-  const delegationChoice=document.querySelector('input[name="chg_delegation"]:checked')?.value||'';
-
-  const formData={
-    clientName: cl?`${cl.last}, ${cl.first}`:'',
-    acesId: document.getElementById('chg_acesId').value||cl?.acesId||cl?.dshsId||'',
-    dob: document.getElementById('chg_dob').value||cl?.dob||'',
-    setting: document.getElementById('chg_setting').value,
-    notifyDate, byWhom: document.getElementById('chg_byWhom').value,
-    orderChanges:{newMed:document.getElementById('chg_newMed').checked,changeMed:document.getElementById('chg_changeMed').checked,newTask:document.getElementById('chg_newTask').checked,changeTask:document.getElementById('chg_changeTask').checked},
-    receivedMethod,
-    effectiveDate: document.getElementById('chg_effectiveDate').value,
-    verifyName: document.getElementById('chg_verifyName').value,
-    verifyTitle: document.getElementById('chg_verifyTitle').value,
-    verifyDate: document.getElementById('chg_verifyDate').value,
-    taskNewSheet: document.getElementById('chg_taskNewSheet').checked,
-    taskUpdated: document.getElementById('chg_taskUpdated').checked,
-    taskNoChange: document.getElementById('chg_taskNoChange').checked,
-    taskOrder: document.getElementById('chg_taskOrder').value,
-    medIs, dateOrdered: document.getElementById('chg_dateOrdered').value,
-    medName: document.getElementById('chg_medName').value,
-    startDate: document.getElementById('chg_startDate').value,
-    stopDate: document.getElementById('chg_stopDate').value,
-    dose: document.getElementById('chg_dose').value,
-    frequency: document.getElementById('chg_frequency').value,
-    route: document.getElementById('chg_route').value,
-    notExceed: document.getElementById('chg_notExceed').value,
-    medReason: document.getElementById('chg_medReason').value,
-    teachingAid: document.getElementById('chg_teachingAid').checked,
-    steps: document.getElementById('chg_steps').value,
-    expectedOutcome: document.getElementById('chg_expectedOutcome').value,
-    rndName: document.getElementById('chg_rndName').value||currentProfile?.full_name||'',
-    rndPhone: document.getElementById('chg_rndPhone').value||currentProfile?.phone||'',
-    whatRnd: document.getElementById('chg_whatRnd').value,
-    hcpName: document.getElementById('chg_hcpName').value||cl?.physician||'',
-    hcpPhone: document.getElementById('chg_hcpPhone').value||cl?.physicianPhone||'',
-    whatHcp: document.getElementById('chg_whatHcp').value,
-    whatEmergency: document.getElementById('chg_whatEmergency').value,
-    delegateImmediately: delegationChoice==='immediate',
-    siteVisitRequired: delegationChoice==='site_visit',
-    rndSig: document.getElementById('chg_rndSig').value,
-    signDate: document.getElementById('chg_date').value,
-  };
-
-  const btn=document.getElementById('chg_submitBtn');
-  btn.textContent='Generating…';btn.disabled=true;
-  const now=new Date().toISOString();
-  const draft={
-    id: Date.now().toString(), user_id: currentUser?.id,
-    form_id: 'form-13681', form_name: '13-681, Nurse Delegation: Change in Medical Orders',
-    client_id: clientId, client_name: cl?`${cl.first} ${cl.last}`:'—',
-    caregiver_id: cl?.caregiverId||null, caregiver_name: cg?`${cg.first} ${cg.last}`:'—',
-    facility_id: cl?.facilityId||null, facility_name: fac?.name||'—',
-    form_data: formData, status: 'Draft — Printed, Awaiting Signature',
-    created_at: now, updated_at: now
-  };
-  initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
-  // Auto-derive / enrich delegation case from change in orders form
-  await upsertCaseFromForm({clientId, caregiverId: cg?.id||cl?.caregiverId||null, formId:'form-13681', formData});
-
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
-  closeModal('generate13681Modal');
-  clearModalDraft('generate13681Modal');
-  showPage('documents');
-  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
-}
-
-function openGenerateFromCase13681(caseId){
-  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
-  showPage('documents');
-  setTimeout(()=>{
-    open13681Modal();
-    setTimeout(()=>{
-      const cs=document.getElementById('chg_client');
-      if(cs&&c.clientId){cs.value=c.clientId;onChgClientChange(cs);}
-    },200);
-  },100);
-}
-
-function openGenerateFromCase13678b(caseId){
-  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
-  showPage('documents');
-  setTimeout(()=>{
-    open13678bModal();
-    setTimeout(()=>{
-      const cs=document.getElementById('asmp_client');
-      if(cs&&c.clientId){cs.value=c.clientId;onAsmpClientChange(cs);}
-    },200);
-  },100);
 }
 
 function build13681PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
   const oc=fd.orderChanges||{};
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>DSHS 13-681 — ${esc(draft.client_name)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
-  .doc-title{font-size:11.5pt;font-weight:bold;text-align:center;margin-bottom:2px}
-  table{width:100%;border-collapse:collapse}
-  td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.04em}
-  .fv{font-size:8.5pt;min-height:13px;display:block}
-  .sig-row td{height:36px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:22px}
-  .footer-area{font-size:7.5pt;margin-top:5px;display:flex;justify-content:space-between}
-  .instructions-box{border:1px solid #000;padding:6px 8px;margin-top:4px;font-size:7.5pt;line-height:1.5}
-  @media print{body{padding:0.35in 0.4in} @page{size:letter portrait;margin:0}}
-</style>
-</head><body>
-
-<div class="doc-title">Nurse Delegation: Change in Medical / Treatment Orders</div>
-
-<table style="margin-bottom:0">
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-681 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Change in Medical / Treatment Orders</div><div class="form-number">DSHS 13-681 (REV. 02/2022)</div></div>
+  <div class="page-header-right">Page 1 of 3</div>
+</div>
+<table>
   <tr>
-    <td colspan="2" style="width:35%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
-    <td style="width:20%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
-    <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
-    <td style="width:27%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
+    <td colspan="2" style="width:36%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:18%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:16%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:30%"><span class="fl">4. Setting</span><span class="fv">${esc(fd.setting)}</span></td>
   </tr>
   <tr>
     <td colspan="2"><span class="fl">5. Date RND Was Notified</span><span class="fv">${esc(fd.notifyDate)}</span></td>
     <td colspan="2"><span class="fl">6. By Whom</span><span class="fv">${esc(fd.byWhom)}</span></td>
-    <td>
-      <span class="fl">7. Changes in Order(s)</span>
-      <span class="fv" style="font-size:8pt;line-height:1.7">
-        ${chk(oc.newMed)} New med. &nbsp; ${chk(oc.changeMed)} Change in a delegated med<br>
-        ${chk(oc.newTask)} New nursing task &nbsp; ${chk(oc.changeTask)} Change in a nursing task
-      </span>
-    </td>
+    <td><span class="fl">7. Changes in Order(s)</span><span class="fv" style="font-size:7.5pt;line-height:1.8">${chk(oc.newMed)} New med.&nbsp; ${chk(oc.changeMed)} Change in delegated med<br>${chk(oc.newTask)} New task&nbsp; ${chk(oc.changeTask)} Change in nursing task</span></td>
   </tr>
   <tr>
-    <td colspan="3">
-      <span class="fl">8. How Was the Change Received?</span>
-      <span class="fv" style="display:flex;gap:10px;font-size:8pt">
-        ${chk(fd.receivedMethod==='Written')} Written &nbsp; ${chk(fd.receivedMethod==='Faxed')} Faxed &nbsp; ${chk(fd.receivedMethod==='Verbal')} Verbal
-      </span>
-    </td>
+    <td colspan="3"><span class="fl">8. How Was the Change Received?</span><span class="fv" style="font-size:8pt">${chk(fd.receivedMethod==='Written')} Written &nbsp; ${chk(fd.receivedMethod==='Faxed')} Faxed &nbsp; ${chk(fd.receivedMethod==='Verbal')} Verbal</span></td>
     <td colspan="2"><span class="fl">9. Effective Date of Change</span><span class="fv">${esc(fd.effectiveDate)}</span></td>
   </tr>
-  <tr>
-    <td colspan="5">
-      <span class="fl">10. Only Complete if Number 7 Was a Verbal Order</span>
-      <span class="fv" style="display:flex;gap:16px;font-size:8.5pt">
-        <span><span style="font-size:7pt;font-weight:bold">Name of Person Providing Verification</span><br>${esc(fd.verifyName)}</span>
-        <span><span style="font-size:7pt;font-weight:bold">Title</span><br>${esc(fd.verifyTitle)}</span>
-        <span><span style="font-size:7pt;font-weight:bold">Date of Verification</span><br>${esc(fd.verifyDate)}</span>
-      </span>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="5">
-      <span class="fl">11. Nursing Task(s)</span>
-      <span class="fv" style="font-size:8pt;line-height:1.7">
-        ${chk(fd.taskNewSheet)} New task(s) sheet required &nbsp;
-        ${chk(fd.taskUpdated)} Current task(s) sheet(s) updated &nbsp;
-        ${chk(fd.taskNoChange)} No change to task(s) sheet(s)
-      </span>
-      <span style="font-size:7pt;font-weight:bold;display:block;margin-top:4px">NURSING TASK / ORDER</span>
-      <span class="fv" style="white-space:pre-wrap">${esc(fd.taskOrder)}</span>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="5">
-      <span class="fl">12. This Medication Is:</span>
-      <span class="fv" style="font-size:8pt">${chk(fd.medIs==='New')} New &nbsp;&nbsp; ${chk(fd.medIs==='Changed')} Changed</span>
-    </td>
-  </tr>
+  <tr><td colspan="5"><span class="fl">10. Only Complete if Number 7 Was a Verbal Order</span><span class="fv" style="font-size:8pt">Name: ${esc(fd.verifyName)} &nbsp;&nbsp; Title: ${esc(fd.verifyTitle)} &nbsp;&nbsp; Date: ${esc(fd.verifyDate)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">11. Nursing Task(s)</span><span class="fv" style="font-size:8pt;line-height:1.8">${chk(fd.taskNewSheet)} New task sheet required &nbsp; ${chk(fd.taskUpdated)} Current task sheet updated &nbsp; ${chk(fd.taskNoChange)} No change to task sheet</span><span class="fv" style="margin-top:4px">${esc(fd.taskOrder)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">12. This Medication Is:</span><span class="fv" style="font-size:8pt">${chk(fd.medIs==='New')} New &nbsp;&nbsp; ${chk(fd.medIs==='Changed')} Changed</span></td></tr>
   <tr>
     <td><span class="fl">13. Date Ordered</span><span class="fv">${esc(fd.dateOrdered)}</span></td>
     <td><span class="fl">14. Name of Medication</span><span class="fv">${esc(fd.medName)}</span></td>
@@ -7686,1078 +7032,246 @@ function build13681PrintHtml(fd,draft){
     <td><span class="fl">19. Route</span><span class="fv">${esc(fd.route)}</span></td>
     <td colspan="2"><span class="fl">20. Not to Exceed</span><span class="fv">${esc(fd.notExceed)}</span></td>
   </tr>
-  <tr>
-    <td colspan="5"><span class="fl">21. Reason for Medication</span><span class="fv">${esc(fd.medReason)}</span></td>
-  </tr>
-  <tr>
-    <td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Optional Task Sheet: (22 – 30)</td>
-  </tr>
-  <tr>
-    <td colspan="5">
-      <span class="fl">22. Steps to Perform the New Task &nbsp; ${chk(fd.teachingAid)} Check if Teaching Aid Attached</span>
-      <span class="fv" style="white-space:pre-wrap;min-height:32px">${esc(fd.steps)}</span>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="5"><span class="fl">23. Expected Outcome of Delegated Task</span><span class="fv" style="min-height:24px">${esc(fd.expectedOutcome)}</span></td>
-  </tr>
-  <tr><td colspan="5" style="background:#d9d9d9;font-size:8pt;font-weight:bold;font-style:italic;padding:2px 5px">Report side effects or unexpected outcomes to:</td></tr>
+  <tr><td colspan="5"><span class="fl">21. Reason for Medication</span><span class="fv">${esc(fd.medReason)}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Optional Task Sheet (Fields 22–30)</td></tr>
+  <tr><td colspan="5"><span class="fl">22. Steps to Perform the New Task &nbsp; ${chk(fd.teachingAid)} Teaching Aid Attached</span><span class="fv" style="min-height:30px">${esc(fd.steps)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">23. Expected Outcome of Delegated Task</span><span class="fv" style="min-height:22px">${esc(fd.expectedOutcome)}</span></td></tr>
   <tr>
     <td colspan="3"><span class="fl">24. RND Name (Print)</span><span class="fv">${esc(fd.rndName)}</span></td>
     <td colspan="2"><span class="fl">25. Telephone Number</span><span class="fv">${esc(fd.rndPhone)}</span></td>
   </tr>
-  <tr>
-    <td colspan="5"><span class="fl">26. What to Report to RND</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatRnd)}</span></td>
-  </tr>
+  <tr><td colspan="5"><span class="fl">26. What to Report to RND</span><span class="fv" style="min-height:20px">${esc(fd.whatRnd)}</span></td></tr>
   <tr>
     <td colspan="3"><span class="fl">27. Health Care Provider</span><span class="fv">${esc(fd.hcpName)}</span></td>
     <td colspan="2"><span class="fl">28. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
-  <tr>
-    <td colspan="5"><span class="fl">29. What to Report to Health Care Provider</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatHcp)}</span></td>
-  </tr>
-  <tr>
-    <td colspan="5"><span class="fl">30. What to Report to Emergency Services, 911</span><span class="fv" style="white-space:pre-wrap;min-height:22px">${esc(fd.whatEmergency)}</span></td>
-  </tr>
-  <tr>
-    <td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Select Only One of the Following</td>
-  </tr>
-  <tr>
-    <td colspan="5" style="font-size:8.5pt;line-height:1.65">
-      ${chk(fd.delegateImmediately)} <strong>31. Delegate immediately. No site visit required.</strong> The above order and instructions have been communicated to the delegated Long Term Care Worker(s) (LTCW) and this form should be added to the client's chart.<br><br>
-      <strong>OR</strong><br><br>
-      ${chk(fd.siteVisitRequired)} <strong>32. A site visit is required</strong> for training or assessment prior to delegation. The LTCW(s) may not perform the task until the site visit is completed.
-    </td>
-  </tr>
+  <tr><td colspan="5"><span class="fl">29. What to Report to Health Care Provider</span><span class="fv" style="min-height:20px">${esc(fd.whatHcp)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">30. What to Report to Emergency Services (911)</span><span class="fv" style="min-height:20px">${esc(fd.whatEmergency)}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Select Only One of the Following</td></tr>
+  <tr><td colspan="5" style="font-size:8pt;line-height:1.75;padding:5px 6px">
+    ${chk(fd.delegateImmediately)} <strong>31. Delegate immediately. No site visit required.</strong> The above order and instructions have been communicated to the delegated LTCW(s) and this form should be added to the client's chart.<br><br>
+    <strong>OR</strong><br><br>
+    ${chk(fd.siteVisitRequired)} <strong>32. A site visit is required</strong> for training or assessment prior to delegation. The LTCW(s) may not perform the task until the site visit is completed.
+  </td></tr>
   <tr class="sig-row">
     <td colspan="3"><span class="fl">33. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
     <td colspan="2"><span class="fl">34. Date</span><span class="fv sig-line">${esc(fd.signDate)}</span></td>
   </tr>
 </table>
-
-<div class="instructions-box">
-  <strong>Instructions for Completing Nurse Delegation: Change in Medical / Treatment Orders</strong> All fields are required unless indicated <strong>"OPTIONAL".</strong><br>
-  <strong>1. Client Name:</strong> Enter ND client's name (last name, first name). &nbsp;
-  <strong>2. ACES ID Number:</strong> Enter Client's ACES ID Number. &nbsp;
-  <strong>3. Date of Birth:</strong> Enter ND client's date of birth (month, day, year). &nbsp;
-  <strong>4. ID Setting:</strong> OPTIONAL – Enter client's ID number or settings "AFH", "ALF", DDA Program, "In-home". &nbsp;
-  <strong>5. Date RND Was Notified:</strong> Enter date you were notified of change. &nbsp;
-  <strong>6. By Whom:</strong> List name and title of individual who notified delegating nurse. &nbsp;
-  <strong>7. Change in Orders:</strong> Check appropriate box. &nbsp;
-  <strong>8. How Was the Change Received:</strong> Select the method used by the health care provider. &nbsp;
-  <strong>9. Effective Date of Change:</strong> Enter date the change was ordered by health care provider. &nbsp;
-  <strong>10. If Verbal was selected in #7:</strong> Insert name, title (MD, ARNP, PA) and date the order was verified. &nbsp;
-  <strong>11. Nursing Task/Orders:</strong> What was the order, and does it require a new task sheet or a change to the current instructions. &nbsp;
-  <strong>12–21. Medication details:</strong> Complete only if a medication was involved. &nbsp;
-  <strong>22–23. Optional Task Sheet:</strong> Complete only if using this form as a task sheet. &nbsp;
-  <strong>24–25. RND Name and Telephone Number:</strong> Print your name and telephone number including area code. &nbsp;
-  <strong>31–32. Delegate Immediately OR Site Visit Required:</strong> Choose only one. &nbsp;
-  <strong>33–34. RND Signature and Date:</strong> Sign and date your signature.
-</div>
-
-<div class="footer-area" style="margin-top:6px">
-  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
-  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
-</div>
-<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:7.5pt">
-  <span><strong>DSHS 13-681 (REV. 02/2022)</strong></span>
-  <span><strong>NURSE DELEGATION: CHANGE MEDICAL / TREATMENT ORDERS</strong> &nbsp;&nbsp; Page 1 of 3</span>
-</div>
-
+<div class="instructions"><strong>Instructions:</strong> <strong>1.</strong> Client name (last, first). <strong>2.</strong> ACES ID. <strong>3.</strong> DOB. <strong>4.</strong> Setting. <strong>5.</strong> Date RND notified. <strong>6.</strong> Who notified you. <strong>7.</strong> Type of change. <strong>8.</strong> How change received. <strong>9.</strong> Effective date. <strong>10.</strong> Verbal order verification if applicable. <strong>11.</strong> Nursing task details. <strong>12–21.</strong> Complete only if medication involved. <strong>22–30.</strong> Optional task sheet — only if using this form as a task sheet. <strong>31 or 32.</strong> Select one delegation decision. <strong>33–34.</strong> RND signature and date.</div>
+<div class="footer"><span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span><span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 13-681 (REV. 02/2022)</strong></span></div>
+</section>
 </body></html>`;
 }
 
-// ── MODAL DRAFT PERSISTENCE ───────────────────────
-// All drafts are keyed by user ID in localStorage so they survive
-// sign-out and are restored when the same user signs back in.
-// A different user will never see another user's drafts.
-
-const PERSISTENT_MODALS=[
-  'generateModal','generate14484Modal','generate13678aModal',
-  'generate13680Modal','generate13681Modal',
-  'generate13678bModal','generate10217Modal',
-  'caregiverModal','clientModal','facilityModal','newCaseModal'
-];
-
-function _draftKey(modalId){
-  const uid=currentUser?.id||'anonymous';
-  return 'gy_draft_'+uid+'_'+modalId;
-}
-
-function _pageKey(){
-  const uid=currentUser?.id||'anonymous';
-  return 'gy_page_'+uid;
-}
-
-function saveModalDraft(modalId){
-  const modal=document.getElementById(modalId);
-  if(!modal)return;
-  const data={};
-  modal.querySelectorAll('input,select,textarea').forEach(el=>{
-    if(!el.id)return;
-    if(el.type==='checkbox'||el.type==='radio') data[el.id]=el.checked;
-    else data[el.id]=el.value;
-  });
-  try{localStorage.setItem(_draftKey(modalId), JSON.stringify(data));}catch(e){}
-}
-
-function restoreModalDraft(modalId){
-  let raw;
-  try{raw=localStorage.getItem(_draftKey(modalId));}catch(e){}
-  if(!raw)return;
-  let data;try{data=JSON.parse(raw);}catch{return;}
-  const modal=document.getElementById(modalId);
-  if(!modal)return;
-  // First pass: set all values
-  Object.entries(data).forEach(([id,val])=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    if(el.type==='checkbox'||el.type==='radio') el.checked=!!val;
-    else el.value=val||'';
-  });
-  // Second pass: fire onchange for selects that drive dependent UI
-  Object.entries(data).forEach(([id,val])=>{
-    const el=document.getElementById(id);
-    if(!el||el.tagName!=='SELECT')return;
-    if(el.onchange) el.onchange.call(el);
-  });
-  // Dependent panel visibility fixes per modal
-  if(modalId==='generateModal'){
-    const mc=document.getElementById('genMedCheck');
-    const ms=document.getElementById('genMedSection');
-    if(mc&&ms) ms.style.display=mc.checked?'block':'none';
-  }
-  if(modalId==='generate14484Modal'){
-    const pg2=document.getElementById('nv_pg2_notes');
-    const pg2p=document.getElementById('nv_page2_panel');
-    if(pg2&&pg2p) pg2p.style.display=pg2.checked?'block':'none';
-  }
-  if(modalId==='generate13681Modal'){
-    const vb=document.getElementById('chg_receivedVerbal');
-    const vs=document.getElementById('chg_verbalSection');
-    if(vb&&vs) vs.style.display=vb.checked?'block':'none';
-  }
-  if(modalId==='caregiverModal'){
-    const ct=document.getElementById('cgCredType');
-    const cp=document.getElementById('cgCredTypeOtherPanel');
-    if(ct&&cp) cp.style.display=ct.value==='Other (specify below)'?'block':'none';
-  }
-  if(modalId==='clientModal'){
-    const isNew=document.getElementById('clIsNew');
-    const np=document.getElementById('clNewClientPanel');
-    if(isNew&&np) np.style.display=isNew.value==='yes'?'block':'none';
-    const sc=document.getElementById('clIsSpecialCase');
-    const sp=document.getElementById('clSpecialCasePanel');
-    if(sc&&sp) sp.style.display=sc.checked?'block':'none';
-  }
-  if(modalId==='generate13680Modal'){
-    const cs=document.getElementById('rsc_client');
-    if(cs&&cs.value) onRscClientChange(cs);
-  }
-  if(modalId==='newCaseModal'){
-    const nc=document.getElementById('ncClient');
-    if(nc&&nc.value) onNcClientChange(nc);
-  }
-  if(modalId==='facilityModal'){
-    const ft=document.getElementById('facilityType');
-    if(ft&&ft.value){
-      document.querySelectorAll('[data-type]').forEach(c=>{
-        c.style.border=c.dataset.type===ft.value?'1.5px solid var(--blue)':'1.5px solid var(--border2)';
-      });
-      const other=document.getElementById('facilityTypeOther');
-      if(other) other.style.display=ft.value==='Other'?'block':'none';
-    }
-  }
-}
-
-function clearModalDraft(modalId){
-  try{localStorage.removeItem(_draftKey(modalId));}catch(e){}
-}
-
-function clearModalDraftAndReset(modalId){
-  clearModalDraft(modalId);
-  // Remove the badge
-  const modal=document.getElementById(modalId);
-  const badge=modal?.querySelector('.draft-restore-badge');
-  if(badge)badge.remove();
-  // Reset all fields to blank
-  modal?.querySelectorAll('input,select,textarea').forEach(el=>{
-    if(el.type==='checkbox'||el.type==='radio') el.checked=false;
-    else el.value='';
-  });
-  // Hide all dependent panels
-  ['genMedSection','nv_page2_panel','chg_verbalSection',
-   'cgCredTypeOtherPanel','clNewClientPanel','clSpecialCasePanel'].forEach(pid=>{
-    const p=document.getElementById(pid);if(p)p.style.display='none';
-  });
-  document.querySelectorAll('[data-type]').forEach(c=>c.style.border='1.5px solid var(--border2)');
-}
-
-function hasDraftData(modalId){
-  try{return !!localStorage.getItem(_draftKey(modalId));}catch(e){return false;}
-}
-
-// Attach auto-save listeners (called once on DOMContentLoaded)
-function attachModalDraftListeners(){
-  PERSISTENT_MODALS.forEach(modalId=>{
-    const modal=document.getElementById(modalId);
-    if(!modal)return;
-    modal.addEventListener('input',  ()=>saveModalDraft(modalId));
-    modal.addEventListener('change', ()=>saveModalDraft(modalId));
-  });
-}
-
-// ── MEDICATION DELEGATION ─────────────────────────
-window.medDelegations = {}; // { clientId: [...records] }
-
-function openMedDelegationModal(caseId, editId){
-  // Populate client select
-  const cs = document.getElementById('medDelClient');
-  if(cs){
-    cs.innerHTML = '<option value="">Select client…</option>';
-    window.clients.filter(c=>c.status==='Active').forEach(c=>
-      cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
-    );
-  }
-  // Populate caregiver select
-  const cgs = document.getElementById('medDelCaregiver');
-  if(cgs){
-    cgs.innerHTML = '<option value="">Select caregiver…</option>';
-    window.caregivers.filter(c=>c.status==='Active').forEach(c=>
-      cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
-    );
-  }
-  // Reset all fields
-  ['medDelName','medDelDose','medDelFrequency','medDelReason','medDelPhysician',
-   'medDelInstructions','medDelEndDate','medDelPrnSymptoms','medDelPrnMax',
-   'medDelPrnInterval','medDelSideEffects','medDelReportRn','medDelReport911','medDelNotes']
-    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('medDelRoute').value='';
-  document.getElementById('medDelStatus').value='Active';
-  document.getElementById('medDelIsPrn').value='no';
-  document.getElementById('medDelPrnPanel').style.display='none';
-  document.getElementById('medDelStartDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('medDelDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('medDelEditId').value=editId||'';
-  document.getElementById('medDelCaseId').value=caseId||'';
-  document.getElementById('medDelModalTitle').textContent=editId?'Edit Medication Delegation':'Delegate Medication';
-  if(currentProfile?.full_name) document.getElementById('medDelRn').value=currentProfile.full_name;
-
-  // If opened from a case, pre-select client and caregiver
-  if(caseId){
-    const dc=window.delegationCases.find(x=>x.id===caseId);
-    if(dc){
-      if(cs) cs.value=dc.clientId||'';
-      if(cgs) cgs.value=dc.caregiverId||'';
-      onMedDelClientChange(cs);
-    }
-  }
-
-  // If editing existing record
-  if(editId){
-    // Find the record across all clients
-    let rec=null;
-    Object.values(window.medDelegations).forEach(arr=>{
-      const found=arr.find(x=>x.id===editId);
-      if(found) rec=found;
-    });
-    if(rec){
-      if(cs) cs.value=rec.clientId||'';
-      onMedDelClientChange(cs);
-      if(cgs) cgs.value=rec.caregiverId||'';
-      document.getElementById('medDelName').value=rec.medName||'';
-      document.getElementById('medDelDose').value=rec.dose||'';
-      document.getElementById('medDelFrequency').value=rec.frequency||'';
-      document.getElementById('medDelRoute').value=rec.route||'';
-      document.getElementById('medDelReason').value=rec.reason||'';
-      document.getElementById('medDelPhysician').value=rec.physician||'';
-      document.getElementById('medDelInstructions').value=rec.instructions||'';
-      document.getElementById('medDelStartDate').value=rec.startDate||'';
-      document.getElementById('medDelEndDate').value=rec.endDate||'';
-      document.getElementById('medDelStatus').value=rec.status||'Active';
-      document.getElementById('medDelIsPrn').value=rec.isPrn?'yes':'no';
-      document.getElementById('medDelPrnPanel').style.display=rec.isPrn?'block':'none';
-      document.getElementById('medDelPrnSymptoms').value=rec.prnSymptoms||'';
-      document.getElementById('medDelPrnMax').value=rec.prnMax||'';
-      document.getElementById('medDelPrnInterval').value=rec.prnInterval||'';
-      document.getElementById('medDelSideEffects').value=rec.sideEffects||'';
-      document.getElementById('medDelReportRn').value=rec.reportRn||'';
-      document.getElementById('medDelReport911').value=rec.report911||'';
-      document.getElementById('medDelRn').value=rec.rnName||'';
-      document.getElementById('medDelDate').value=rec.delegatedDate||'';
-      document.getElementById('medDelNotes').value=rec.notes||'';
-    }
-  }
-
-  openModal('medDelegationModal');
-}
-
-function onMedDelClientChange(sel){
-  const cl=window.clients.find(x=>x.id===sel?.value);
-  if(!cl) return;
-  // Auto-fill physician
-  const phys=document.getElementById('medDelPhysician');
-  if(phys&&cl.physician) phys.value=cl.physician;
-  // Auto-link caregiver
-  if(cl.caregiverId){
-    const cgs=document.getElementById('medDelCaregiver');
-    if(cgs) cgs.value=cl.caregiverId;
-  }
-}
-
-function onMedDelPrnChange(sel){
-  document.getElementById('medDelPrnPanel').style.display=sel.value==='yes'?'block':'none';
-}
-
-async function saveMedDelegation(){
-  initSupa();
-  const clientId=document.getElementById('medDelClient').value;
-  const medName=document.getElementById('medDelName').value.trim();
-  const dose=document.getElementById('medDelDose').value.trim();
-  const frequency=document.getElementById('medDelFrequency').value.trim();
-  const reason=document.getElementById('medDelReason').value.trim();
-  const startDate=document.getElementById('medDelStartDate').value;
-  const rnName=document.getElementById('medDelRn').value.trim();
-  const delegatedDate=document.getElementById('medDelDate').value;
-
-  if(!clientId){alert('Please select a client.');return;}
-  if(!medName){alert('Medication name is required.');return;}
-  if(!dose){alert('Dosage is required.');return;}
-  if(!frequency){alert('Frequency is required.');return;}
-  if(!reason){alert('Reason / Indication is required.');return;}
-  if(!startDate){alert('Start date is required.');return;}
-  if(!rnName){alert('Delegating RN name is required.');return;}
-
-  const editId=document.getElementById('medDelEditId').value;
-  const caseId=document.getElementById('medDelCaseId').value;
-  const caregiverId=document.getElementById('medDelCaregiver').value;
-  const cl=window.clients.find(x=>x.id===clientId);
-  const cg=window.caregivers.find(x=>x.id===caregiverId);
-  const isPrn=document.getElementById('medDelIsPrn').value==='yes';
-  const now=new Date().toISOString();
-
-  const rec={
-    id: editId||(Date.now().toString()+Math.random().toString(36).slice(2)),
-    user_id: currentUser?.id,
-    client_id: clientId,
-    clientId,
-    clientName: cl?`${cl.first} ${cl.last}`:'—',
-    case_id: caseId||null,
-    caseId: caseId||null,
-    caregiverId,
-    caregiverName: cg?`${cg.first} ${cg.last}`:'—',
-    medName, dose, frequency,
-    route: document.getElementById('medDelRoute').value,
-    reason,
-    physician: document.getElementById('medDelPhysician').value,
-    instructions: document.getElementById('medDelInstructions').value,
-    startDate,
-    endDate: document.getElementById('medDelEndDate').value||null,
-    status: document.getElementById('medDelStatus').value,
-    isPrn,
-    prnSymptoms: isPrn?document.getElementById('medDelPrnSymptoms').value:'',
-    prnMax: isPrn?document.getElementById('medDelPrnMax').value:'',
-    prnInterval: isPrn?document.getElementById('medDelPrnInterval').value:'',
-    sideEffects: document.getElementById('medDelSideEffects').value,
-    reportRn: document.getElementById('medDelReportRn').value,
-    report911: document.getElementById('medDelReport911').value,
-    rnName,
-    delegatedDate,
-    notes: document.getElementById('medDelNotes').value,
-    created_at: editId?(window.medDelegations[clientId]||[]).find(x=>x.id===editId)?.created_at||now:now,
-    updated_at: now
-  };
-
-  // Save to Supabase
-  if(supa&&currentUser){
-    const row={
-      id: rec.id, user_id: rec.user_id,
-      client_id: clientId, case_id: caseId||null,
-      caregiver_id: caregiverId||null,
-      caregiver_name: rec.caregiverName,
-      client_name: rec.clientName,
-      med_name: rec.medName, dose: rec.dose,
-      frequency: rec.frequency, route: rec.route,
-      reason: rec.reason, physician: rec.physician,
-      instructions: rec.instructions,
-      start_date: rec.startDate,
-      end_date: rec.endDate||null,
-      status: rec.status,
-      is_prn: rec.isPrn,
-      prn_symptoms: rec.prnSymptoms,
-      prn_max: rec.prnMax,
-      prn_interval: rec.prnInterval,
-      side_effects: rec.sideEffects,
-      report_rn: rec.reportRn,
-      report_911: rec.report911,
-      rn_name: rec.rnName,
-      delegated_date: rec.delegatedDate,
-      notes: rec.notes,
-      created_at: rec.created_at,
-      updated_at: rec.updated_at
-    };
-    const {error}=await supa.from('med_delegations').upsert(row);
-    if(error) console.error('Med delegation save error:', error);
-  }
-
-  // Update in-memory store
-  if(!window.medDelegations[clientId]) window.medDelegations[clientId]=[];
-  window.medDelegations[clientId]=window.medDelegations[clientId].filter(x=>x.id!==rec.id);
-  window.medDelegations[clientId].unshift(rec);
-
-  // Add timeline entry to linked case
-  if(caseId){
-    const dc=window.delegationCases.find(x=>x.id===caseId);
-    if(dc){
-      dc.timeline=dc.timeline||[];
-      dc.timeline.push({date:now,action:`Medication delegated: ${medName} ${dose} ${frequency}${rec.endDate?' — until '+rec.endDate:''}`,by:rnName});
-      dc.updated_at=now;
-      if(supa&&currentUser) await supa.from('delegation_cases').update({timeline:JSON.stringify(dc.timeline),updated_at:now}).eq('id',caseId);
-    }
-  }
-
-  closeModal('medDelegationModal');
-
-  // Refresh any open case detail
-  const detail=document.getElementById('caseDetailView');
-  if(detail&&detail.style.display!=='none'&&caseId){
-    const dc=window.delegationCases.find(x=>x.id===caseId);
-    if(dc) detail.innerHTML=buildCaseDetailHtml(dc);
-  }
-
-  // Refresh client profile if open
-  const profileView=document.getElementById('clientProfileView');
-  if(profileView&&profileView.style.display!=='none'){
-    const cl=window.clients.find(x=>x.id===clientId);
-    if(cl) profileView.innerHTML=buildClientProfileHtml(cl);
-  }
-
-  refreshDashboard();
-  alert(`✅ Medication delegation saved.\n\n${rec.medName} ${rec.dose} ${rec.frequency} delegated for ${rec.clientName}${rec.endDate?' until '+rec.endDate:' (ongoing)'}.`);
-}
-
-async function loadMedDelegations(clientId){
-  initSupa();
-  if(!supa||!currentUser) return [];
-  const {data,error}=await supa.from('med_delegations')
-    .select('*').eq('client_id',clientId).eq('user_id',currentUser.id)
-    .order('created_at',{ascending:false});
-  if(error){console.error(error);return [];}
-  const mapped=(data||[]).map(r=>({
-    ...r,
-    clientId: r.client_id, clientName: r.client_name,
-    caseId: r.case_id, caregiverId: r.caregiver_id,
-    caregiverName: r.caregiver_name,
-    medName: r.med_name, isPrn: r.is_prn,
-    prnSymptoms: r.prn_symptoms, prnMax: r.prn_max,
-    prnInterval: r.prn_interval, sideEffects: r.side_effects,
-    reportRn: r.report_rn, report911: r.report_911,
-    rnName: r.rn_name, delegatedDate: r.delegated_date,
-    startDate: r.start_date, endDate: r.end_date,
-  }));
-  window.medDelegations[clientId]=mapped;
-  return mapped;
-}
-
-async function deleteMedDelegation(id, clientId){
-  if(!confirm('Delete this medication delegation record?')) return;
-  initSupa();
-  if(supa&&currentUser) await supa.from('med_delegations').delete().eq('id',id);
-  if(window.medDelegations[clientId])
-    window.medDelegations[clientId]=window.medDelegations[clientId].filter(x=>x.id!==id);
-  // Refresh profile if open
-  const profileView=document.getElementById('clientProfileView');
-  if(profileView&&profileView.style.display!=='none'){
-    const cl=window.clients.find(x=>x.id===clientId);
-    if(cl) profileView.innerHTML=buildClientProfileHtml(cl);
-  }
-}
-
-function buildMedDelegationsPanel(clientId){
-  const recs=window.medDelegations[clientId]||[];
-  const today=new Date();
-
-  if(!recs.length) return `
-    <div class="empty-state" style="padding:40px">
-      <div class="empty-icon">💊</div>
-      <h4>No medication delegations</h4>
-      <p>No medications have been formally delegated for this client.</p>
-      <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openMedDelegationModal(null,null);setTimeout(()=>{const s=document.getElementById('medDelClient');if(s){s.value='${clientId}';onMedDelClientChange(s);}},200)">+ Delegate Medication</button>
-    </div>`;
-
-  return `
-    <div style="margin-bottom:16px;display:flex;justify-content:flex-end">
-      <button class="btn btn-primary btn-sm" onclick="openMedDelegationModal(null,null);setTimeout(()=>{const s=document.getElementById('medDelClient');if(s){s.value='${clientId}';onMedDelClientChange(s);}},200)">+ Delegate Medication</button>
-    </div>
-    ${recs.map(r=>{
-      const isExpired=r.endDate&&new Date(r.endDate)<today;
-      const isOngoing=!r.endDate;
-      const statusColor=r.status==='Active'?'var(--green)':r.status==='Discontinued'?'var(--red)':r.status==='On Hold'?'var(--amber)':'var(--text3)';
-      const statusClass=r.status==='Active'?'status-active':r.status==='Discontinued'?'status-suspended':r.status==='On Hold'?'status-pending':'status-draft';
-      const borderColor=isExpired?'#e0525230':r.status==='Active'?'#2dba7a30':'var(--border)';
-      const bgColor=isExpired?'var(--red-dim)':r.status==='Active'?'var(--green-dim)':'var(--bg1)';
-
-      return `
-      <div style="border:1px solid ${borderColor};border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;background:${bgColor}">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:var(--text)">${r.medName}
-              ${r.isPrn?`<span style="font-size:10px;padding:2px 8px;background:var(--amber-dim);color:var(--amber);border-radius:99px;margin-left:6px;font-weight:600">PRN</span>`:''}
-            </div>
-            <div style="font-size:13px;color:var(--text2);margin-top:2px">${r.dose} · ${r.frequency}${r.route?' · '+r.route:''}</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.reason}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span class="status ${statusClass}" style="font-size:10px"><span class="status-dot"></span>${r.status}${isExpired?' — Expired':''}</span>
-            <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openMedDelegationModal('${r.caseId||''}','${r.id}')">Edit</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="deleteMedDelegation('${r.id}','${clientId}')">Delete</button>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;font-size:12px;margin-bottom:${r.instructions||r.sideEffects||r.reportRn||r.isPrn?'12px':'0'}">
-          <div><span style="color:var(--text3)">Delegated by</span><br><span style="color:var(--text);font-weight:500">${r.rnName||'—'}</span></div>
-          <div><span style="color:var(--text3)">Physician</span><br><span style="color:var(--text)">${r.physician||'—'}</span></div>
-          <div><span style="color:var(--text3)">Start Date</span><br><span style="color:var(--text);font-family:var(--mono)">${r.startDate||'—'}</span></div>
-          <div><span style="color:var(--text3)">End Date</span><br><span style="color:${isExpired?'var(--red)':isOngoing?'var(--green)':'var(--text)'};font-family:var(--mono)">${r.endDate||'Ongoing'}</span></div>
-          <div><span style="color:var(--text3)">Caregiver</span><br><span style="color:var(--text)">${r.caregiverName||'—'}</span></div>
-          <div><span style="color:var(--text3)">Date Delegated</span><br><span style="color:var(--text);font-family:var(--mono)">${r.delegatedDate||'—'}</span></div>
-        </div>
-
-        ${r.instructions?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px"><span style="font-weight:600;color:var(--text)">Instructions: </span>${r.instructions}</div>`:''}
-
-        ${r.isPrn?`<div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--amber);margin-bottom:8px">
-          <div style="font-weight:600;margin-bottom:4px">PRN Details</div>
-          ${r.prnSymptoms?`<div><span style="opacity:0.7">Trigger: </span>${r.prnSymptoms}</div>`:''}
-          ${r.prnMax?`<div><span style="opacity:0.7">Not to exceed: </span>${r.prnMax}</div>`:''}
-          ${r.prnInterval?`<div><span style="opacity:0.7">Min interval: </span>${r.prnInterval}</div>`:''}
-        </div>`:''}
-
-        ${r.sideEffects||r.reportRn||r.report911?`
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-          ${r.sideEffects?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">Side Effects</div><div style="color:var(--text2)">${r.sideEffects}</div></div>`:''}
-          ${r.reportRn?`<div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--blue);margin-bottom:3px">Report to RN</div><div style="color:var(--text2)">${r.reportRn}</div></div>`:''}
-          ${r.report911?`<div style="background:var(--red-dim);border:1px solid #e0525230;border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--red);margin-bottom:3px">Report to 911</div><div style="color:var(--text2)">${r.report911}</div></div>`:''}
-        </div>`:''}
-
-        ${r.notes?`<div style="margin-top:8px;font-size:12px;color:var(--text3)"><span style="font-weight:500">Notes:</span> ${r.notes}</div>`:''}
-      </div>`;
-    }).join('')}`;
-}
-
-// ── MED IMAGE UPLOAD ──────────────────────────────
-window.medImages = {}; // { clientId: [{id, url, name}] }
-
-function handleMedImageUpload(event, clientId){
-  uploadMedImages(Array.from(event.target.files), clientId);
-  event.target.value='';
-}
-function handleMedImageDrop(event, clientId){
-  event.preventDefault();
-  document.getElementById('medImageDropZone-'+clientId).style.borderColor='var(--border2)';
-  uploadMedImages(Array.from(event.dataTransfer.files).filter(f=>f.type.startsWith('image/')), clientId);
-}
-
-async function uploadMedImages(files, clientId){
-  initSupa();
-  const grid=document.getElementById('medImageGrid-'+clientId);
-  if(!grid)return;
-  for(const file of files){
-    // Show a loading placeholder immediately
-    const placeholder=document.createElement('div');
-    placeholder.style.cssText='position:relative;border-radius:var(--radius-sm);border:1px solid var(--border);aspect-ratio:1;background:var(--bg1);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px';
-    placeholder.innerHTML=`<div style="width:28px;height:28px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></div><div style="font-size:10px;color:var(--text3)">Uploading…</div>`;
-    grid.appendChild(placeholder);
-
-    try{
-      const ext=file.name.split('.').pop().toLowerCase();
-      const path=`${currentUser.id}/${clientId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const {data:upData, error:upErr}=await supa.storage.from('med-images').upload(path, file, {cacheControl:'3600', upsert:false});
-      if(upErr) throw upErr;
-      const {data:urlData}=supa.storage.from('med-images').getPublicUrl(path);
-      const publicUrl=urlData?.publicUrl||'';
-
-      // Save record to DB
-      const rec={
-        id: Date.now().toString()+Math.random().toString(36).slice(2),
-        user_id: currentUser.id,
-        client_id: clientId,
-        file_name: file.name,
-        file_path: path,
-        url: publicUrl,
-        created_at: new Date().toISOString()
-      };
-      await supa.from('client_med_images').insert(rec);
-
-      // Store in memory
-      if(!window.medImages[clientId]) window.medImages[clientId]=[];
-      window.medImages[clientId].push(rec);
-
-      // Replace placeholder with real tile
-      const tile=buildMedImageTile(rec, clientId);
-      grid.replaceChild(tile, placeholder);
-
-    } catch(err){
-      placeholder.innerHTML=`<div style="font-size:18px">⚠️</div><div style="font-size:10px;color:var(--red);text-align:center;padding:0 6px">Upload failed</div>`;
-      setTimeout(()=>placeholder.remove(), 3000);
-      console.error('Med image upload error:', err);
-    }
-  }
-}
-
-function buildMedImageTile(rec, clientId){
-  const wrapper=document.createElement('div');
-  wrapper.dataset.recId=rec.id;
-  wrapper.style.cssText='position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);aspect-ratio:1;background:var(--bg1)';
-  const img=document.createElement('img');
-  img.src=rec.url;img.alt=rec.file_name;
-  img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in';
-  img.onclick=()=>openMedImageLightbox(rec.url, rec.file_name);
-  const del=document.createElement('button');
-  del.innerHTML='✕';del.title='Delete';
-  del.style.cssText='position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center';
-  del.onclick=ev=>{ev.stopPropagation();deleteMedImage(rec, clientId, wrapper);};
-  const label=document.createElement('div');
-  label.title=rec.file_name;
-  label.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);color:#fff;font-size:10px;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-  label.textContent=rec.file_name;
-  wrapper.appendChild(img);wrapper.appendChild(del);wrapper.appendChild(label);
-  return wrapper;
-}
-
-async function deleteMedImage(rec, clientId, tileEl){
-  if(!confirm('Delete this image? This cannot be undone.')) return;
-  initSupa();
-  // Remove from storage
-  await supa.storage.from('med-images').remove([rec.file_path]);
-  // Remove from DB
-  await supa.from('client_med_images').delete().eq('id', rec.id);
-  // Remove from memory
-  if(window.medImages[clientId])
-    window.medImages[clientId]=window.medImages[clientId].filter(x=>x.id!==rec.id);
-  tileEl.remove();
-}
-
-async function loadMedImages(clientId){
-  initSupa();
-  if(!supa||!currentUser) return;
-  const grid=document.getElementById('medImageGrid-'+clientId);
-  if(!grid) return;
-  grid.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">Loading images…</div>';
-  const {data, error}=await supa.from('client_med_images')
-    .select('*').eq('client_id', clientId).eq('user_id', currentUser.id)
-    .order('created_at', {ascending:false});
-  grid.innerHTML='';
-  if(error||!data||!data.length){
-    if(error) console.error(error);
-    return;
-  }
-  window.medImages[clientId]=data;
-  data.forEach(rec=>grid.appendChild(buildMedImageTile(rec, clientId)));
-}
-
-function openMedImageLightbox(src, name){
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px';
-  overlay.onclick=()=>overlay.remove();
-  const img=document.createElement('img');
-  img.src=src;img.alt=name;
-  img.style.cssText='max-width:90vw;max-height:82vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,0.5)';
-  const caption=document.createElement('div');
-  caption.textContent=name;caption.style.cssText='color:rgba(255,255,255,0.7);font-size:12px';
-  overlay.appendChild(img);overlay.appendChild(caption);
-  document.body.appendChild(overlay);
-}
-
-// ── 13-678 CONSENT FOR DELEGATION PROCESS ─────────
-function open13678ConsentModal(){
-  // Populate client select
-  const cs = document.getElementById('con_client');
-  if(cs){
-    cs.innerHTML = '<option value="">Select client…</option>';
-    window.clients.filter(c=>c.status==='Active').forEach(c=>
-      cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
-    );
-  }
-  // Reset all fields
-  ['con_acesId','con_dob','con_address','con_clientPhone','con_diagnosis','con_allergies',
-   'con_facilityContact','con_facilityPhone','con_facilityFax','con_facilityEmail',
-   'con_hcpName','con_hcpPhone','con_clientSig','con_sigPhone','con_sigDate',
-   'con_verbalFrom','con_verbalRel','con_verbalDate','con_rnName','con_rnPhone',
-   'con_rnSig','con_rnDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.querySelectorAll('input[name="con_setting"]').forEach(r=>r.checked=false);
-  // Defaults
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('con_sigDate').value  = today;
-  document.getElementById('con_rnDate').value   = today;
-  if(currentProfile?.full_name){
-    document.getElementById('con_rnName').value = currentProfile.full_name;
-    document.getElementById('con_rnSig').value  = currentProfile.full_name;
-  }
-  if(currentProfile?.phone) document.getElementById('con_rnPhone').value = currentProfile.phone;
-  openModal('generate13678ConsentModal');
-}
-
-function onConClientChange(sel){
-  const cl = window.clients.find(x=>x.id===sel.value);
-  if(!cl) return;
-  const s = (id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
-  s('con_acesId',   cl.acesId||cl.dshsId||'');
-  s('con_dob',      cl.dob||'');
-  s('con_address',  cl.address||'');
-  s('con_diagnosis', cl.diagnosis||'');
-  s('con_allergies', cl.allergies||'');
-  s('con_hcpName',  cl.physician||'');
-  s('con_hcpPhone', cl.physicianPhone||'');
-  // Facility
-  const fac = window.facilities.find(f=>f.id===cl.facilityId);
-  if(fac){
-    s('con_facilityContact', fac.contactName||fac.name||'');
-    s('con_facilityPhone',   fac.phone||'');
-    s('con_facilityEmail',   fac.email||'');
-    // Auto-select setting radio
-    const type = (fac.type||'').toLowerCase();
-    if(type.includes('adult family'))     document.getElementById('con_set_afh').checked  = true;
-    else if(type.includes('assisted'))    document.getElementById('con_set_alf').checked  = true;
-    else if(type.includes('residential') || type.includes('private')) document.getElementById('con_set_home').checked = true;
-    else if(type.includes('dda') || type.includes('community'))       document.getElementById('con_set_dda').checked  = true;
-  }
-}
-
-async function submitGenerate13678Consent(){
-  const clientId = document.getElementById('con_client').value;
-  if(!clientId){alert('Please select a client.');return;}
-  const rnName = document.getElementById('con_rnName').value.trim();
-  if(!rnName){alert('Delegating RN name (Field 21) is required.');return;}
-
-  const settingVal = document.querySelector('input[name="con_setting"]:checked')?.value||'';
-
-  const cl  = window.clients.find(x=>x.id===clientId);
-  const fac = window.facilities.find(x=>x.id===cl?.facilityId);
-  const cg  = window.caregivers.find(x=>x.id===cl?.caregiverId);
-
-  const formData = {
-    clientName:      cl ? `${cl.last}, ${cl.first}` : '',
-    acesId:          document.getElementById('con_acesId').value   || cl?.acesId||cl?.dshsId||'',
-    dob:             document.getElementById('con_dob').value      || cl?.dob||'',
-    address:         document.getElementById('con_address').value  || cl?.address||'',
-    clientPhone:     document.getElementById('con_clientPhone').value,
-    diagnosis:       document.getElementById('con_diagnosis').value|| cl?.diagnosis||'',
-    allergies:       document.getElementById('con_allergies').value|| cl?.allergies||'',
-    facilityContact: document.getElementById('con_facilityContact').value,
-    facilityPhone:   document.getElementById('con_facilityPhone').value,
-    facilityFax:     document.getElementById('con_facilityFax').value,
-    facilityEmail:   document.getElementById('con_facilityEmail').value,
-    setting:         settingVal,
-    hcpName:         document.getElementById('con_hcpName').value  || cl?.physician||'',
-    hcpPhone:        document.getElementById('con_hcpPhone').value || cl?.physicianPhone||'',
-    clientSig:       document.getElementById('con_clientSig').value,
-    sigPhone:        document.getElementById('con_sigPhone').value,
-    sigDate:         document.getElementById('con_sigDate').value,
-    verbalFrom:      document.getElementById('con_verbalFrom').value,
-    verbalRel:       document.getElementById('con_verbalRel').value,
-    verbalDate:      document.getElementById('con_verbalDate').value,
-    rnName,
-    rnPhone:         document.getElementById('con_rnPhone').value,
-    rnSig:           document.getElementById('con_rnSig').value,
-    rnDate:          document.getElementById('con_rnDate').value,
-  };
-
-  const btn = document.getElementById('con_submitBtn');
-  btn.textContent='Generating…'; btn.disabled=true;
-
-  const now = new Date().toISOString();
-  const draft = {
-    id:            Date.now().toString(),
-    user_id:       currentUser?.id,
-    form_id:       'form-13678-consent',
-    form_name:     '13-678, Nurse Delegation: Consent for Delegation Process',
-    client_id:     clientId,
-    client_name:   cl ? `${cl.first} ${cl.last}` : '—',
-    caregiver_id:  cl?.caregiverId||null,
-    caregiver_name: cg ? `${cg.first} ${cg.last}` : '—',
-    facility_id:   cl?.facilityId||null,
-    facility_name: fac?.name||'—',
-    form_data:     formData,
-    status:        'Draft — Printed, Awaiting Signature',
-    created_at:    now,
-    updated_at:    now
-  };
-
-  initSupa();
-  if(supa&&currentUser){
-    const {error}=await supa.from('form_drafts').insert(draft);
-    if(error) console.error(error);
-  }
-  window.formDrafts = window.formDrafts||[];
-  window.formDrafts.unshift(draft);
-
-  // Mark consent as obtained on the delegation case
-  await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13678-consent', formData});
-
-  btn.textContent='Generate & Save to Drafts'; btn.disabled=false;
-  closeModal('generate13678ConsentModal');
-  showPage('documents');
-  setTimeout(()=>{docsShowTab('Drafts'); renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 13-678 Consent for Delegation saved to Drafts.\n\nConsent recorded on the delegation case.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
-}
-
 function build13678ConsentPrintHtml(fd, draft){
-  const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const chk = v => v ? '☑' : '☐';
-  const settings = [
-    'DSHS Certified Community Residential Program for Developmentally Disabled',
-    'Licensed Adult Family Home',
-    'Licensed Assisted Living Facilities',
-    'Private Home'
-  ];
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 7px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const settings=['DSHS Certified Community Residential Program for Developmentally Disabled','Licensed Adult Family Home','Licensed Assisted Living Facilities','Private Home'];
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>DSHS 13-678 Consent — ${esc(draft.client_name)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.45in 0.5in}
-  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:2px;letter-spacing:0.01em}
-  table{width:100%;border-collapse:collapse}
-  td,th{border:1px solid #000;padding:3.5px 6px;vertical-align:top;font-size:8.5pt}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
-  .fv{font-size:9pt;min-height:14px;display:block}
-  .sig-row td{height:40px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:24px}
-  .consent-box{border:1px solid #000;padding:7px 9px;font-size:8pt;line-height:1.6;margin:0}
-  .rn-stmt{border:1px solid #000;padding:7px 9px;font-size:8pt;line-height:1.6;margin:0}
-  .settings-row td{border:1px solid #000;padding:5px 8px;font-size:8.5pt}
-  .footer-area{font-size:7.5pt;margin-top:6px;display:flex;justify-content:space-between;align-items:flex-end}
-  .instructions-box{border:1px solid #000;padding:7px 9px;margin-top:6px;font-size:7.5pt;line-height:1.55}
-  .instructions-box ol{margin-left:16px;margin-top:3px}
-  .instructions-box li{margin-bottom:2px}
-  @media print{
-    body{padding:0.35in 0.4in}
-    @page{size:letter portrait;margin:0}
-  }
-</style>
-</head><body>
-
-<div class="doc-title">Nurse Delegation: Consent for Delegation Process</div>
-
-<!-- Fields 1–3 -->
-<table style="margin-bottom:0">
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678 Consent — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Consent for Delegation Process</div><div class="form-number">DSHS 13-678 PAGE 1 (REV. 05/2025)</div></div>
+  <div class="page-header-right">Page 1 of 2</div>
+</div>
+<table>
   <tr>
-    <td style="width:38%">
-      <span class="fl">1. Client Name</span>
-      <span class="fv">${esc(fd.clientName)}</span>
-    </td>
-    <td style="width:32%">
-      <span class="fl">2. ACES Client ID Number</span>
-      <span class="fv">${esc(fd.acesId)}</span>
-    </td>
-    <td style="width:30%">
-      <span class="fl">3. Date of Birth</span>
-      <span class="fv">${esc(fd.dob)}</span>
-    </td>
+    <td style="width:38%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:32%"><span class="fl">2. ACES Client ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:30%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
   </tr>
-
-  <!-- Fields 4–5 -->
   <tr>
-    <td colspan="2">
-      <span class="fl">4. Client Address &nbsp; City &nbsp; State &nbsp; ZIP Code</span>
-      <span class="fv">${esc(fd.address)}</span>
-    </td>
-    <td>
-      <span class="fl">5. Telephone Number</span>
-      <span class="fv">${esc(fd.clientPhone)}</span>
-    </td>
+    <td colspan="2"><span class="fl">4. Client Address &nbsp; City &nbsp; State &nbsp; ZIP Code</span><span class="fv">${esc(fd.address)}</span></td>
+    <td><span class="fl">5. Telephone Number</span><span class="fv">${esc(fd.clientPhone)}</span></td>
   </tr>
-
-  <!-- Field 6 -->
+  <tr><td colspan="3"><span class="fl">6. Client Diagnosis</span><span class="fv">${esc(fd.diagnosis)}</span></td></tr>
+  <tr><td colspan="3"><span class="fl">7. Client Allergies</span><span class="fv">${esc(fd.allergies)}</span></td></tr>
   <tr>
-    <td colspan="3">
-      <span class="fl">6. Client Diagnosis</span>
-      <span class="fv">${esc(fd.diagnosis)}</span>
-    </td>
+    <td colspan="2"><span class="fl">8. Facility or Program Contact</span><span class="fv">${esc(fd.facilityContact)}</span></td>
+    <td><span class="fl">9. Telephone Number</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
   </tr>
-
-  <!-- Field 7 -->
   <tr>
-    <td colspan="3">
-      <span class="fl">7. Client Allergies</span>
-      <span class="fv">${esc(fd.allergies)}</span>
-    </td>
+    <td><span class="fl">10. Fax Number</span><span class="fv">${esc(fd.facilityFax)}</span></td>
+    <td colspan="2"><span class="fl">11. Email Address</span><span class="fv">${esc(fd.facilityEmail)}</span></td>
   </tr>
-
-  <!-- Fields 8–9 -->
+  <tr><td colspan="3" style="padding:4px 6px">
+    <span class="fl" style="margin-bottom:4px">12. Setting</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:8pt;line-height:1.9">
+      ${settings.map(s=>`<div>${fd.setting===s?'☑':'☐'} ${s}</div>`).join('')}
+    </div>
+  </td></tr>
   <tr>
-    <td colspan="2">
-      <span class="fl">8. Facility or Program Contact</span>
-      <span class="fv">${esc(fd.facilityContact)}</span>
-    </td>
-    <td>
-      <span class="fl">9. Telephone Number</span>
-      <span class="fv">${esc(fd.facilityPhone)}</span>
-    </td>
+    <td colspan="2"><span class="fl">13. Health Care Provider</span><span class="fv">${esc(fd.hcpName)}</span></td>
+    <td><span class="fl">14. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
-
-  <!-- Fields 10–11 -->
-  <tr>
-    <td>
-      <span class="fl">10. Fax Number</span>
-      <span class="fv">${esc(fd.facilityFax)}</span>
-    </td>
-    <td colspan="2">
-      <span class="fl">11. Email Address</span>
-      <span class="fv">${esc(fd.facilityEmail)}</span>
-    </td>
-  </tr>
-
-  <!-- Field 12: Setting -->
-  <tr>
-    <td colspan="3" class="settings-row" style="padding:5px 7px">
-      <span class="fl" style="margin-bottom:5px">12. Setting</span>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;font-size:8.5pt;line-height:1.8">
-        ${settings.map(s=>`<div>${fd.setting===s?'☑':'☐'} ${s}</div>`).join('')}
-      </div>
-    </td>
-  </tr>
-
-  <!-- Fields 13–14 -->
-  <tr>
-    <td colspan="2">
-      <span class="fl">13. Health Care Provider</span>
-      <span class="fv">${esc(fd.hcpName)}</span>
-    </td>
-    <td>
-      <span class="fl">14. Telephone Number</span>
-      <span class="fv">${esc(fd.hcpPhone)}</span>
-    </td>
-  </tr>
-
-  <!-- Consent statement heading -->
-  <tr>
-    <td colspan="3" style="background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:3px 7px;letter-spacing:0.02em">
-      Consent for the Delegation Process
-    </td>
-  </tr>
-
-  <!-- Consent body text -->
-  <tr>
-    <td colspan="3" style="padding:6px 8px;font-size:8pt;line-height:1.65">
-      I have been informed the delegating Registered Nurse (RN) will only delegate to Long Term Care Workers (LTCW) who are capable and willing to properly perform the delegated nursing task(s). The LTCW must have an active Nursing Assistant or Home Care Aide - Certified credential. Nurse delegation will only occur after the delegating RN has assessed the ability of the Nursing Assistant or Home Care Aide to competently perform the delegated nursing task in the absence of direct or immediate nurse supervision and has completed required Department of Social and Health Services training per <u>RCW 18.79.260</u> and <u>WAC 246-840-930.</u> I further understand that the following task(s) may never be delegated per <u>WAC 246-840-910</u>:
-      <ul style="margin:5px 0 5px 18px;line-height:1.7;font-size:8pt">
-        <li>Administration of medications by injections (IM, Sub Q, IV) <strong>except insulin injections.</strong></li>
-        <li>Sterile procedures.</li>
-        <li>Central line maintenance.</li>
-        <li>Acts that require nursing judgment</li>
-      </ul>
-      <strong>If verbal consent is obtained, written consent is required within 30 days of verbal consent.</strong>
-    </td>
-  </tr>
-
-  <!-- Fields 15–17: Signature consent -->
+  <tr><td colspan="3" class="section-hdr">Consent for the Delegation Process</td></tr>
+  <tr><td colspan="3" style="padding:5px 7px;font-size:8pt;line-height:1.65">
+    I have been informed the delegating Registered Nurse (RN) will only delegate to Long Term Care Workers (LTCW) who are capable and willing to properly perform the delegated nursing task(s). The LTCW must have an active Nursing Assistant or Home Care Aide - Certified credential. Nurse delegation will only occur after the delegating RN has assessed the ability of the Nursing Assistant or Home Care Aide to competently perform the delegated nursing task in the absence of direct or immediate nurse supervision and has completed required Department of Social and Health Services training per <u>RCW 18.79.260</u> and <u>WAC 246-840-930.</u><br><br>
+    I further understand that the following task(s) may never be delegated per <u>WAC 246-840-910</u>:
+    <ul style="margin:4px 0 4px 16px;line-height:1.7">
+      <li>Administration of medications by injections (IM, Sub Q, IV) <strong>except insulin injections.</strong></li>
+      <li>Sterile procedures.</li><li>Central line maintenance.</li><li>Acts that require nursing judgment</li>
+    </ul>
+    <strong>If verbal consent is obtained, written consent is required within 30 days of verbal consent.</strong>
+  </td></tr>
   <tr class="sig-row">
-    <td colspan="2" style="width:65%">
-      <span class="fl">15. Client or Authorized Representative Signature</span>
-      <span class="fv sig-line">${esc(fd.clientSig)}</span>
-    </td>
-    <td style="width:20%">
-      <span class="fl">16. Telephone Number</span>
-      <span class="fv sig-line">${esc(fd.sigPhone)}</span>
-    </td>
-    <td style="width:15%;border-left:1px solid #000">
-      <span class="fl">17. Date</span>
-      <span class="fv sig-line">${esc(fd.sigDate)}</span>
-    </td>
+    <td colspan="2"><span class="fl">15. Client or Authorized Representative Signature</span><span class="fv sig-line">${esc(fd.clientSig)}</span></td>
+    <td><span class="fl">16. Telephone Number</span><span class="fv sig-line">${esc(fd.sigPhone)}</span></td>
   </tr>
-
-  <!-- Fields 18–20: Verbal consent -->
+  <tr class="sig-row"><td colspan="3"><span class="fl">17. Date</span><span class="fv sig-line">${esc(fd.sigDate)}</span></td></tr>
   <tr>
-    <td>
-      <span class="fl">18. Verbal Consent Obtained From</span>
-      <span class="fv sig-line">${esc(fd.verbalFrom)}</span>
-    </td>
-    <td>
-      <span class="fl">19. Relationship to Client</span>
-      <span class="fv sig-line">${esc(fd.verbalRel)}</span>
-    </td>
-    <td>
-      <span class="fl">20. Date</span>
-      <span class="fv sig-line">${esc(fd.verbalDate)}</span>
-    </td>
+    <td><span class="fl">18. Verbal Consent Obtained From</span><span class="fv sig-line">${esc(fd.verbalFrom)}</span></td>
+    <td><span class="fl">19. Relationship to Client</span><span class="fv sig-line">${esc(fd.verbalRel)}</span></td>
+    <td><span class="fl">20. Date</span><span class="fv sig-line">${esc(fd.verbalDate)}</span></td>
   </tr>
-
-  <!-- Blank spacer row (matches original) -->
-  <tr><td colspan="3" style="height:10px;border:1px solid #000"></td></tr>
-
-  <!-- RN statement -->
+  <tr><td colspan="3" style="font-size:8pt;font-style:italic;padding:5px 7px;line-height:1.6">My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.</td></tr>
   <tr>
-    <td colspan="3" style="padding:6px 8px;font-size:8pt;line-height:1.65;font-style:italic">
-      My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.
-    </td>
+    <td colspan="2"><span class="fl">21. Delegation RN Name — Print</span><span class="fv">${esc(fd.rnName)}</span></td>
+    <td><span class="fl">22. Telephone Number</span><span class="fv">${esc(fd.rnPhone)}</span></td>
   </tr>
-
-  <!-- Fields 21–22 -->
-  <tr>
-    <td colspan="2">
-      <span class="fl">21. Delegation RN Name — Print</span>
-      <span class="fv">${esc(fd.rnName)}</span>
-    </td>
-    <td>
-      <span class="fl">22. Telephone Number</span>
-      <span class="fv">${esc(fd.rnPhone)}</span>
-    </td>
-  </tr>
-
-  <!-- Fields 23–24 -->
   <tr class="sig-row">
-    <td colspan="2">
-      <span class="fl">23. Delegation RN Signature</span>
-      <span class="fv sig-line">${esc(fd.rnSig)}</span>
-    </td>
-    <td>
-      <span class="fl">24. Date</span>
-      <span class="fv sig-line">${esc(fd.rnDate)}</span>
-    </td>
+    <td colspan="2"><span class="fl">23. Delegation RN Signature</span><span class="fv sig-line">${esc(fd.rnSig)}</span></td>
+    <td><span class="fl">24. Date</span><span class="fv sig-line">${esc(fd.rnDate)}</span></td>
   </tr>
 </table>
-
-<!-- Instructions block (page 2 of original) -->
-<div class="instructions-box" style="margin-top:8px">
-  <strong>Instructions for Completing Nurse Delegation: Consent for Delegation Process</strong> &nbsp; All fields are required unless indicated <strong>"OPTIONAL."</strong>
+<div class="instructions">
+  <strong>Instructions for Completing Nurse Delegation: Consent for Delegation Process</strong> All fields required unless "OPTIONAL".
   <ol>
-    <li><strong>Client Name:</strong> Enter delegated client's name (last name, first name).</li>
-    <li><strong>ACES Client ID Number:</strong> Enter the client's ACES ID number.</li>
-    <li><strong>Date of Birth:</strong> Enter client's date of birth (month, day, year).</li>
-    <li><strong>Client Address:</strong> Enter the address where the client currently resides, including street address, city, state and zip code.</li>
-    <li><strong>Telephone Number:</strong> Enter the telephone including area code where the client can be reached.</li>
-    <li><strong>Client Diagnosis:</strong> Enter client's diagnoses that affect the delegated task.</li>
-    <li><strong>Allergies:</strong> List known allergies or No Known Allergies.</li>
-    <li><strong>Facility or Program Contact:</strong> Enter the name of facility or name of individual to contact at the facility or home.</li>
-    <li><strong>Telephone Number:</strong> Enter the telephone number.</li>
-    <li><strong>Fax Number:</strong> Enter the fax number at the facility if available.</li>
-    <li><strong>E-mail Address:</strong> Enter email address of client or facility if available.</li>
-    <li><strong>Setting:</strong> Check the appropriate box.</li>
-    <li><strong>Health Care Provider:</strong> Enter name of client's health care provider.</li>
-    <li><strong>Telephone Number:</strong> Enter telephone number of health care provider.</li>
-    <li><strong>Client or Authorized Representative Signature:</strong> Read the statement to the client/authorized representative and explain the nurse delegation process to them before they sign.</li>
-    <li><strong>Telephone Number:</strong> Ask them to enter their telephone number.</li>
-    <li><strong>Date:</strong> Date the signature.</li>
-    <li><strong>Verbal Consent Obtained From:</strong> Read the statement to the client/authorized representative and explain the nurse delegation process to them before obtaining verbal consent. Print their name. Written consent <strong>must</strong> be obtained within 30 days of verbal consent. Electronic signature is acceptable.</li>
-    <li><strong>Relationship to Client:</strong> Enter the relationship to client of the person giving consent.</li>
-    <li><strong>Date:</strong> Date when you obtained verbal consent.</li>
-    <li><strong>Delegating RN Name:</strong> Print your name.</li>
-    <li><strong>Telephone Number:</strong> Enter your telephone number.</li>
-    <li><strong>23. and 24. Delegating RN Signature and Date:</strong> Sign and date verifying consent.</li>
+    <li><strong>Client Name:</strong> Last name, first name.</li><li><strong>ACES Client ID Number.</strong></li><li><strong>Date of Birth:</strong> month/day/year.</li>
+    <li><strong>Client Address:</strong> Street, city, state, ZIP.</li><li><strong>Telephone Number:</strong> Include area code.</li>
+    <li><strong>Client Diagnosis:</strong> Diagnoses affecting the delegated task.</li><li><strong>Allergies:</strong> List or NKDA.</li>
+    <li><strong>Facility or Program Contact.</strong></li><li><strong>Telephone Number.</strong></li><li><strong>Fax Number (optional).</strong></li><li><strong>Email Address (optional).</strong></li>
+    <li><strong>Setting:</strong> Check appropriate box.</li><li><strong>Health Care Provider.</strong></li><li><strong>Telephone Number.</strong></li>
+    <li><strong>Client or Authorized Rep. Signature:</strong> Read statement before signing.</li><li><strong>Telephone Number.</strong></li><li><strong>Date.</strong></li>
+    <li><strong>Verbal Consent Obtained From:</strong> Written consent required within 30 days.</li><li><strong>Relationship to Client.</strong></li><li><strong>Date.</strong></li>
+    <li><strong>Delegating RN Name — Print.</strong></li><li><strong>Telephone Number.</strong></li><li–24><strong>23–24. Delegating RN Signature and Date.</strong></li>
   </ol>
 </div>
-
-<div class="footer-area" style="margin-top:6px">
+<div class="footer">
   <span><strong>To report Nurse Delegation concerns, call the DSHS Complaint Resolution Unit Toll-free Hotline 1-800-562-6078</strong></span>
-  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 13-678 PAGE 1 (REV. 05/2025)</strong></span>
 </div>
-<div style="display:flex;justify-content:space-between;margin-top:3px;font-size:7.5pt">
-  <span><strong>DSHS 13-678 (REV. 05/2025)</strong></span>
-  <span><strong>NURSE DELEGATION: CONSENT FOR DELEGATION PROCESS</strong> &nbsp;&nbsp; Page 1 of 2</span>
-</div>
+</section>
+</body></html>`;
+}
 
+function build13678bPrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678B — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Assumption of Delegation</div><div class="form-number">DSHS 13-678B (REV. 09/2021)</div></div>
+  <div class="page-header-right"></div>
+</div>
+<table>
+  <tr>
+    <td style="width:32%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
+    <td style="width:22%"><span class="fl">2. ACES ID</span><span class="fv">${esc(fd.acesId)}</span></td>
+    <td style="width:20%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:26%"><span class="fl">4. Setting (Optional)</span><span class="fv">${esc(fd.setting)}</span></td>
+  </tr>
+  <tr>
+    <td colspan="3"><span class="fl">5. Facility or Program Name (Optional)</span><span class="fv">${esc(fd.facilityName)}</span></td>
+    <td><span class="fl">6. Telephone Number (Optional)</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
+  </tr>
+  <tr><td colspan="4" style="font-size:8pt;font-style:italic;padding:5px 7px;line-height:1.65">I agree that I know the client through my assessment, the plan of care, the skills of the Long Term Care Worker(s) (LTCW), and the delegated task(s). I agree to assume responsibility and accountability for the delegated task(s) and to perform the nursing supervision. I have informed the client and/or authorized representative of this change. I have informed the LTCW, case manager, and client of this change.</td></tr>
+  <tr><td colspan="4"><span class="fl">7. Reason for Assuming Delegation (including reason other RND rescinded and date assuming responsibility)</span><span class="fv" style="min-height:50px">${esc(fd.reason)}</span></td></tr>
+  <tr class="sig-row">
+    <td colspan="3"><span class="fl">8. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
+    <td><span class="fl">9. Date</span><span class="fv sig-line">${esc(fd.signDate)}</span></td>
+  </tr>
+</table>
+<div class="instructions">
+  <strong>Instructions for Completing Nurse Delegation: Assumption of Delegation</strong> All fields required unless "OPTIONAL".
+  <ol>
+    <li><strong>Client Name:</strong> Last name, first name.</li><li><strong>ACES ID (optional).</strong></li><li><strong>Date of Birth.</strong></li>
+    <li><strong>ID Setting (optional).</strong></li><li><strong>Facility or Program Name (optional).</strong></li><li><strong>Telephone Number (optional).</strong></li>
+    <li><strong>Reason/Dates for Another RND to Assume Delegation:</strong> Enter reason the other RND rescinded and the date you assume responsibility.</li>
+    <li–9><strong>8–9. Assuming RND Signature and Date.</strong></li>
+  </ol>
+</div>
+<div class="footer">
+  <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
+  <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file &nbsp;|&nbsp; <strong>DSHS 13-678B (REV. 09/2021)</strong></span>
+</div>
+</section>
+</body></html>`;
+}
+
+function build10217PrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const chk=v=>v?'☑':'☐';
+  const LOGO='assets/logo.png';
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const dateLine=(label,date,checked)=>`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:8pt">${chk(checked)} ${label} — Date: <span style="border-bottom:1px solid #000;flex:1;display:inline-block;min-width:70px">${esc(date)}</span></div>`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 10-217 — ${esc(draft.caregiver_name)}</title><style>${css}</style></head><body>
+<section>
+<div class="page-header">
+  <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
+  <div class="page-header-title"><div class="form-title">Nurse Delegation: Credentials and Training Verification</div><div class="form-number">DSHS 10-217 (REV. 05/2026)</div></div>
+  <div class="page-header-right"></div>
+</div>
+<table>
+  <tr><td colspan="3" class="section-hdr">LTCW Name and Active Credential Verification</td></tr>
+  <tr><td colspan="3">
+    <span class="fl">Long-Term Care Worker's (LTCW's) Name (print)</span>
+    <span class="fv">${esc(fd.ltcwName)}</span>
+    <div style="margin-top:5px;font-size:8pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch" style="color:#000">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
+    <div style="margin-top:6px;font-size:8pt"><strong>Provide the Washington State Credential Information:</strong></div>
+    <div style="margin-top:5px;font-size:8.5pt;line-height:2">
+      ${chk(fd.credType==='NAR')} Nursing Assistant Registered (NAR) &nbsp;&nbsp;
+      ${chk(fd.credType==='NAC')} Nursing Assistant Certified (NAC) &nbsp;&nbsp;
+      ${chk(fd.credType==='HCA-C')} Home Care Aide Certified (HCA-C)
+    </div>
+    <div style="margin-top:5px;font-size:8.5pt;display:flex;gap:30px">
+      <span><strong>Credential Number:</strong> ${esc(fd.credNum)||'________________________'}</span>
+      <span><strong>Expiration Date:</strong> ${esc(fd.credExpiry)||'________________________'}</span>
+    </div>
+  </td></tr>
+  <tr><td colspan="3" class="section-hdr">Required LTCW Nurse Delegation Training Verification — Must Attach Copy of Verification</td></tr>
+  <tr><td colspan="3" style="padding:5px 7px">
+    <div style="font-size:8pt;margin-bottom:5px"><strong>Before accepting nurse delegation all LTCWs must complete:</strong></div>
+    ${dateLine('9-hour Nurse Delegation Core Training for Nursing Assistants',fd.coreTrainingDate,!!fd.coreTrainingDate)}
+    ${dateLine('3-hour Nurse Delegation Special Focus on Diabetes (insulin delegation only)',fd.diabetesTrainingDate,!!fd.diabetesTrainingDate)}
+  </td></tr>
+  <tr><td colspan="3" class="section-hdr">Basic Training Verification for Nursing Assistant Registered (NAR) — DDA Setting Only</td></tr>
+  <tr><td colspan="3" style="padding:5px 7px">
+    <div style="font-size:8pt;margin-bottom:5px">An NAR employed by a community residential service business (WAC 246-980-025) is exempt from HCA certification. Must have active NAR credential and meet one of the requirements below.</div>
+    ${dateLine('Basic Training (Core Competency) Certificate',fd.basicCoreDateVal,fd.basicCoreComp)}
+    ${dateLine('75 Hours DSHS Approved HCA Basic Training',fd.basic75hrDate,fd.basic75hr)}
+    ${dateLine('Fundamentals of Care (FOC)',fd.basicFocDate,fd.basicFoc)}
+    ${dateLine('Revised Fundamentals of Care (RFOC)',fd.basicRfocDate,fd.basicRfoc)}
+    ${dateLine('DDA 32 Hour Letter',fd.basicDda32Date,fd.basicDda32)}
+  </td></tr>
+  <tr><td colspan="3" class="section-hdr">Exempt Long-Term Care Workers</td></tr>
+  <tr><td colspan="3" style="padding:5px 7px">
+    <div style="font-size:8pt;margin-bottom:5px">The HCS LTCW employed between January 1, 2011 and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer stating they completed the basic training requirements in effect on the date of their hire.</div>
+    <div style="font-size:8.5pt">${chk(fd.exemptLetter)} Letter of Employment Verification Attached &nbsp;&nbsp; <strong>Date of RND Verification:</strong> ${esc(fd.exemptDate)||'__________________'}</div>
+  </td></tr>
+  <tr><td colspan="3" class="section-hdr">RN Delegator Signature</td></tr>
+  <tr><td colspan="3" style="font-size:8pt;font-style:italic;padding:4px 7px">RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.</td></tr>
+  <tr class="sig-row">
+    <td style="width:36%"><span class="fl">RN Signature</span><span class="fv sig-line">${esc(fd.rnSig)}</span></td>
+    <td style="width:36%"><span class="fl">RN Printed Name</span><span class="fv sig-line">${esc(fd.rnName)}</span></td>
+    <td style="width:28%"><span class="fl">Date Verified</span><span class="fv sig-line">${esc(fd.dateVerified)}</span></td>
+  </tr>
+</table>
+<div class="instructions">
+  <strong>Instructions:</strong> <strong>LTCW Name:</strong> Print name. <strong>Credential Verification:</strong> Identify type (NAR/NAC/HCA-C), number, and expiration — verify at DOH website. <strong>Required Training:</strong> Attach copy of verification; enter completion date(s). Insulin delegation also requires 3-hour diabetes training. <strong>Basic Training (DDA/NAR only):</strong> Check and date whichever applies. <strong>Exempt LTCWs:</strong> Attach employer letter; enter verification date. <strong>RND Signature:</strong> Sign to verify training and credential status.
+</div>
+<div class="footer">
+  <span><strong>DSHS 10-217 (REV. 05/2026)</strong></span>
+  <span><strong>NURSE DELEGATION: CREDENTIALS AND TRAINING VERIFICATION</strong></span>
+</div>
+</section>
 </body></html>`;
 }
 
