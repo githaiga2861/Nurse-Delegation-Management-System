@@ -9,12 +9,12 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 
-<link rel="icon" href="/favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>" type="image/svg+xml">
+<link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>" type="image/svg+xml">
 
-<link rel="apple-touch-icon" href="/icon1.png">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -588,6 +588,28 @@ textarea.form-input{resize:vertical;min-height:80px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Inline minimal manifest to prevent 404 when running from GitHub Pages root
+if('serviceWorker' in navigator){
+  // Suppress manifest 404 by injecting it dynamically if page is on GitHub Pages
+  const isGHPages=location.hostname.includes('github.io');
+  if(isGHPages){
+    const manifestData={
+      name:'Golden Years RN Mgmt',
+      short_name:'GY RN',
+      start_url:location.pathname,
+      display:'standalone',
+      background_color:'#080a0f',
+      theme_color:'#080a0f',
+      icons:[{src:'data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 192 192\'><rect width=\'192\' height=\'192\' rx=\'32\' fill=\'%233b7ff5\'/><text x=\'96\' y=\'128\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'80\' font-weight=\'700\' fill=\'white\'>GY</text></svg>',sizes:'192x192',type:'image/svg+xml'}]
+    };
+    const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const existing=document.querySelector('link[rel="manifest"]');
+    if(existing)existing.href=url;
+  }
+}
+</script>
 </head>
 <body>
 <!-- mobile guard removed — app is mobile responsive -->
@@ -2269,18 +2291,34 @@ function openModal(id){
   const el=document.getElementById(id);
   if(el){el.style.display='flex';el.classList.add('open');}
   if(typeof PERSISTENT_MODALS!=='undefined'&&PERSISTENT_MODALS.includes(id)){
-    const hadDraft=hasDraftData(id);
-    restoreModalDraft(id);
-    if(hadDraft){
-      // Show a brief "draft restored" toast inside the modal header
-      const header=el?.querySelector('.modal-header');
-      if(header&&!header.querySelector('.draft-restore-badge')){
-        const badge=document.createElement('div');
-        badge.className='draft-restore-badge';
-        badge.style.cssText='font-size:11px;color:var(--blue);background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px;margin-top:6px;';
-        badge.innerHTML='↩ Unsaved draft restored — <button onclick="clearModalDraftAndReset(\''+id+'\')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:0;font-family:var(--font);text-decoration:underline;margin-left:2px">Discard</button>';
-        header.appendChild(badge);
-        setTimeout(()=>{if(badge.parentNode)badge.style.opacity='0.5';},4000);
+    if(hasDraftData(id)){
+      // Only restore and show toast if draft has meaningful non-empty values
+      const raw=localStorage.getItem(_draftKey(id));
+      let hasMeaningfulData=false;
+      try{
+        const parsed=JSON.parse(raw||'{}');
+        // Ignore hidden inputs (editId, caseId etc) and empty strings
+        hasMeaningfulData=Object.entries(parsed).some(([k,v])=>{
+          if(!v||v===''||v==='false')return false;
+          // Skip internal ID fields
+          if(k.toLowerCase().includes('editid')||k.toLowerCase().includes('caseid')||k.toLowerCase().includes('editId'))return false;
+          return true;
+        });
+      }catch(e){}
+      if(hasMeaningfulData){
+        restoreModalDraft(id);
+        const header=el?.querySelector('.modal-header');
+        if(header&&!header.querySelector('.draft-restore-badge')){
+          const badge=document.createElement('div');
+          badge.className='draft-restore-badge';
+          badge.style.cssText='font-size:11px;color:var(--blue);background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px;margin-top:6px;';
+          badge.innerHTML='↩ Unsaved draft restored — <button onclick="clearModalDraftAndReset(\''+id+'\')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;padding:0;font-family:var(--font);text-decoration:underline;margin-left:2px">Discard</button>';
+          header.appendChild(badge);
+          setTimeout(()=>{if(badge.parentNode)badge.style.opacity='0.5';},4000);
+        }
+      } else {
+        // Stale/empty draft — silently clear it
+        clearModalDraft(id);
       }
     }
   }
@@ -3189,7 +3227,7 @@ function saveMaintenanceAlert(data){
 }
 
 pageRenderers.alerts = () => {
-  setTimeout(() => renderAlertsPage(), 0);
+  setTimeout(() => renderAlertsPage().catch(e=>console.warn('Alerts render error:',e)), 0);
   return `
 <div class="topbar">
   <div class="topbar-title">Alerts Center</div>
@@ -3304,7 +3342,7 @@ function clearMaintenanceAlert(){
   renderAlertsPage();
 }
 
-function renderAlertsPage() {
+async function renderAlertsPage() {
   const container = document.getElementById('alertsPageContent');
   if (!container) return;
 
@@ -3456,6 +3494,25 @@ function renderAlertsPage() {
       facility: '—',
       action: () => { showPage('documents'); setTimeout(() => docsShowTab('Drafts'), 100); },
       actionLabel: 'View Drafts' });
+  }
+
+  // 4b. 2FA not enabled
+  if(supa){
+    try{
+      const {data:md}=await supa.auth.mfa.listFactors();
+      const has2fa=(md?.totp||[]).some(f=>f.status==='verified');
+      if(!has2fa){
+        alerts.push({
+          level:'high',
+          category:'Security',
+          title:'Two-factor authentication is not enabled on your account',
+          detail:'Your account is not protected by 2FA. Enable TOTP two-factor authentication to prevent unauthorised access to patient data.',
+          facility:'—',
+          action:()=>{showPage('sessions');},
+          actionLabel:'Enable 2FA'
+        });
+      }
+    }catch(e){}
   }
 
   // 5. Active clients with no caregiver
@@ -3729,9 +3786,9 @@ function refreshDashboard(){
         recent.map(c=>{
           const active=(c.tasks||[]).filter(t=>t.status==='Active').length;
           const total=(c.tasks||[]).length;
-          const overdue=c.reassessDate&&new Date(c.reassessDate)<today;
+          const overdue=c.reassessDate&&new Date(c.reassessDate)<new Date();
           return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">
-            <td style="font-weight:600;color:var(--text);font-size:12.5px">${c.clientName}</td>
+            <td style="font-weight:600;color:var(--blue);font-size:12.5px">${c.clientName}</td>
             <td style="font-size:12px">${c.caregiverName}</td>
             <td><span class="status ${statusMap[c.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
             <td style="font-size:12px">${active}/${total}</td>
@@ -3761,9 +3818,9 @@ function refreshDashboard(){
         const cprOverdue=cprExp&&cprExp<today;
         const certColor=certOverdue?'var(--red)':certExp&&certExp<=in90?'var(--amber)':'var(--green)';
         const cprColor=cprOverdue?'var(--red)':cprExp&&cprExp<=in90?'var(--amber)':'var(--green)';
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="showPage('caregivers');setTimeout(()=>openCaregiverProfile('${c.id}'),150)">
           <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${c.first} ${c.last}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--blue)">${c.first} ${c.last}</div>
             <div style="font-size:11px;color:var(--text3)">${c.credType||'—'} · ${c.facilityName||'—'}</div>
           </div>
           <div style="text-align:right">
@@ -3783,9 +3840,9 @@ function refreshDashboard(){
       clEl.innerHTML='<div class="empty-state" style="padding:40px"><h4>No active clients</h4><p>Register clients to see them here.</p></div>';
     } else {
       clEl.innerHTML='<div style="padding:0 4px">'+active.map(c=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="showPage('patients');setTimeout(()=>openClientProfile('${c.id}'),150)">
           <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${c.first} ${c.last}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--blue)">${c.first} ${c.last}</div>
             <div style="font-size:11px;color:var(--text3)">${c.facilityName||'—'} · ${c.diagnosis||'No diagnosis on file'}</div>
           </div>
           <div style="text-align:right">
@@ -3808,9 +3865,9 @@ function refreshDashboard(){
       facEl.innerHTML='<div style="padding:0 4px">'+facs.map(f=>{
         const clientCount=(window.clients||[]).filter(c=>c.facilityId===f.id).length;
         const cgCount=(window.caregivers||[]).filter(c=>c.facilityId===f.id).length;
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border)">
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="showPage('afh');setTimeout(()=>openFacilityProfile('${f.id}'),150)">
           <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${f.name}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--blue)">${f.name}</div>
             <div style="font-size:11px;color:var(--text3)">${f.type||'—'} · ${f.city||'—'}, WA</div>
           </div>
           <div style="text-align:right">
