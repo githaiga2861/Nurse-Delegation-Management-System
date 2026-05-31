@@ -151,6 +151,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 /* UPLOAD */
 .upload-zone{border:1px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;transition:all 0.18s;background:var(--bg1)}
 .upload-zone:hover{border-color:var(--blue);background:var(--blue-glow)}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* TABS */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px}
@@ -3498,9 +3499,220 @@ function renderFacilityTable(list){
   tbody.querySelectorAll('tr:not(#facilityEmptyRow)').forEach(r=>r.remove());
   if(!list.length){if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
-  tbody.insertAdjacentHTML('afterbegin',list.map(f=>`<tr><td style="font-weight:600;color:var(--text)">${f.name}</td><td><span class="chip" style="font-size:10.5px">${f.type}</span></td><td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${f.license||'—'}</td><td style="font-size:12.5px">${f.contactName}</td><td style="font-family:var(--mono);font-size:11.5px">${f.phone}</td><td style="font-size:12.5px">${f.city||'—'}</td><td style="font-size:12px;color:var(--text3)">${f.county||'—'}</td><td><span class="status ${f.status==='Active'?'status-active':f.status==='Inactive'?'status-suspended':'status-pending'}"><span class="status-dot"></span>${f.status}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openFacilityModal('${f.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteFacility('${f.id}')" style="color:var(--red)">Delete</button></td></tr>`).join(''));
+  tbody.insertAdjacentHTML('afterbegin',list.map(f=>`<tr style="cursor:pointer" onclick="openFacilityProfile('${f.id}')"><td style="font-weight:600;color:var(--blue)">${f.name}</td><td><span class="chip" style="font-size:10.5px">${f.type}</span></td><td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${f.license||'—'}</td><td style="font-size:12.5px">${f.contactName}</td><td style="font-family:var(--mono);font-size:11.5px">${f.phone}</td><td style="font-size:12.5px">${f.city||'—'}</td><td style="font-size:12px;color:var(--text3)">${f.county||'—'}</td><td><span class="status ${f.status==='Active'?'status-active':f.status==='Inactive'?'status-suspended':'status-pending'}"><span class="status-dot"></span>${f.status}</span></td><td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="openFacilityModal('${f.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteFacility('${f.id}')" style="color:var(--red)">Delete</button></td></tr>`).join(''));
   const chip=document.getElementById('fac-count-chip');
   if(chip)chip.textContent=list.length+' facilit'+(list.length===1?'y':'ies');
+}
+
+function openFacilityProfile(id){
+  const f=window.facilities.find(x=>x.id===id);if(!f)return;
+  // Hide table, show profile
+  document.querySelector('#page-afh .card').style.display='none';
+  document.querySelector('#page-afh .stat-grid')?.style && (document.querySelector('#page-afh .stat-grid').style.display='none');
+  // Hide topbar actions area — inject profile view after stat grid
+  let pv=document.getElementById('facilityProfileView');
+  if(!pv){pv=document.createElement('div');pv.id='facilityProfileView';document.getElementById('page-afh').querySelector('.page-content').appendChild(pv);}
+  pv.style.display='block';
+  pv.innerHTML=buildFacilityProfileHtml(f);
+}
+
+function closeFacilityProfile(){
+  document.getElementById('facilityProfileView').style.display='none';
+  const card=document.querySelector('#page-afh .card');if(card)card.style.display='';
+  const sg=document.querySelector('#page-afh .stat-grid');if(sg)sg.style.display='';
+}
+
+function buildFacilityProfileHtml(f){
+  const clients=(window.clients||[]).filter(c=>c.facilityId===f.id);
+  const caregivers=(window.caregivers||[]).filter(c=>c.facilityId===f.id);
+  const cases=(window.delegationCases||[]).filter(dc=>dc.facilityId===f.id);
+  const activeCases=cases.filter(dc=>dc.status==='Active');
+  const expiredCreds=caregivers.filter(c=>c.certExpired||c.cprExpired);
+  const statusClass=f.status==='Active'?'status-active':f.status==='Inactive'?'status-suspended':'status-pending';
+
+  const infoBlock=(label,val,mono=false)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="label" style="margin-bottom:3px">${label}</div>
+      <div style="font-size:13px;color:${val&&val!=='—'?'var(--text)':'var(--text3)'};${mono?'font-family:var(--mono)':''}">${val||'—'}</div>
+    </div>`;
+
+  return `
+  <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+    <button class="btn btn-ghost btn-sm" onclick="closeFacilityProfile()">← Back to Facilities</button>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:56px;height:56px;border-radius:var(--radius);background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0">🏠</div>
+        <div>
+          <h3 style="font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:4px">${f.name}</h3>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="status ${statusClass}"><span class="status-dot"></span>${f.status}</span>
+            <span class="chip" style="font-size:10.5px">${f.type}</span>
+            ${f.city?`<span style="font-size:12px;color:var(--text3)">📍 ${f.city}, WA${f.county?' · '+f.county+' County':''}</span>`:''}
+          </div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="openFacilityModal('${f.id}')">✏ Edit Facility</button>
+          <button class="btn btn-primary btn-sm" onclick="openClientModal();setTimeout(()=>{const s=document.getElementById('clFacility');if(s)s.value='${f.id}';},200)">+ Add Client</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M2 16c0-3.3 3.1-5 7-5s7 1.7 7 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val">${clients.length||'0'}</div>
+      <div class="stat-label">Clients</div>
+      <div class="stat-change">${clients.filter(c=>c.status==='Active').length} active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7" cy="5" r="3" stroke="var(--green)" stroke-width="1.5"/><path d="M1 16c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val">${caregivers.length||'0'}</div>
+      <div class="stat-label">Caregivers</div>
+      <div class="stat-change">${caregivers.filter(c=>c.status==='Active').length} active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="12" rx="1.5" stroke="var(--purple)" stroke-width="1.5"/><path d="M5 5V4a3 3 0 0 1 8 0v1" stroke="var(--purple)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val">${activeCases.length||'0'}</div>
+      <div class="stat-label">Active Cases</div>
+      <div class="stat-change">${cases.length} total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--${expiredCreds.length?'red':'green'}-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--${expiredCreds.length?'red':'green'})" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--${expiredCreds.length?'red':'green'})" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" style="color:var(--${expiredCreds.length?'red':'green'})">${expiredCreds.length||'0'}</div>
+      <div class="stat-label">Expired Credentials</div>
+      <div class="stat-change">${expiredCreds.length?'Requires attention':'All current'}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="facProfileTabs" style="margin-bottom:24px">
+    <div class="tab active" onclick="switchFacTab(this,'Info')">Facility Info</div>
+    <div class="tab" onclick="switchFacTab(this,'Clients')">Clients</div>
+    <div class="tab" onclick="switchFacTab(this,'Caregivers')">Caregivers</div>
+    <div class="tab" onclick="switchFacTab(this,'Cases')">Delegation Cases</div>
+  </div>
+
+  <!-- TAB: INFO -->
+  <div id="facTabInfo">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Facility Details</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Facility Name',f.name)}
+          ${infoBlock('Facility Type',f.type)}
+          ${infoBlock('DSHS License Number',f.license,true)}
+          ${infoBlock('License Expiration',f.licenseExp,true)}
+          ${infoBlock('Status',f.status)}
+          ${infoBlock('Licensed Bed Capacity',f.capacity)}
+          ${infoBlock('Current Client Count',f.clientCount)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Location & Contact</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Street Address',f.street)}
+          ${infoBlock('City',f.city)}
+          ${infoBlock('ZIP Code',f.zip,true)}
+          ${infoBlock('County',f.county?f.county+' County':null)}
+          ${infoBlock('Primary Contact',f.contactName)}
+          ${infoBlock('Contact Role',f.contactRole)}
+          ${infoBlock('Phone',f.phone,true)}
+          ${infoBlock('Email',f.email)}
+        </div>
+      </div>
+      ${f.notes?`<div class="card" style="grid-column:span 2">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Notes</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          <div style="font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.7">${f.notes}</div>
+        </div>
+      </div>`:''}
+    </div>
+  </div>
+
+  <!-- TAB: CLIENTS -->
+  <div id="facTabClients" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Clients at ${f.name}</span>
+        <span class="chip">${clients.length} client${clients.length===1?'':'s'}</span>
+      </div>
+      ${clients.length===0?`<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M2 18c0-4 3.6-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No clients at this facility</h4><p>Add a client and assign them to this facility.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openClientModal();setTimeout(()=>{const s=document.getElementById('clFacility');if(s)s.value='${f.id}';},200)">+ Add Client</button></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>DOB</th><th>Diagnosis</th><th>Caregiver</th><th>Status</th><th></th></tr></thead>
+        <tbody>${clients.map(c=>`<tr style="cursor:pointer" onclick="showPage('patients');setTimeout(()=>openClientProfile('${c.id}'),150)">
+          <td style="font-weight:600;color:var(--blue)">${c.first} ${c.last}</td>
+          <td style="font-family:var(--mono);font-size:11.5px">${c.dob||'—'}</td>
+          <td style="font-size:12px">${c.diagnosis||'—'}</td>
+          <td style="font-size:12px">${c.caregiverName||'—'}</td>
+          <td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
+          <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('patients');setTimeout(()=>openClientProfile('${c.id}'),150)">View →</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>
+
+  <!-- TAB: CAREGIVERS -->
+  <div id="facTabCaregivers" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Caregivers at ${f.name}</span>
+        <span class="chip">${caregivers.length} caregiver${caregivers.length===1?'':'s'}</span>
+      </div>
+      ${caregivers.length===0?`<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="7" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M1 17c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No caregivers assigned</h4><p>Add a caregiver and assign them to this facility.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openCaregiverModal();setTimeout(()=>{const s=document.getElementById('cgFacility');if(s)s.value='${f.id}';},200)">+ Add Caregiver</button></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Credential</th><th>Cert Expiry</th><th>CPR Expiry</th><th>Delegation</th><th>Status</th><th></th></tr></thead>
+        <tbody>${caregivers.map(c=>{
+          const certColor=c.certExpired?'var(--red)':c.certExpiring?'var(--amber)':'var(--text2)';
+          const cprColor=c.cprExpired?'var(--red)':c.cprExpiring?'var(--amber)':'var(--text2)';
+          return `<tr style="cursor:pointer" onclick="showPage('caregivers');setTimeout(()=>openCaregiverProfile('${c.id}'),150)">
+            <td style="font-weight:600;color:var(--blue)">${c.first} ${c.last}</td>
+            <td style="font-size:12px">${c.credType||'—'}</td>
+            <td style="font-family:var(--mono);font-size:11.5px;color:${certColor}">${c.certExpiry||'—'}${c.certExpired?' ⚠':''}</td>
+            <td style="font-family:var(--mono);font-size:11.5px;color:${cprColor}">${c.cprExpiry||'—'}${c.cprExpired?' ⚠':''}</td>
+            <td><span class="status ${c.delegationEligible==='Eligible'?'status-active':c.delegationEligible==='Ineligible'?'status-suspended':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${c.delegationEligible}</span></td>
+            <td><span class="status ${c.status==='Active'?'status-active':'status-suspended'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('caregivers');setTimeout(()=>openCaregiverProfile('${c.id}'),150)">View →</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>
+
+  <!-- TAB: CASES -->
+  <div id="facTabCases" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Delegation Cases at ${f.name}</span>
+        <span class="chip">${cases.length} case${cases.length===1?'':'s'}</span>
+      </div>
+      ${cases.length===0?`<div class="empty-state" style="padding:48px"><h4>No delegation cases</h4><p>No cases have been created for clients at this facility.</p></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Client</th><th>Caregiver</th><th>Status</th><th>Active Tasks</th><th>Reassess Due</th><th></th></tr></thead>
+        <tbody>${cases.map(dc=>{
+          const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+          const activeTasks=(dc.tasks||[]).filter(t=>t.status==='Active').length;
+          const overdue=dc.reassessDate&&new Date(dc.reassessDate)<new Date();
+          return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${dc.id}'),150)">
+            <td style="font-weight:600;color:var(--text)">${dc.clientName}</td>
+            <td style="font-size:12px">${dc.caregiverName}</td>
+            <td><span class="status ${statusMap[dc.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${dc.status}</span></td>
+            <td style="font-size:12px">${activeTasks} active</td>
+            <td style="font-size:11.5px;font-family:var(--mono);${overdue?'color:var(--red);font-weight:600':''}">${dc.reassessDate||'—'}</td>
+            <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('cases');setTimeout(()=>openCaseDetail('${dc.id}'),150)">Open →</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>`;
+}
+
+function switchFacTab(el,tab){
+  document.querySelectorAll('#facProfileTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['Info','Clients','Caregivers','Cases'].forEach(t=>{const d=document.getElementById('facTab'+t);if(d)d.style.display='none';});
+  const d=document.getElementById('facTab'+tab);if(d)d.style.display='block';
 }
 async function deleteFacility(id){
   if(!confirm('Remove this facility?'))return;
@@ -3618,10 +3830,240 @@ function renderCaregiverTable(list){
   if(!list.length){if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
   tbody.insertAdjacentHTML('afterbegin',list.map(c=>{
-    const cc=c.certExpired?'chip':'chip';
+    const certColor=c.certExpired?'color:var(--red)':c.certExpiring?'color:var(--amber)':'';
+    const cprColor=c.cprExpired?'color:var(--red)':c.cprExpiring?'color:var(--amber)':'';
     const dc=c.delegationEligible==='Eligible'?'status-active':c.delegationEligible==='Ineligible'?'status-suspended':'status-pending';
-    return `<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td style="font-size:12px">${c.credType}</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.certNum||'—'}</td><td><span class="${cc}" style="font-size:10.5px">${c.certExpiry||'—'}</span></td><td><span class="${cc}" style="font-size:10.5px">${c.cprExpiry||'—'}</span></td><td style="font-size:12px">${c.facilityName}</td><td style="text-align:center">${c.assignedClients.length||0}</td><td><span class="status ${c.status==='Active'?'status-active':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td><td><span class="status ${dc}" style="font-size:10px"><span class="status-dot"></span>${c.delegationEligible}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteCaregiver('${c.id}')" style="color:var(--red)">Delete</button></td></tr>`;
+    return `<tr style="cursor:pointer" onclick="openCaregiverProfile('${c.id}')">
+      <td style="font-weight:600;color:var(--blue)">${c.first} ${c.last}</td>
+      <td style="font-size:12px">${c.credType}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.certNum||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px;${certColor}">${c.certExpiry||'—'}${c.certExpired?' ⚠':''}</td>
+      <td style="font-family:var(--mono);font-size:11px;${cprColor}">${c.cprExpiry||'—'}${c.cprExpired?' ⚠':''}</td>
+      <td style="font-size:12px">${c.facilityName}</td>
+      <td style="text-align:center">${c.assignedClients.length||0}</td>
+      <td><span class="status ${c.status==='Active'?'status-active':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td>
+      <td><span class="status ${dc}" style="font-size:10px"><span class="status-dot"></span>${c.delegationEligible}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteCaregiver('${c.id}')" style="color:var(--red)">Delete</button>
+      </td>
+    </tr>`;
   }).join(''));
+}
+
+function openCaregiverProfile(id){
+  const c=window.caregivers.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cgTabList').style.display='none';
+  document.getElementById('cgTabAlerts').style.display='none';
+  document.getElementById('cgTabHistory').style.display='none';
+  document.getElementById('cgTabs').style.display='none';
+  let pv=document.getElementById('caregiverProfileView');
+  if(!pv){pv=document.createElement('div');pv.id='caregiverProfileView';document.getElementById('page-caregivers').querySelector('.page-content').appendChild(pv);}
+  pv.style.display='block';
+  pv.innerHTML=buildCaregiverProfileHtml(c);
+}
+
+function closeCaregiverProfile(){
+  const pv=document.getElementById('caregiverProfileView');if(pv)pv.style.display='none';
+  document.getElementById('cgTabs').style.display='flex';
+  switchCgTab(document.querySelector('#cgTabs .tab'),'List');
+}
+
+function buildCaregiverProfileHtml(c){
+  const today=new Date();
+  const assignedClients=(window.clients||[]).filter(cl=>cl.caregiverId===c.id);
+  const cases=(window.delegationCases||[]).filter(dc=>dc.caregiverId===c.id);
+  const activeCases=cases.filter(dc=>dc.status==='Active');
+  const certExp=c.certExpiry?new Date(c.certExpiry):null;
+  const cprExp=c.cprExpiry?new Date(c.cprExpiry):null;
+  const certColor=c.certExpired?'var(--red)':c.certExpiring?'var(--amber)':'var(--green)';
+  const cprColor=c.cprExpired?'var(--red)':c.cprExpiring?'var(--amber)':'var(--green)';
+  const delClass=c.delegationEligible==='Eligible'?'status-active':c.delegationEligible==='Ineligible'?'status-suspended':'status-pending';
+
+  const infoBlock=(label,val,mono=false)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="label" style="margin-bottom:3px">${label}</div>
+      <div style="font-size:13px;color:${val&&val!=='—'?'var(--text)':'var(--text3)'};${mono?'font-family:var(--mono)':''}">${val||'—'}</div>
+    </div>`;
+
+  const credBadge=(label,expiry,expired,expiring,color)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:${expired?'var(--red-dim)':expiring?'var(--amber-dim)':'var(--green-dim)'};border:1px solid ${expired?'#e0525230':expiring?'#d4873a30':'#2dba7a30'};border-radius:var(--radius-sm);margin-bottom:10px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${color}">${label}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Expires: ${expiry||'Not on file'}</div>
+      </div>
+      <span class="status ${expired?'status-suspended':expiring?'status-pending':'status-active'}" style="font-size:10px">
+        <span class="status-dot"></span>${expired?'Expired':expiring?'Expiring Soon':'Current'}
+      </span>
+    </div>`;
+
+  return `
+  <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+    <button class="btn btn-ghost btn-sm" onclick="closeCaregiverProfile()">← Back to Caregivers</button>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0">
+          ${c.first.charAt(0)}${c.last.charAt(0)}
+        </div>
+        <div>
+          <h3 style="font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:4px">${c.first} ${c.last}</h3>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="status ${c.status==='Active'?'status-active':'status-suspended'}"><span class="status-dot"></span>${c.status}</span>
+            <span class="status ${delClass}" style="font-size:10px"><span class="status-dot"></span>${c.delegationEligible}</span>
+            <span class="chip" style="font-size:10.5px">${c.credType||'—'}</span>
+            ${c.facilityName&&c.facilityName!=='—'?`<span style="font-size:12px;color:var(--text3)">📍 ${c.facilityName}</span>`:''}
+          </div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="openCaregiverModal('${c.id}')">✏ Edit Profile</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="5" r="3" stroke="var(--blue)" stroke-width="1.5"/><path d="M2 16c0-3.3 3.1-5 7-5s7 1.7 7 5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val">${assignedClients.length||'0'}</div>
+      <div class="stat-label">Assigned Clients</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="12" rx="1.5" stroke="var(--purple)" stroke-width="1.5"/><path d="M5 5V4a3 3 0 0 1 8 0v1" stroke="var(--purple)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val">${activeCases.length||'0'}</div>
+      <div class="stat-label">Active Cases</div>
+      <div class="stat-change">${cases.length} total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--${c.certExpired?'red':c.certExpiring?'amber':'green'}-dim)"></div>
+      <div class="stat-val" style="font-size:1.1rem;color:${certColor}">${c.certExpiry||'—'}</div>
+      <div class="stat-label">Cert Expiry</div>
+      <div class="stat-change" style="color:${certColor}">${c.certExpired?'⚠ Expired':c.certExpiring?'Expiring soon':'Current'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--${c.cprExpired?'red':c.cprExpiring?'amber':'green'}-dim)"></div>
+      <div class="stat-val" style="font-size:1.1rem;color:${cprColor}">${c.cprExpiry||'—'}</div>
+      <div class="stat-label">CPR Expiry</div>
+      <div class="stat-change" style="color:${cprColor}">${c.cprExpired?'⚠ Expired':c.cprExpiring?'Expiring soon':'Current'}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="cgProfileTabs" style="margin-bottom:24px">
+    <div class="tab active" onclick="switchCgProfileTab(this,'Info')">Profile</div>
+    <div class="tab" onclick="switchCgProfileTab(this,'Credentials')">Credentials</div>
+    <div class="tab" onclick="switchCgProfileTab(this,'Clients')">Assigned Clients</div>
+    <div class="tab" onclick="switchCgProfileTab(this,'Cases')">Delegation Cases</div>
+  </div>
+
+  <!-- TAB: INFO -->
+  <div id="cgProfTabInfo">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Personal Information</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Full Name',`${c.first} ${c.last}`)}
+          ${infoBlock('Phone',c.phone,true)}
+          ${infoBlock('Email',c.email)}
+          ${infoBlock('Home Address',c.address)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Assignment</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Assigned Facility',c.facilityName)}
+          ${infoBlock('Caregiver Status',c.status)}
+          ${infoBlock('Delegation Eligibility',c.delegationEligible)}
+          ${infoBlock('Training Verification',c.trainingStatus)}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CREDENTIALS -->
+  <div id="cgProfTabCredentials" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Professional Credential</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${credBadge(c.credType||'Credential',c.certExpiry,c.certExpired,c.certExpiring,certColor)}
+          ${infoBlock('Credential Type',c.credType)}
+          ${infoBlock('Certification Number',c.certNum,true)}
+          ${infoBlock('Issue Date',c.certIssued,true)}
+          ${infoBlock('Expiry Date',c.certExpiry,true)}
+          ${infoBlock('Training Verification',c.trainingStatus)}
+          ${infoBlock('Initial Training Date',c.trainingDate,true)}
+          ${infoBlock('Last In-Service Date',c.inservice,true)}
+          ${c.trainingNotes?`<div style="margin-top:10px"><div class="label" style="margin-bottom:4px">Training Notes</div><div style="font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.6">${c.trainingNotes}</div></div>`:''}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">CPR Certification</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${credBadge('CPR Certificate',c.cprExpiry,c.cprExpired,c.cprExpiring,cprColor)}
+          ${infoBlock('CPR Provider',c.cprProvider)}
+          ${infoBlock('CPR Issue Date',c.cprIssued,true)}
+          ${infoBlock('CPR Expiry Date',c.cprExpiry,true)}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CLIENTS -->
+  <div id="cgProfTabClients" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Assigned Clients</span>
+        <span class="chip">${assignedClients.length} client${assignedClients.length===1?'':'s'}</span>
+      </div>
+      ${assignedClients.length===0?`<div class="empty-state" style="padding:48px"><h4>No clients assigned</h4><p>This caregiver has no clients linked to their profile.</p></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Client Name</th><th>DOB</th><th>Facility</th><th>Diagnosis</th><th>Status</th><th></th></tr></thead>
+        <tbody>${assignedClients.map(cl=>`<tr style="cursor:pointer" onclick="showPage('patients');setTimeout(()=>openClientProfile('${cl.id}'),150)">
+          <td style="font-weight:600;color:var(--blue)">${cl.first} ${cl.last}</td>
+          <td style="font-family:var(--mono);font-size:11.5px">${cl.dob||'—'}</td>
+          <td style="font-size:12px">${cl.facilityName||'—'}</td>
+          <td style="font-size:12px">${cl.diagnosis||'—'}</td>
+          <td><span class="status ${cl.status==='Active'?'status-active':cl.status==='Discharged'?'status-closed':'status-suspended'}" style="font-size:10px"><span class="status-dot"></span>${cl.status}</span></td>
+          <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('patients');setTimeout(()=>openClientProfile('${cl.id}'),150)">View →</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>
+
+  <!-- TAB: CASES -->
+  <div id="cgProfTabCases" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Delegation Cases</span>
+        <span class="chip">${cases.length} case${cases.length===1?'':'s'}</span>
+      </div>
+      ${cases.length===0?`<div class="empty-state" style="padding:48px"><h4>No delegation cases</h4><p>No cases have been assigned to this caregiver.</p></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Client</th><th>Facility</th><th>Status</th><th>Active Tasks</th><th>Reassess Due</th><th></th></tr></thead>
+        <tbody>${cases.map(dc=>{
+          const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+          const activeTasks=(dc.tasks||[]).filter(t=>t.status==='Active').length;
+          const overdue=dc.reassessDate&&new Date(dc.reassessDate)<new Date();
+          return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${dc.id}'),150)">
+            <td style="font-weight:600;color:var(--text)">${dc.clientName}</td>
+            <td style="font-size:12px;color:var(--text3)">${dc.facilityName}</td>
+            <td><span class="status ${statusMap[dc.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${dc.status}</span></td>
+            <td style="font-size:12px">${activeTasks} active</td>
+            <td style="font-size:11.5px;font-family:var(--mono);${overdue?'color:var(--red);font-weight:600':''}">${dc.reassessDate||'—'}</td>
+            <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('cases');setTimeout(()=>openCaseDetail('${dc.id}'),150)">Open →</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </div>`;
+}
+
+function switchCgProfileTab(el,tab){
+  document.querySelectorAll('#cgProfileTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['Info','Credentials','Clients','Cases'].forEach(t=>{const d=document.getElementById('cgProfTab'+t);if(d)d.style.display='none';});
+  const d=document.getElementById('cgProfTab'+tab);if(d)d.style.display='block';
 }
 async function deleteCaregiver(id){
   if(!confirm('Remove this caregiver?'))return;
@@ -4127,6 +4569,28 @@ function buildClientProfileHtml(c){
           :'<div style="color:var(--text3);font-size:13px">No PRN notes on file.</div>'}
         </div>
       </div>
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header">
+          <span style="font-size:13px;font-weight:600">Medication Images</span>
+          <label for="medImageUpload-${c.id}" class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0">+ Upload</label>
+          <input type="file" id="medImageUpload-${c.id}" accept="image/*" multiple style="display:none" onchange="handleMedImageUpload(event,'${c.id}')">
+        </div>
+        <div class="card-body" style="padding:16px 24px">
+          <div
+            id="medImageDropZone-${c.id}"
+            onclick="document.getElementById('medImageUpload-${c.id}').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--blue)'"
+            ondragleave="this.style.borderColor='var(--border2)'"
+            ondrop="handleMedImageDrop(event,'${c.id}')"
+            style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:24px 16px;text-align:center;cursor:pointer;transition:border-color 0.15s;margin-bottom:16px"
+          >
+            <div style="font-size:22px;margin-bottom:6px;opacity:0.4">🖼️</div>
+            <div style="font-size:13px;color:var(--text3)">Drag & drop images here, or click to browse</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">JPG, PNG, WEBP supported</div>
+          </div>
+          <div id="medImageGrid-${c.id}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4233,6 +4697,14 @@ function switchClientProfileTab(el,tab){
     const d=document.getElementById('cpTab'+t);if(d)d.style.display='none';
   });
   const d=document.getElementById('cpTab'+tab);if(d)d.style.display='block';
+  if(tab==='Medications'){
+    // Find the client ID from the active profile
+    const grid=document.querySelector('[id^="medImageGrid-"]');
+    if(grid){
+      const clientId=grid.id.replace('medImageGrid-','');
+      loadMedImages(clientId);
+    }
+  }
 }
 
 function renderLinksTable(){const body=document.getElementById('clLinksBody');if(!body)return;const linked=window.clients.filter(c=>c.caregiverId);if(!linked.length){body.innerHTML='<div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div>';return;}body.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th></th></tr></thead><tbody>'+linked.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td>${c.caregiverName}</td><td>${c.facilityName}</td><td><span class="status status-active"><span class="status-dot"></span>Linked</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button></td></tr>`).join('')+'</tbody></table></div>';}
@@ -5680,6 +6152,130 @@ function attachModalDraftListeners(){
     modal.addEventListener('input',  ()=>saveModalDraft(modalId));
     modal.addEventListener('change', ()=>saveModalDraft(modalId));
   });
+}
+
+// ── MED IMAGE UPLOAD ──────────────────────────────
+window.medImages = {}; // { clientId: [{id, url, name}] }
+
+function handleMedImageUpload(event, clientId){
+  uploadMedImages(Array.from(event.target.files), clientId);
+  event.target.value='';
+}
+function handleMedImageDrop(event, clientId){
+  event.preventDefault();
+  document.getElementById('medImageDropZone-'+clientId).style.borderColor='var(--border2)';
+  uploadMedImages(Array.from(event.dataTransfer.files).filter(f=>f.type.startsWith('image/')), clientId);
+}
+
+async function uploadMedImages(files, clientId){
+  initSupa();
+  const grid=document.getElementById('medImageGrid-'+clientId);
+  if(!grid)return;
+  for(const file of files){
+    // Show a loading placeholder immediately
+    const placeholder=document.createElement('div');
+    placeholder.style.cssText='position:relative;border-radius:var(--radius-sm);border:1px solid var(--border);aspect-ratio:1;background:var(--bg1);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px';
+    placeholder.innerHTML=`<div style="width:28px;height:28px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite"></div><div style="font-size:10px;color:var(--text3)">Uploading…</div>`;
+    grid.appendChild(placeholder);
+
+    try{
+      const ext=file.name.split('.').pop().toLowerCase();
+      const path=`${currentUser.id}/${clientId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const {data:upData, error:upErr}=await supa.storage.from('med-images').upload(path, file, {cacheControl:'3600', upsert:false});
+      if(upErr) throw upErr;
+      const {data:urlData}=supa.storage.from('med-images').getPublicUrl(path);
+      const publicUrl=urlData?.publicUrl||'';
+
+      // Save record to DB
+      const rec={
+        id: Date.now().toString()+Math.random().toString(36).slice(2),
+        user_id: currentUser.id,
+        client_id: clientId,
+        file_name: file.name,
+        file_path: path,
+        url: publicUrl,
+        created_at: new Date().toISOString()
+      };
+      await supa.from('client_med_images').insert(rec);
+
+      // Store in memory
+      if(!window.medImages[clientId]) window.medImages[clientId]=[];
+      window.medImages[clientId].push(rec);
+
+      // Replace placeholder with real tile
+      const tile=buildMedImageTile(rec, clientId);
+      grid.replaceChild(tile, placeholder);
+
+    } catch(err){
+      placeholder.innerHTML=`<div style="font-size:18px">⚠️</div><div style="font-size:10px;color:var(--red);text-align:center;padding:0 6px">Upload failed</div>`;
+      setTimeout(()=>placeholder.remove(), 3000);
+      console.error('Med image upload error:', err);
+    }
+  }
+}
+
+function buildMedImageTile(rec, clientId){
+  const wrapper=document.createElement('div');
+  wrapper.dataset.recId=rec.id;
+  wrapper.style.cssText='position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);aspect-ratio:1;background:var(--bg1)';
+  const img=document.createElement('img');
+  img.src=rec.url;img.alt=rec.file_name;
+  img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in';
+  img.onclick=()=>openMedImageLightbox(rec.url, rec.file_name);
+  const del=document.createElement('button');
+  del.innerHTML='✕';del.title='Delete';
+  del.style.cssText='position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center';
+  del.onclick=ev=>{ev.stopPropagation();deleteMedImage(rec, clientId, wrapper);};
+  const label=document.createElement('div');
+  label.title=rec.file_name;
+  label.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);color:#fff;font-size:10px;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  label.textContent=rec.file_name;
+  wrapper.appendChild(img);wrapper.appendChild(del);wrapper.appendChild(label);
+  return wrapper;
+}
+
+async function deleteMedImage(rec, clientId, tileEl){
+  if(!confirm('Delete this image? This cannot be undone.')) return;
+  initSupa();
+  // Remove from storage
+  await supa.storage.from('med-images').remove([rec.file_path]);
+  // Remove from DB
+  await supa.from('client_med_images').delete().eq('id', rec.id);
+  // Remove from memory
+  if(window.medImages[clientId])
+    window.medImages[clientId]=window.medImages[clientId].filter(x=>x.id!==rec.id);
+  tileEl.remove();
+}
+
+async function loadMedImages(clientId){
+  initSupa();
+  if(!supa||!currentUser) return;
+  const grid=document.getElementById('medImageGrid-'+clientId);
+  if(!grid) return;
+  grid.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">Loading images…</div>';
+  const {data, error}=await supa.from('client_med_images')
+    .select('*').eq('client_id', clientId).eq('user_id', currentUser.id)
+    .order('created_at', {ascending:false});
+  grid.innerHTML='';
+  if(error||!data||!data.length){
+    if(error) console.error(error);
+    return;
+  }
+  window.medImages[clientId]=data;
+  data.forEach(rec=>grid.appendChild(buildMedImageTile(rec, clientId)));
+}
+
+function openMedImageLightbox(src, name){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px';
+  overlay.onclick=()=>overlay.remove();
+  const img=document.createElement('img');
+  img.src=src;img.alt=name;
+  img.style.cssText='max-width:90vw;max-height:82vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,0.5)';
+  const caption=document.createElement('div');
+  caption.textContent=name;caption.style.cssText='color:rgba(255,255,255,0.7);font-size:12px';
+  overlay.appendChild(img);overlay.appendChild(caption);
+  document.body.appendChild(overlay);
 }
 
 // ── SIGN OUT ──────────────────────────────────────
