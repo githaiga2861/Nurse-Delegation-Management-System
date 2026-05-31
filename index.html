@@ -1835,6 +1835,7 @@ pageRenderers.patients = () => {
   </table></div></div></div>
   <div id="clTabLinks" style="display:none"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Client ↔ Caregiver Relationships</span></div><div id="clLinksBody"><div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div></div></div></div>
   <div id="clTabCare" style="display:none"><div class="card"><div class="empty-state" style="padding:56px"><h4>No care plans on file</h4><p>Care plan summaries linked to registered clients will appear here.</p></div></div></div>
+  <div id="clientProfileView" style="display:none"></div>
 </div>`;
 };
 
@@ -3902,7 +3903,21 @@ function renderClientTable(list){
   tbody.querySelectorAll('tr:not(#clientEmptyRow)').forEach(r=>r.remove());
   if(!list.length){if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
-  tbody.insertAdjacentHTML('afterbegin',list.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td style="font-family:var(--mono);font-size:11.5px">${c.dob||'—'}</td><td style="font-size:12px">${c.facilityName}</td><td style="font-size:12px">${c.diagnosis||'—'}</td><td style="font-size:12px">${c.allergies}</td><td style="font-size:12px">${c.physician||'—'}</td><td style="font-size:12px">${c.caregiverName}</td><td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" onclick="deleteClient('${c.id}')" style="color:var(--red)">Delete</button></td></tr>`).join(''));
+  tbody.insertAdjacentHTML('afterbegin',list.map(c=>`
+    <tr style="cursor:pointer" onclick="openClientProfile('${c.id}')">
+      <td style="font-weight:600;color:var(--blue)">${c.first} ${c.last}</td>
+      <td style="font-family:var(--mono);font-size:11.5px">${c.dob||'—'}</td>
+      <td style="font-size:12px">${c.facilityName}</td>
+      <td style="font-size:12px">${c.diagnosis||'—'}</td>
+      <td style="font-size:12px">${c.allergies}</td>
+      <td style="font-size:12px">${c.physician||'—'}</td>
+      <td style="font-size:12px">${c.caregiverName}</td>
+      <td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteClient('${c.id}')" style="color:var(--red)">Delete</button>
+      </td>
+    </tr>`).join(''));
 }
 async function deleteClient(id){
   if(!confirm('Remove this client?'))return;
@@ -3919,8 +3934,319 @@ function updateClientStats(){const s=(id,v)=>{const el=document.getElementById(i
 function filterClients(q){renderClientTable(window.clients.filter(c=>(c.first+' '+c.last).toLowerCase().includes(q.toLowerCase())||(c.facilityName||'').toLowerCase().includes(q.toLowerCase())||(c.diagnosis||'').toLowerCase().includes(q.toLowerCase())));}
 function filterClientsByFacility(id){renderClientTable(id?window.clients.filter(c=>c.facilityId===id):window.clients);}
 function refreshClientFilters(){const sel=document.getElementById('clientFacilityFilter');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">All Facilities</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));sel.value=cur;}
+function openClientProfile(id){
+  const c=window.clients.find(x=>x.id===id);if(!c)return;
+  // Hide list view elements, show profile
+  document.getElementById('clTabList').style.display='none';
+  document.getElementById('clTabLinks').style.display='none';
+  document.getElementById('clTabCare').style.display='none';
+  document.getElementById('clTabs').style.display='none';
+  const profileView=document.getElementById('clientProfileView');
+  profileView.style.display='block';
+  profileView.innerHTML=buildClientProfileHtml(c);
+}
+
+function closeClientProfile(){
+  document.getElementById('clientProfileView').style.display='none';
+  document.getElementById('clTabs').style.display='flex';
+  // Restore whichever tab was active — default to list
+  switchClTab(document.querySelector('#clTabs .tab'), 'List');
+}
+
+function buildClientProfileHtml(c){
+  const age=c.dob?Math.floor((new Date()-new Date(c.dob))/31557600000):'—';
+  const statusColor=c.status==='Active'?'var(--green)':c.status==='Discharged'?'var(--text3)':'var(--red)';
+  const statusClass=c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended';
+
+  // Linked delegation cases
+  const linkedCases=(window.delegationCases||[]).filter(dc=>dc.clientId===c.id);
+  const activeCase=linkedCases.find(dc=>dc.status==='Active');
+
+  // Credential info on assigned caregiver
+  const cg=window.caregivers.find(x=>x.id===c.caregiverId);
+
+  const infoBlock=(label,val,mono=false)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="label" style="margin-bottom:3px">${label}</div>
+      <div style="font-size:13px;color:${val&&val!=='—'?'var(--text)':'var(--text3)'};${mono?'font-family:var(--mono)':''}">${val||'—'}</div>
+    </div>`;
+
+  const sectionHeader=title=>`
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.09em;padding:20px 0 8px;border-bottom:2px solid var(--border2);margin-bottom:4px">${title}</div>`;
+
+  return `
+  <!-- Profile Header -->
+  <div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+    <button class="btn btn-ghost btn-sm" onclick="closeClientProfile()">← Back to Clients</button>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0">
+          ${c.first.charAt(0)}${c.last.charAt(0)}
+        </div>
+        <div>
+          <h3 style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:4px">${c.first} ${c.last}</h3>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="status ${statusClass}"><span class="status-dot"></span>${c.status}</span>
+            ${c.dob?`<span style="font-size:12px;color:var(--text3)">${age} years old · DOB: ${c.dob}</span>`:''}
+            ${c.facilityName&&c.facilityName!=='—'?`<span style="font-size:12px;color:var(--text3)">📍 ${c.facilityName}</span>`:''}
+          </div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">✏ Edit Profile</button>
+          <button class="btn btn-primary btn-sm" onclick="openNewCaseModal();setTimeout(()=>{const s=document.getElementById('ncClient');if(s){s.value='${c.id}';onNcClientChange(s);}},200)">+ New Case</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Tabs -->
+  <div class="tabs" id="clientProfileTabs" style="margin-bottom:24px">
+    <div class="tab active" onclick="switchClientProfileTab(this,'Overview')">Overview</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'Medical')">Medical Info</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'Medications')">Medications</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'Cases')">Delegation Cases</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'Contacts')">Contacts</div>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div id="cpTabOverview">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="stat-card">
+        <div class="label" style="margin-bottom:8px">Assigned Caregiver</div>
+        ${cg?`<div style="font-size:14px;font-weight:600;color:var(--text)">${cg.first} ${cg.last}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">${cg.credType||'—'} · ${cg.certExpiry?'Exp: '+cg.certExpiry:'No expiry on file'}</div>
+        <div style="margin-top:8px"><span class="status ${cg.certExpired?'status-suspended':cg.certExpiring?'status-pending':'status-active'}" style="font-size:10px"><span class="status-dot"></span>${cg.certExpired?'Credential Expired':cg.certExpiring?'Expiring Soon':'Credential Current'}</span></div>`
+        :'<div style="font-size:13px;color:var(--text3)">No caregiver assigned</div>'}
+      </div>
+      <div class="stat-card">
+        <div class="label" style="margin-bottom:8px">Active Delegation Case</div>
+        ${activeCase?`<div style="font-size:13px;font-weight:600;color:var(--text)">${(activeCase.tasks||[]).filter(t=>t.status==='Active').length} active task${(activeCase.tasks||[]).filter(t=>t.status==='Active').length===1?'':'s'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Reassess: ${activeCase.reassessDate||'Not set'}</div>
+        <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="closeClientProfile();showPage('cases');setTimeout(()=>openCaseDetail('${activeCase.id}'),150)">View Case →</button></div>`
+        :'<div style="font-size:13px;color:var(--text3)">No active case</div><div style="margin-top:8px"><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openNewCaseModal();setTimeout(()=>{const s=document.getElementById(\'ncClient\');if(s){s.value=\'${c.id}\';onNcClientChange(s);}},200)">Create Case →</button></div>'}
+      </div>
+      <div class="stat-card">
+        <div class="label" style="margin-bottom:8px">Facility</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${c.facilityName||'Not assigned'}</div>
+        ${(()=>{const fac=window.facilities.find(f=>f.id===c.facilityId);return fac?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${fac.type||''}</div><div style="font-size:11px;color:var(--text3)">${fac.phone||''}</div>`:'';})()}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Personal Information</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${sectionHeader('Identity')}
+          ${infoBlock('Full Name',`${c.first} ${c.last}`)}
+          ${infoBlock('Date of Birth',c.dob,true)}
+          ${infoBlock('Age',age?age+' years':null)}
+          ${infoBlock('Gender',c.gender)}
+          ${infoBlock('Address',c.address)}
+          ${sectionHeader('Identifiers')}
+          ${infoBlock('ACES Client ID',c.acesId,true)}
+          ${infoBlock('DSHS Client ID',c.dshsId,true)}
+          ${infoBlock('Medicare / Medicaid #',c.medicaid,true)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Care Summary</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${sectionHeader('Diagnosis')}
+          ${infoBlock('Primary Diagnosis',c.diagnosis)}
+          ${infoBlock('Secondary Diagnoses',c.diagnosisSecondary)}
+          ${sectionHeader('Known Allergies')}
+          <div style="padding:10px 14px;background:${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'var(--red-dim)':'var(--green-dim)'};border:1px solid ${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'#e0525230':'#2dba7a30'};border-radius:var(--radius-sm);font-size:13px;color:${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'var(--red)':'var(--green)'};margin-top:8px">
+            ${c.allergies||'Not recorded'}
+          </div>
+          ${sectionHeader('Delegation Requirements')}
+          ${infoBlock('Tasks Requiring Delegation',c.delegationReq)}
+          ${infoBlock('RN Management Start Date',c.rnStartDate,true)}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MEDICAL -->
+  <div id="cpTabMedical" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Physician & Provider</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${sectionHeader('Primary Physician')}
+          ${infoBlock('Physician Name',c.physician)}
+          ${infoBlock('Physician Phone',c.physicianPhone,true)}
+          ${infoBlock('Clinic / Office Address',c.physicianAddress)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Diagnoses & Allergies</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${sectionHeader('Diagnoses')}
+          ${infoBlock('Primary Diagnosis',c.diagnosis)}
+          ${infoBlock('Secondary Diagnoses',c.diagnosisSecondary)}
+          ${sectionHeader('Allergies')}
+          <div style="padding:12px 14px;background:${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'var(--red-dim)':'var(--green-dim)'};border:1px solid ${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'#e0525230':'#2dba7a30'};border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:${c.allergies&&c.allergies.toUpperCase()!=='NKDA'?'var(--red)':'var(--green)'}">
+            ⚠ ${c.allergies||'Not recorded'}
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Care Plan Summary</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${c.carePlan?`<div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.7">${c.carePlan}</div>`
+          :'<div style="color:var(--text3);font-size:13px">No care plan on file. Edit the client profile to add one.</div>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MEDICATIONS -->
+  <div id="cpTabMedications" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header">
+          <span style="font-size:13px;font-weight:600">Current Medications</span>
+          <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
+        </div>
+        <div class="card-body" style="padding:16px 24px">
+          ${c.medications?`<div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.8">${c.medications}</div>`
+          :'<div style="color:var(--text3);font-size:13px">No medications on file.</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Pharmacy</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Pharmacy Name',c.pharmacy)}
+          ${infoBlock('Pharmacy Phone',c.pharmacyPhone,true)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">PRN / Medication Notes</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${c.medNotes?`<div style="font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.7">${c.medNotes}</div>`
+          :'<div style="color:var(--text3);font-size:13px">No PRN notes on file.</div>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CASES -->
+  <div id="cpTabCases" style="display:none">
+    ${linkedCases.length===0
+      ?`<div class="card"><div class="empty-state" style="padding:56px">
+          <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 6V4a4 4 0 0 1 8 0v2" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <h4>No delegation cases</h4><p>No delegation cases have been created for this client.</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openNewCaseModal();setTimeout(()=>{const s=document.getElementById('ncClient');if(s){s.value='${c.id}';onNcClientChange(s);}},200)">+ Create Case</button>
+        </div></div>`
+      :`<div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Delegation Cases</span><span class="chip">${linkedCases.length} case${linkedCases.length===1?'':'s'}</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Status</th><th>Caregiver</th><th>Active Tasks</th><th>Reassess Due</th><th>Started</th><th></th></tr></thead>
+          <tbody>${linkedCases.map(dc=>{
+            const activeTasks=(dc.tasks||[]).filter(t=>t.status==='Active').length;
+            const totalTasks=(dc.tasks||[]).length;
+            const overdueReassess=dc.reassessDate&&new Date(dc.reassessDate)<new Date();
+            const statusMap={'Draft':'status-draft','Pending Consent':'status-pending','Active':'status-active','Requires Reassessment':'status-reassess','Suspended':'status-suspended','Closed':'status-closed'};
+            return `<tr>
+              <td><span class="status ${statusMap[dc.status]||'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${dc.status}</span></td>
+              <td style="font-size:12.5px">${dc.caregiverName}</td>
+              <td style="font-size:12px">${activeTasks}/${totalTasks} active</td>
+              <td style="font-size:11.5px;font-family:var(--mono);${overdueReassess?'color:var(--red);font-weight:600':''}">${dc.reassessDate||'—'}</td>
+              <td style="font-size:11.5px;font-family:var(--mono);color:var(--text3)">${dc.startDate||'—'}</td>
+              <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="closeClientProfile();showPage('cases');setTimeout(()=>openCaseDetail('${dc.id}'),150)">Open →</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>`}
+
+    ${linkedCases.length>0?`
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Reassessment Schedule</span></div>
+      <div class="card-body" style="padding:16px 24px">
+        ${(()=>{
+          const allDates=linkedCases.flatMap(dc=>(dc.reassessSchedule||[]).map(r=>({...r,caseName:dc.caregiverName})));
+          if(!allDates.length) return '<div style="color:var(--text3);font-size:13px">No reassessment dates scheduled.</div>';
+          return allDates.sort((a,b)=>new Date(a.date)-new Date(b.date)).map(r=>{
+            const overdue=r.date&&new Date(r.date)<new Date()&&!r.completed;
+            const color=r.completed?'var(--green)':overdue?'var(--red)':r.type==='compulsory'?'var(--amber)':'var(--text2)';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="font-size:12.5px;color:${color};font-weight:${overdue||r.type==='compulsory'?'600':'400'}">${r.label}</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11.5px;font-family:var(--mono);color:${color}">${r.date}</span>
+                <span class="status ${r.completed?'status-active':overdue?'status-suspended':r.type==='compulsory'?'status-pending':'status-draft'}" style="font-size:10px"><span class="status-dot"></span>${r.completed?'Done':overdue?'Overdue':r.type==='compulsory'?'Compulsory':'Scheduled'}</span>
+              </div>
+            </div>`;
+          }).join('');
+        })()}
+      </div>
+    </div>`:''}
+  </div>
+
+  <!-- TAB: CONTACTS -->
+  <div id="cpTabContacts" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Emergency Contact</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Contact Name',c.emergencyName)}
+          ${infoBlock('Relationship',c.emergencyRel)}
+          ${infoBlock('Phone',c.emergencyPhone,true)}
+          ${infoBlock('Legal Guardian',c.guardian)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Assigned Caregiver</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${cg?`
+            ${infoBlock('Name',`${cg.first} ${cg.last}`)}
+            ${infoBlock('Phone',cg.phone,true)}
+            ${infoBlock('Email',cg.email)}
+            ${infoBlock('Credential',cg.credType)}
+            ${infoBlock('Facility',cg.facilityName)}`
+          :'<div style="color:var(--text3);font-size:13px">No caregiver assigned to this client.</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Primary Physician</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Physician Name',c.physician)}
+          ${infoBlock('Phone',c.physicianPhone,true)}
+          ${infoBlock('Clinic Address',c.physicianAddress)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span style="font-size:13px;font-weight:600">Pharmacy</span></div>
+        <div class="card-body" style="padding:16px 24px">
+          ${infoBlock('Pharmacy Name',c.pharmacy)}
+          ${infoBlock('Phone',c.pharmacyPhone,true)}
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+function switchClientProfileTab(el,tab){
+  document.querySelectorAll('#clientProfileTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['Overview','Medical','Medications','Cases','Contacts'].forEach(t=>{
+    const d=document.getElementById('cpTab'+t);if(d)d.style.display='none';
+  });
+  const d=document.getElementById('cpTab'+tab);if(d)d.style.display='block';
+}
+
 function renderLinksTable(){const body=document.getElementById('clLinksBody');if(!body)return;const linked=window.clients.filter(c=>c.caregiverId);if(!linked.length){body.innerHTML='<div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div>';return;}body.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th></th></tr></thead><tbody>'+linked.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td>${c.caregiverName}</td><td>${c.facilityName}</td><td><span class="status status-active"><span class="status-dot"></span>Linked</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button></td></tr>`).join('')+'</tbody></table></div>';}
-function switchClTab(el,tab){document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Links','Care'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});const d=document.getElementById('clTab'+tab);if(d)d.style.display='block';if(tab==='Links')renderLinksTable();}
+function switchClTab(el,tab){
+  // Hide profile view if open
+  const pv=document.getElementById('clientProfileView');
+  if(pv) pv.style.display='none';
+  document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['List','Links','Care'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});
+  const d=document.getElementById('clTab'+tab);if(d)d.style.display='block';
+  if(tab==='Links')renderLinksTable();
+  if(tab==='List')renderClientTable(window.clients);
+}
 
 // ── DOCUMENTS FUNCTIONS ───────────────────────────
 function docsShowTab(tab){
