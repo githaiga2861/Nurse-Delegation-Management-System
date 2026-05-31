@@ -183,8 +183,202 @@ textarea.form-input{resize:vertical;min-height:80px}
 @media(max-width:900px){
   .form-row,.form-row-3{grid-template-columns:1fr}
 }
-/* ── MOBILE GUARD — disabled; app is mobile-responsive ── */
+/* ── MOBILE GUARD — disabled; app is mobile responsive ── */
 #mobile-guard{display:none!important}
+
+/* ═══════════════════════════════════════
+   MOBILE RESPONSIVE — world-class native feel
+═══════════════════════════════════════ */
+@media(max-width:860px){
+  /* Layout */
+  .app-layout{grid-template-columns:1fr;padding-bottom:72px}
+
+  /* Sidebar → bottom nav bar */
+  .sidebar{
+    position:fixed;left:0;right:0;top:auto;bottom:0;
+    width:100%;height:72px;
+    border-right:none;border-top:1px solid var(--border);
+    flex-direction:row;align-items:center;justify-content:space-around;
+    padding:0 4px;overflow:visible;z-index:200;
+    background:rgba(8,10,15,0.96);
+    backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+    box-shadow:0 -1px 0 var(--border),0 -8px 32px rgba(0,0,0,0.4);
+  }
+  .sidebar-section,.sidebar-bottom,.sidebar-logo{display:none}
+
+  .sidebar .nav-item{
+    flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;padding:8px 4px 6px;
+    font-size:9.5px;font-weight:500;letter-spacing:0.01em;
+    border-radius:0;margin:0;flex:1;height:72px;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:var(--text3);transition:color 0.15s,border-color 0.15s;
+  }
+  .sidebar .nav-item svg{width:22px;height:22px;opacity:1;margin-bottom:1px}
+  .sidebar .nav-item.active{
+    color:var(--blue);border-bottom-color:var(--blue);background:transparent;
+  }
+  .sidebar .nav-item:active{background:var(--surface);border-radius:var(--radius-sm)}
+
+  /* Main content */
+  .main{margin-left:0;width:100%}
+
+  /* Topbar */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    padding:12px 16px;height:auto;min-height:56px;
+    flex-direction:column;align-items:flex-start;
+    gap:10px;
+    background:rgba(8,10,15,0.96);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar-title{font-size:17px;font-weight:700;letter-spacing:-0.02em;color:var(--text)}
+  .topbar-actions{
+    display:flex;flex-wrap:wrap;gap:8px;
+    margin-left:0;width:100%;
+  }
+  .topbar-actions .btn{font-size:12px;padding:8px 14px;flex-shrink:0}
+  .topbar-actions .form-input{
+    width:100%!important;font-size:13px;
+    background:var(--bg2);border-color:var(--border2);
+  }
+  .topbar-actions .form-select{width:auto!important;min-width:130px}
+
+  /* Page content */
+  .page-content{padding:16px 16px 8px}
+
+  /* Stat grids */
+  .stat-grid,
+  [style*="grid-template-columns:repeat(6"],
+  [style*="grid-template-columns:repeat(5"],
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns:repeat(3"]{
+    grid-template-columns:1fr 1fr!important;
+    gap:10px!important;
+  }
+  .stat-card{padding:14px 16px;border-radius:var(--radius-sm)}
+  .stat-card .stat-val{font-size:1.5rem}
+  .stat-card .stat-icon{width:30px;height:30px;margin-bottom:10px}
+
+  /* Two-column content grids → single column */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:3fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr 1fr"],
+  [style*="grid-template-columns:2fr 1fr"]{
+    grid-template-columns:1fr!important;
+  }
+
+  /* Form rows */
+  .form-row,.form-row-3{grid-template-columns:1fr!important}
+
+  /* Cards */
+  .card{border-radius:var(--radius-sm)}
+  .card-header{
+    padding:14px 16px;flex-wrap:wrap;gap:8px;
+    position:sticky;top:0;z-index:2;
+    background:var(--bg2);
+  }
+  .card-body{padding:14px 16px}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -1px}
+  table{min-width:480px;font-size:12px}
+  table th{padding:10px 14px;font-size:10px}
+  table td{padding:12px 14px}
+
+  /* Modals */
+  .overlay{align-items:flex-end;padding:0}
+  .modal{
+    width:100%!important;max-width:100vw!important;
+    max-height:92vh;
+    border-radius:20px 20px 0 0!important;
+    border-bottom:none!important;
+    box-shadow:0 -4px 40px rgba(0,0,0,0.6);
+  }
+  .modal::before{
+    content:'';display:block;
+    width:36px;height:4px;border-radius:2px;
+    background:var(--border2);margin:12px auto -4px;
+  }
+  .modal-header{padding:16px 20px 14px;flex-wrap:wrap;gap:6px}
+  .modal-body{padding:16px 20px}
+  .modal-footer{
+    padding:12px 20px;
+    position:sticky;bottom:0;
+    background:var(--bg2);
+    border-top:1px solid var(--border);
+  }
+
+  /* Tabs */
+  .tabs{
+    overflow-x:auto;flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;gap:0;
+    padding:0 4px;
+    border-bottom:1px solid var(--border);
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex-shrink:0;font-size:12px;padding:10px 14px;white-space:nowrap}
+
+  /* Dashboard specific */
+  #dashStatGrid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+
+  /* Hero */
+  #hero{padding:120px 20px 80px}
+  h1{font-size:clamp(1.8rem,7vw,3rem)}
+  nav{padding:0 16px}
+  .btn-lg{padding:12px 20px;font-size:13px}
+
+  /* Doc cards in documents page */
+  [id="docsTabAll"] > div{grid-template-columns:1fr!important}
+  .doc-card{gap:10px;padding:12px 14px}
+
+  /* Compliance & alerts */
+  #compliancePageContent [style*="grid-column:span 2"]{grid-column:span 1!important}
+
+  /* ROS grid */
+  #nv_ros_grid{grid-template-columns:1fr 1fr!important}
+
+  /* LTCW rows */
+  #nv_ltcw_rows > div,
+  #nv_ltcw_pg2_rows > div,
+  #rsc_caregiversContainer > div{
+    grid-template-columns:1fr 1fr!important;gap:8px!important;
+  }
+
+  /* Pill / chip sizes */
+  .status{font-size:10px!important;padding:3px 8px!important}
+  .chip{font-size:10px!important}
+
+  /* Profile headers */
+  .avatar{width:44px;height:44px;font-size:16px}
+}
+
+@media(max-width:480px){
+  .stat-grid,
+  [style*="grid-template-columns:repeat(6"],
+  [style*="grid-template-columns:repeat(5"],
+  [style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns:repeat(3"],
+  [style*="grid-template-columns:repeat(2"]{
+    grid-template-columns:1fr 1fr!important;
+  }
+  #dashStatGrid{grid-template-columns:1fr 1fr!important}
+  .sidebar .nav-item{font-size:8.5px;padding:7px 2px 5px}
+  .sidebar .nav-item svg{width:20px;height:20px}
+  .page-content{padding:12px 12px 8px}
+  .topbar-title{font-size:15px}
+  .topbar{padding:10px 12px}
+}
+
+/* Touch-friendly tap targets */
+@media(hover:none) and (pointer:coarse){
+  .btn{min-height:40px}
+  .nav-item,.tab{cursor:pointer}
+  input,select,textarea{font-size:16px!important} /* prevents iOS zoom */
+}
 .mg-icon{width:68px;height:68px;border-radius:18px;background:linear-gradient(135deg,#3b7ff514,#8b6ef514);border:1px solid #3b7ff530;display:flex;align-items:center;justify-content:center;margin:0 auto 28px}
 .mg-title{font-size:clamp(1.5rem,5vw,2rem);font-weight:700;color:#e8eaf2;letter-spacing:-0.03em;line-height:1.2;margin-bottom:16px}
 .mg-accent{background:linear-gradient(135deg,#3b7ff5,#8b6ef5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -2265,6 +2459,51 @@ function docShell(name,info){
 function docShellGen(name,info,formId){
   return `<div class="doc-card" style="border-color:var(--blue-dim)" title="${name}"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name" style="color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${name}</div><div class="doc-info">${info}</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateModal('${formId}','${name}')">Generate</button></div>`;
 }
+
+function docShellGen2(code, name, description, formId, accentColor){
+  const colors = {
+    'var(--blue)':   { bg: 'var(--blue-glow)',   border: 'var(--blue-dim)',  text: 'var(--blue)'   },
+    'var(--amber)':  { bg: 'var(--amber-dim)',    border: '#d4873a40',        text: 'var(--amber)'  },
+    'var(--green)':  { bg: 'var(--green-dim)',    border: '#2dba7a40',        text: 'var(--green)'  },
+    'var(--purple)': { bg: 'var(--purple-dim)',   border: '#8b6ef540',        text: 'var(--purple)' },
+    'var(--red)':    { bg: 'var(--red-dim)',      border: '#e0525240',        text: 'var(--red)'    },
+  };
+  const c = colors[accentColor] || colors['var(--blue)'];
+  const fullName = `DSHS ${code} — ${name}`;
+  return `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:border-color 0.15s;cursor:default"
+       onmouseover="this.style.borderColor='${c.border}'" onmouseout="this.style.borderColor='var(--border)'">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:38px;height:38px;border-radius:var(--radius-sm);background:${c.bg};border:1px solid ${c.border};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:${c.text};flex-shrink:0;letter-spacing:-0.02em">${code.split(',')[0].trim()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3">${name}</div>
+        <div style="font-size:10px;font-weight:600;color:${c.text};letter-spacing:0.04em">DSHS ${code}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.6">${description}</div>
+    <div style="margin-top:2px">
+      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;background:${c.text === 'var(--red)' ? 'var(--red)' : ''}" onclick="openGenerateModal('${formId}','${fullName}')">
+        Generate Form →
+      </button>
+    </div>
+  </div>`;
+}
+
+function docShellComingSoon(name, prefix){
+  return `
+  <div style="background:var(--bg1);border:1px dashed var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:10px;opacity:0.55">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:38px;height:38px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div>
+      <div>
+        <div style="font-size:12.5px;font-weight:600;color:var(--text2)">${name}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${prefix}</div>
+      </div>
+    </div>
+    <div style="margin-top:2px">
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed" disabled>Coming Soon</button>
+    </div>
+  </div>`;
+}
 // ── PAGE RENDERERS ────────────────────────────────
 const pageRenderers = {};
 
@@ -2551,19 +2790,43 @@ pageRenderers.documents = () => {
 
   <!-- ALL DOCUMENTS TAB -->
   <div id="docsTabAll">
-    <p style="font-size:13px;color:var(--text3);margin-bottom:20px">Click <strong style="color:var(--text2)">Generate</strong> on any form to auto-fill it with client or caregiver data and move it to Drafts.</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-      ${docShellGen('13-678, Nurse Delegation: Instructions for Nursing Task','DSHS 13-678 · Rev. 06/2021','form-13678')}
-      ${docShell('Referral Form','DSHS · Not yet generated')}
-      ${docShellGen('10-217, Nurse Delegation: Credentials and Training Verification','DSHS 10-217 · Rev. 05/2026','form-10-217')}
-      ${docShellGen('13-678, Nurse Delegation: Consent for Delegation Process','DSHS 13-678 · Rev. 05/2025','form-13678-consent')}
-      ${docShellGen('13-678A, Nurse Delegation: PRN Medication','DSHS 13-678A · Rev. 07/2023','form-13678a')}
-      ${docShellGen('13-678B, Nurse Delegation: Assumption of Delegation','DSHS 13-678B · Rev. 09/2021','form-13678b')}
-      ${docShellGen('13-680, Nurse Delegation: Rescinding Delegation','DSHS 13-680 · Rev. 09/2021','form-13680')}
-      ${docShellGen('13-681, Nurse Delegation: Change in Medical Orders','DSHS 13-681 · Rev. 02/2022','form-13681')}
-      ${docShell('Request for Additional Unit','DSHS · Not yet generated')}
-      ${docShellGen('14-484, Nurse Delegation: Nursing Visit','DSHS 14-484 · Rev. 07/2023','form-14484')}
-      ${docShell('Billing Form','DSHS · Not yet generated')}
+    <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--blue);line-height:1.6">
+      <strong>Auto-delegation:</strong> Every form you generate automatically creates or updates a single delegation case per client — tasks, visit logs, consent status, medication orders, and reassessment schedules all merge intelligently. No duplicate cases are ever created.
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Core Delegation Forms</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        ${docShellGen2('13-678','Nurse Delegation: Instructions for Nursing Task','Defines the delegated task, step-by-step instructions, medications, and escalation rules. Creates/enriches the client\'s delegation case with tasks and instructions.','form-13678','var(--blue)')}
+        ${docShellGen2('13-678A','Nurse Delegation: PRN Medication','Documents as-needed medication orders with trigger symptoms and dosing rules. Each PRN order becomes a task on the client\'s delegation case.','form-13678a','var(--amber)')}
+        ${docShellGen2('13-678, Consent','Consent for Delegation Process','Records client or authorized representative consent. Marks the consent fields on the delegation case as signed and moves the case to Active.','form-13678-consent','var(--green)')}
+        ${docShellGen2('13-678B','Assumption of Delegation','Used when a new RN assumes delegation from another. Logs the assumption event on the client\'s delegation case timeline.','form-13678b','var(--purple)')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Supervision & Order Change Forms</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        ${docShellGen2('14-484','Nurse Delegation: Nursing Visit','Records a supervision visit, caregiver competency review, and ROS. Auto-logs the visit on the case and advances the next-visit date.','form-14484','var(--blue)')}
+        ${docShellGen2('13-681','Change in Medical / Treatment Orders','Documents new or changed orders. Updates existing tasks or adds new ones to the delegation case; sets delegation status immediately or pending site visit.','form-13681','var(--amber)')}
+        ${docShellGen2('10-217','Credentials and Training Verification','Verifies caregiver credential and delegation training. Tied to the caregiver profile — does not create a case but is linked in the document archive.','form-10-217','var(--purple)')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Rescission Form</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        ${docShellGen2('13-680','Nurse Delegation: Rescinding Delegation','Permanently rescinds delegation. Closes the client\'s delegation case, archives all active tasks, and records the reason on the audit trail.','form-13680','var(--red)')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Coming Soon</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        ${docShellComingSoon('Referral Form','DSHS Referral')}
+        ${docShellComingSoon('Request for Additional Unit','DSHS')}
+        ${docShellComingSoon('Billing Form','DSHS')}
+      </div>
     </div>
   </div>
 
