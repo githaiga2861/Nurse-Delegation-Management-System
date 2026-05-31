@@ -2619,31 +2619,491 @@ pageRenderers.documents = () => {
 </div>`;
 };
 
-pageRenderers.compliance = () => `
+pageRenderers.compliance = () => {
+  setTimeout(() => renderCompliancePage(), 0);
+  return `
 <div class="topbar">
   <div class="topbar-title">Compliance Center</div>
-  <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Export Compliance Report</button></div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="renderCompliancePage()">↻ Refresh</button>
+  </div>
 </div>
-<div class="page-content">
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px">
-    ${statCard('green','Compliant Cases','—','')}${statCard('amber','Expiring Credentials','—','')}${statCard('red','Overdue Reassessments','—','')}${statCard('purple','Missing Signatures','—','')}
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-    <div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Credential Expirations</span></div><div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No expiring credentials</h4><p>Credential expiration alerts will appear here when caregivers are added.</p></div></div>
-    <div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Overdue Reassessments</span></div><div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M12 3H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-6-6z" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No overdue reassessments</h4><p>Delegation cases requiring reassessment will be flagged here automatically.</p></div></div>
-    <div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Missing Signatures</span></div><div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 17l4-4 3 3 7-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h4>No missing signatures</h4><p>Unsigned delegation forms and consent documents will appear here.</p></div></div>
-    <div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Incomplete Delegation Cases</span></div><div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No incomplete cases</h4><p>Cases with missing required elements will be flagged here for your attention.</p></div></div>
-  </div>
+<div class="page-content" id="compliancePageContent">
+  <div style="color:var(--text3);font-size:13px">Loading compliance data…</div>
 </div>`;
+};
 
-pageRenderers.alerts = () => `
+function renderCompliancePage() {
+  const container = document.getElementById('compliancePageContent');
+  if (!container) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in90  = new Date(today); in90.setDate(today.getDate() + 90);
+
+  // ── Compute compliance data ──────────────────────────────────────
+  const expiredCreds = (window.caregivers || []).filter(c => {
+    const ce = c.certExpiry ? new Date(c.certExpiry) : null;
+    const pe = c.cprExpiry  ? new Date(c.cprExpiry)  : null;
+    return (ce && ce < today) || (pe && pe < today);
+  });
+  const expiringCreds = (window.caregivers || []).filter(c => {
+    const ce = c.certExpiry ? new Date(c.certExpiry) : null;
+    const pe = c.cprExpiry  ? new Date(c.cprExpiry)  : null;
+    const certOk = ce && ce >= today && ce <= in90;
+    const cprOk  = pe && pe >= today && pe <= in90;
+    const certExp = ce && ce < today;
+    const cprExp  = pe && pe < today;
+    return (certOk || cprOk) && !certExp && !cprExp;
+  });
+
+  const activeCases = (window.delegationCases || []).filter(c => c.status === 'Active');
+  const overdueReassess = activeCases.filter(c => c.reassessDate && new Date(c.reassessDate) < today);
+  const dueReassess     = activeCases.filter(c => {
+    const rd = c.reassessDate ? new Date(c.reassessDate) : null;
+    return rd && rd >= today && rd <= in90;
+  });
+
+  const missingConsentCases = (window.delegationCases || []).filter(c =>
+    (c.status === 'Active' || c.status === 'Pending Consent') && (
+      (c.consentClient    && !c.consentClientSigned) ||
+      (c.consentGuardian  && !c.consentGuardianSigned) ||
+      (c.consentCaregiver && !c.consentCaregiverSigned)
+    )
+  );
+
+  const incompleteCases = (window.delegationCases || []).filter(c =>
+    c.status !== 'Closed' && c.status !== 'Archived' && (c.tasks || []).length === 0
+  );
+
+  const pendingDrafts = (window.formDrafts || []).filter(d => d.status && d.status.includes('Awaiting'));
+
+  const totalCases   = (window.delegationCases || []).length;
+  const compliantCount = activeCases.filter(c =>
+    !(c.reassessDate && new Date(c.reassessDate) < today) &&
+    !((c.consentClient && !c.consentClientSigned) || (c.consentGuardian && !c.consentGuardianSigned) || (c.consentCaregiver && !c.consentCaregiverSigned))
+  ).length;
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  const credRow = (cg) => {
+    const ce = cg.certExpiry ? new Date(cg.certExpiry) : null;
+    const pe = cg.cprExpiry  ? new Date(cg.cprExpiry)  : null;
+    const certExpired  = ce && ce < today;
+    const certExpiring = ce && ce >= today && ce <= in90;
+    const cprExpired   = pe && pe < today;
+    const cprExpiring  = pe && pe >= today && pe <= in90;
+    const certColor = certExpired ? 'var(--red)' : certExpiring ? 'var(--amber)' : 'var(--green)';
+    const cprColor  = cprExpired  ? 'var(--red)' : cprExpiring  ? 'var(--amber)' : 'var(--green)';
+    const certDays  = ce ? (certExpired ? -Math.floor((today-ce)/86400000) : Math.ceil((ce-today)/86400000)) : null;
+    const cprDays   = pe ? (cprExpired  ? -Math.floor((today-pe)/86400000) : Math.ceil((pe-today)/86400000)) : null;
+    return `<tr style="cursor:pointer" onclick="showPage('caregivers');setTimeout(()=>openCaregiverProfile('${cg.id}'),150)">
+      <td style="font-weight:600;color:var(--text)">${cg.first} ${cg.last}</td>
+      <td style="font-size:12px">${cg.credType||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${cg.facilityName||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:${certColor}">
+        ${cg.certExpiry||'—'}
+        ${certExpired?`<span style="font-size:10px;font-weight:700;margin-left:4px">⚠ ${Math.abs(certDays)}d ago</span>`:certExpiring?`<span style="font-size:10px;margin-left:4px">(${certDays}d)</span>`:''}
+      </td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:${cprColor}">
+        ${cg.cprExpiry||'—'}
+        ${cprExpired?`<span style="font-size:10px;font-weight:700;margin-left:4px">⚠ ${Math.abs(cprDays)}d ago</span>`:cprExpiring?`<span style="font-size:10px;margin-left:4px">(${cprDays}d)</span>`:''}
+      </td>
+      <td>
+        ${certExpired||cprExpired
+          ? `<span class="status status-suspended" style="font-size:10px"><span class="status-dot"></span>Action Required</span>`
+          : `<span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Expiring Soon</span>`}
+      </td>
+    </tr>`;
+  };
+
+  const reassessRow = (c) => {
+    const rd = new Date(c.reassessDate);
+    const overdue = rd < today;
+    const daysOver = overdue ? Math.floor((today - rd) / 86400000) : null;
+    const daysUntil = !overdue ? Math.ceil((rd - today) / 86400000) : null;
+    return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">
+      <td style="font-weight:600;color:var(--text)">${c.clientName}</td>
+      <td style="font-size:12px">${c.caregiverName}</td>
+      <td style="font-size:12px;color:var(--text3)">${c.facilityName||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:${overdue?'var(--red)':'var(--amber)'}">
+        ${c.reassessDate}
+        ${overdue?`<span style="font-size:10px;font-weight:700;margin-left:4px">⚠ ${daysOver}d overdue</span>`:`<span style="font-size:10px;margin-left:4px">(in ${daysUntil}d)</span>`}
+      </td>
+      <td><span class="status ${overdue?'status-suspended':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${overdue?'Overdue':'Due Soon'}</span></td>
+    </tr>`;
+  };
+
+  const consentRow = (c) => {
+    const missing = [
+      c.consentClient    && !c.consentClientSigned    ? 'Client' : null,
+      c.consentGuardian  && !c.consentGuardianSigned  ? 'Guardian' : null,
+      c.consentCaregiver && !c.consentCaregiverSigned ? 'Caregiver' : null,
+    ].filter(Boolean).join(', ');
+    return `<tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">
+      <td style="font-weight:600;color:var(--text)">${c.clientName}</td>
+      <td style="font-size:12px">${c.caregiverName}</td>
+      <td style="font-size:12px;color:var(--amber)">${missing}</td>
+      <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Pending</span></td>
+    </tr>`;
+  };
+
+  const emptyState = (icon, title, msg) => `
+    <div class="empty-state" style="padding:40px">
+      <div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h4 style="color:var(--green)">${title}</h4>
+      <p>${msg}</p>
+    </div>`;
+
+  const credRows = [...expiredCreds, ...expiringCreds].map(credRow).join('');
+  const reassessRows = [...overdueReassess, ...dueReassess].map(reassessRow).join('');
+  const consentRows  = missingConsentCases.map(consentRow).join('');
+
+  container.innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l4 4 8-8" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" style="color:var(--green)">${compliantCount}</div>
+      <div class="stat-label">Compliant Active Cases</div>
+      <div class="stat-change">${activeCases.length} active total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--${expiredCreds.length?'red':'amber'}-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--${expiredCreds.length?'red':'amber'})" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--${expiredCreds.length?'red':'amber'})" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" style="color:var(--${expiredCreds.length?'red':'amber'})">${expiredCreds.length + expiringCreds.length}</div>
+      <div class="stat-label">Credential Issues</div>
+      <div class="stat-change">${expiredCreds.length} expired · ${expiringCreds.length} expiring</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--${overdueReassess.length?'red':'amber'}-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="14" rx="2" stroke="var(--${overdueReassess.length?'red':'amber'})" stroke-width="1.5"/><path d="M5 1v3M13 1v3M2 7h14" stroke="var(--${overdueReassess.length?'red':'amber'})" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" style="color:var(--${overdueReassess.length?'red':'amber'})">${overdueReassess.length + dueReassess.length}</div>
+      <div class="stat-label">Reassessment Flags</div>
+      <div class="stat-change">${overdueReassess.length} overdue · ${dueReassess.length} due in 90d</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 13l3-3 2.5 2.5 5-6" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="stat-val" style="color:var(--purple)">${missingConsentCases.length + pendingDrafts.length}</div>
+      <div class="stat-label">Signature Gaps</div>
+      <div class="stat-change">${missingConsentCases.length} consent · ${pendingDrafts.length} form${pendingDrafts.length===1?'':'s'}</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+    <!-- Credential Expirations -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Credential &amp; CPR Expirations</span>
+        <span class="chip" style="${expiredCreds.length?'background:var(--red-dim);color:var(--red);border-color:#e0525230':''}">${expiredCreds.length + expiringCreds.length} issue${expiredCreds.length+expiringCreds.length===1?'':'s'}</span>
+      </div>
+      ${credRows
+        ? `<div class="table-wrap"><table>
+            <thead><tr><th>Caregiver</th><th>Credential</th><th>Facility</th><th>Cert Expiry</th><th>CPR Expiry</th><th>Status</th></tr></thead>
+            <tbody>${credRows}</tbody>
+          </table></div>`
+        : emptyState('✓','All credentials current','No expirations in the next 90 days.')}
+    </div>
+
+    <!-- Overdue Reassessments -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Reassessment Schedule</span>
+        <span class="chip" style="${overdueReassess.length?'background:var(--red-dim);color:var(--red);border-color:#e0525230':''}">${overdueReassess.length + dueReassess.length} flag${overdueReassess.length+dueReassess.length===1?'':'s'}</span>
+      </div>
+      ${reassessRows
+        ? `<div class="table-wrap"><table>
+            <thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Reassess Date</th><th>Status</th></tr></thead>
+            <tbody>${reassessRows}</tbody>
+          </table></div>`
+        : emptyState('✓','Reassessments on schedule','No overdue or upcoming reassessments in the next 90 days.')}
+    </div>
+
+    <!-- Missing Signatures -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Missing Consent Signatures</span>
+        <span class="chip" style="${missingConsentCases.length?'background:var(--purple-dim);color:var(--purple);border-color:#8b6ef530':''}">${missingConsentCases.length} case${missingConsentCases.length===1?'':'s'}</span>
+      </div>
+      ${consentRows
+        ? `<div class="table-wrap"><table>
+            <thead><tr><th>Client</th><th>Caregiver</th><th>Missing</th><th>Status</th></tr></thead>
+            <tbody>${consentRows}</tbody>
+          </table></div>`
+        : emptyState('✓','All consents signed','No unsigned consent documents.')}
+    </div>
+
+    <!-- Incomplete Cases -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Incomplete Delegation Cases</span>
+        <span class="chip" style="${incompleteCases.length?'background:var(--amber-dim);color:var(--amber);border-color:#d4873a30':''}">${incompleteCases.length} case${incompleteCases.length===1?'':'s'}</span>
+      </div>
+      ${incompleteCases.length
+        ? `<div class="table-wrap"><table>
+            <thead><tr><th>Client</th><th>Caregiver</th><th>Status</th><th>Issue</th><th></th></tr></thead>
+            <tbody>${incompleteCases.map(c=>`
+              <tr style="cursor:pointer" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">
+                <td style="font-weight:600;color:var(--text)">${c.clientName}</td>
+                <td style="font-size:12px">${c.caregiverName}</td>
+                <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
+                <td style="font-size:12px;color:var(--amber)">No delegated tasks added</td>
+                <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">Open →</button></td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>`
+        : emptyState('✓','All cases complete','Every active case has at least one delegated task.')}
+    </div>
+
+    <!-- Pending Form Signatures (full width) -->
+    <div class="card" style="grid-column:span 2">
+      <div class="card-header">
+        <span style="font-size:13px;font-weight:600">Draft Forms Awaiting Signature</span>
+        <span class="chip" style="${pendingDrafts.length?'background:var(--amber-dim);color:var(--amber);border-color:#d4873a30':''}">${pendingDrafts.length} form${pendingDrafts.length===1?'':'s'}</span>
+      </div>
+      ${pendingDrafts.length
+        ? `<div class="table-wrap"><table>
+            <thead><tr><th>Form</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Generated</th><th></th></tr></thead>
+            <tbody>${pendingDrafts.map(d=>`
+              <tr>
+                <td style="font-weight:600;color:var(--text);font-size:12px">${d.form_name}</td>
+                <td style="font-size:12px">${d.client_name}</td>
+                <td style="font-size:12px">${d.caregiver_name}</td>
+                <td style="font-size:12px;color:var(--text3)">${d.facility_name}</td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+                <td><button class="btn btn-primary btn-sm" onclick="showPage('documents');setTimeout(()=>docsShowTab('Drafts'),100)">Go to Drafts</button></td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>`
+        : emptyState('✓','No pending signatures','All generated forms have been signed and filed.')}
+    </div>
+
+  </div>`;
+}
+
+pageRenderers.alerts = () => {
+  setTimeout(() => renderAlertsPage(), 0);
+  return `
 <div class="topbar">
   <div class="topbar-title">Alerts Center</div>
-  <div class="topbar-actions"><button class="btn btn-ghost btn-sm">Mark All Read</button></div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="renderAlertsPage()">↻ Refresh</button>
+  </div>
 </div>
-<div class="page-content">
-  <div class="empty-state" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:120px 96px"><div class="empty-icon" style="width:60px;height:60px"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3a8 8 0 0 1 8 8v4l2 2H3l2-2v-4a8 8 0 0 1 8-8zM10 21a3 3 0 0 0 6 0" stroke="currentColor" stroke-width="1.5"/></svg></div><h4>No active alerts</h4><p>Compliance alerts, credential expirations, overdue reassessments, and missing signatures will appear here.</p></div>
+<div class="page-content" id="alertsPageContent">
+  <div style="color:var(--text3);font-size:13px">Loading alerts…</div>
 </div>`;
+};
+
+function renderAlertsPage() {
+  const container = document.getElementById('alertsPageContent');
+  if (!container) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in30 = new Date(today); in30.setDate(today.getDate() + 30);
+  const in60 = new Date(today); in60.setDate(today.getDate() + 60);
+  const in90 = new Date(today); in90.setDate(today.getDate() + 90);
+
+  const alerts = [];
+
+  // 1. Credential & CPR expirations
+  (window.caregivers || []).forEach(cg => {
+    const certExp = cg.certExpiry ? new Date(cg.certExpiry) : null;
+    const cprExp  = cg.cprExpiry  ? new Date(cg.cprExpiry)  : null;
+
+    if (certExp && certExp < today) {
+      alerts.push({ level: 'critical', category: 'Credential Expired',
+        title: `${cg.first} ${cg.last} — ${cg.credType || 'Credential'} EXPIRED`,
+        detail: `Expired ${cg.certExpiry}. Delegation must be suspended until renewed.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver', daysOverdue: Math.floor((today - certExp) / 86400000) });
+    } else if (certExp && certExp >= today && certExp <= in30) {
+      alerts.push({ level: 'high', category: 'Expiring in 30 Days',
+        title: `${cg.first} ${cg.last} — ${cg.credType || 'Credential'} expiring soon`,
+        detail: `Expires ${cg.certExpiry} — ${Math.ceil((certExp - today) / 86400000)} day(s) remaining.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver' });
+    } else if (certExp && certExp > in30 && certExp <= in60) {
+      alerts.push({ level: 'medium', category: 'Expiring in 60 Days',
+        title: `${cg.first} ${cg.last} — ${cg.credType || 'Credential'} expiring`,
+        detail: `Expires ${cg.certExpiry} — ${Math.ceil((certExp - today) / 86400000)} day(s) remaining.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver' });
+    } else if (certExp && certExp > in60 && certExp <= in90) {
+      alerts.push({ level: 'low', category: 'Expiring in 90 Days',
+        title: `${cg.first} ${cg.last} — ${cg.credType || 'Credential'} expiring`,
+        detail: `Expires ${cg.certExpiry} — ${Math.ceil((certExp - today) / 86400000)} day(s) remaining.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver' });
+    }
+
+    if (cprExp && cprExp < today) {
+      alerts.push({ level: 'critical', category: 'CPR Expired',
+        title: `${cg.first} ${cg.last} — CPR Certificate EXPIRED`,
+        detail: `CPR expired ${cg.cprExpiry}. Update before next supervision visit.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver', daysOverdue: Math.floor((today - cprExp) / 86400000) });
+    } else if (cprExp && cprExp >= today && cprExp <= in30) {
+      alerts.push({ level: 'high', category: 'CPR Expiring in 30 Days',
+        title: `${cg.first} ${cg.last} — CPR Certificate expiring soon`,
+        detail: `CPR expires ${cg.cprExpiry} — ${Math.ceil((cprExp - today) / 86400000)} day(s) remaining.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver' });
+    } else if (cprExp && cprExp > in30 && cprExp <= in90) {
+      alerts.push({ level: 'medium', category: 'CPR Expiring in 90 Days',
+        title: `${cg.first} ${cg.last} — CPR Certificate expiring`,
+        detail: `CPR expires ${cg.cprExpiry} — ${Math.ceil((cprExp - today) / 86400000)} day(s) remaining.`,
+        facility: cg.facilityName || '—',
+        action: () => { showPage('caregivers'); setTimeout(() => openCaregiverProfile(cg.id), 150); },
+        actionLabel: 'View Caregiver' });
+    }
+  });
+
+  // 2. Overdue reassessments
+  (window.delegationCases || []).filter(c => c.status === 'Active').forEach(c => {
+    const rd = c.reassessDate ? new Date(c.reassessDate) : null;
+    if (rd && rd < today) {
+      const daysOver = Math.floor((today - rd) / 86400000);
+      alerts.push({ level: daysOver > 30 ? 'critical' : 'high', category: 'Overdue Reassessment',
+        title: `${c.clientName} — Reassessment overdue by ${daysOver} day(s)`,
+        detail: `Due ${c.reassessDate}. Caregiver: ${c.caregiverName}. Facility: ${c.facilityName}.`,
+        facility: c.facilityName || '—',
+        action: () => { showPage('cases'); setTimeout(() => openCaseDetail(c.id), 150); },
+        actionLabel: 'Open Case', daysOverdue: daysOver });
+    } else if (rd && rd >= today && rd <= in30) {
+      alerts.push({ level: 'medium', category: 'Reassessment Due Soon',
+        title: `${c.clientName} — Reassessment due in ${Math.ceil((rd - today) / 86400000)} day(s)`,
+        detail: `Due ${c.reassessDate}. Caregiver: ${c.caregiverName}.`,
+        facility: c.facilityName || '—',
+        action: () => { showPage('cases'); setTimeout(() => openCaseDetail(c.id), 150); },
+        actionLabel: 'Open Case' });
+    }
+    (c.reassessSchedule || []).filter(r => !r.completed).forEach(r => {
+      const sd = r.date ? new Date(r.date) : null;
+      if (sd && sd < today) {
+        const daysOver = Math.floor((today - sd) / 86400000);
+        alerts.push({ level: r.type === 'compulsory' ? 'critical' : 'high',
+          category: r.type === 'compulsory' ? 'Compulsory Reassessment Overdue' : 'Reassessment Overdue',
+          title: `${c.clientName} — ${r.label} overdue by ${daysOver} day(s)`,
+          detail: `Was due ${r.date}. ${r.type === 'compulsory' ? '⚠ WA State law — compulsory.' : ''} Caregiver: ${c.caregiverName}.`,
+          facility: c.facilityName || '—',
+          action: () => { showPage('cases'); setTimeout(() => openCaseDetail(c.id), 150); },
+          actionLabel: 'Open Case', daysOverdue: daysOver });
+      }
+    });
+  });
+
+  // 3. Missing consent signatures
+  (window.delegationCases || []).filter(c => c.status === 'Active' || c.status === 'Pending Consent').forEach(c => {
+    const missing = [
+      c.consentClient    && !c.consentClientSigned    ? 'client consent' : null,
+      c.consentGuardian  && !c.consentGuardianSigned  ? 'guardian consent' : null,
+      c.consentCaregiver && !c.consentCaregiverSigned ? 'caregiver signature' : null,
+    ].filter(Boolean);
+    if (missing.length) {
+      alerts.push({ level: 'medium', category: 'Missing Signature',
+        title: `${c.clientName} — Missing ${missing.join(', ')}`,
+        detail: `Case status: ${c.status}. Caregiver: ${c.caregiverName}.`,
+        facility: c.facilityName || '—',
+        action: () => { showPage('cases'); setTimeout(() => openCaseDetail(c.id), 150); },
+        actionLabel: 'Open Case' });
+    }
+  });
+
+  // 4. Draft forms awaiting signature
+  const pendingDrafts = (window.formDrafts || []).filter(d => d.status && d.status.includes('Awaiting'));
+  if (pendingDrafts.length) {
+    alerts.push({ level: 'low', category: 'Pending Form Signatures',
+      title: `${pendingDrafts.length} draft form${pendingDrafts.length === 1 ? '' : 's'} awaiting signature`,
+      detail: pendingDrafts.slice(0, 3).map(d => `${d.form_name} · ${d.client_name}`).join('; ') + (pendingDrafts.length > 3 ? ` +${pendingDrafts.length - 3} more` : ''),
+      facility: '—',
+      action: () => { showPage('documents'); setTimeout(() => docsShowTab('Drafts'), 100); },
+      actionLabel: 'View Drafts' });
+  }
+
+  // 5. Active clients with no caregiver
+  const unassigned = (window.clients || []).filter(c => c.status === 'Active' && !c.caregiverId);
+  if (unassigned.length) {
+    alerts.push({ level: 'low', category: 'Unassigned Clients',
+      title: `${unassigned.length} active client${unassigned.length === 1 ? '' : 's'} without a caregiver`,
+      detail: unassigned.slice(0, 4).map(c => `${c.first} ${c.last}`).join(', ') + (unassigned.length > 4 ? ` +${unassigned.length - 4} more` : ''),
+      facility: '—', action: () => showPage('patients'), actionLabel: 'View Clients' });
+  }
+
+  const levelOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  alerts.sort((a, b) => (levelOrder[a.level] ?? 9) - (levelOrder[b.level] ?? 9) || (b.daysOverdue || 0) - (a.daysOverdue || 0));
+
+  window._alertActions = alerts.map(a => a.action);
+
+  const critical = alerts.filter(a => a.level === 'critical');
+  const high     = alerts.filter(a => a.level === 'high');
+  const medium   = alerts.filter(a => a.level === 'medium');
+  const low      = alerts.filter(a => a.level === 'low');
+
+  const levelCfg = {
+    critical: { color: 'var(--red)',    bg: 'var(--red-dim)',    border: '#e0525230', icon: '🚨' },
+    high:     { color: 'var(--amber)',  bg: 'var(--amber-dim)', border: '#d4873a30', icon: '⚠️' },
+    medium:   { color: 'var(--purple)', bg: 'var(--purple-dim)',border: '#8b6ef530', icon: '🔔' },
+    low:      { color: 'var(--blue)',   bg: 'var(--blue-glow)', border: '#3b7ff530', icon: 'ℹ️' },
+  };
+
+  const alertCard = (a, idx) => {
+    const cfg = levelCfg[a.level] || levelCfg.low;
+    return `<div style="display:flex;align-items:flex-start;gap:14px;padding:14px 18px;background:${cfg.bg};border:1px solid ${cfg.border};border-radius:var(--radius-sm);margin-bottom:10px">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${cfg.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:${cfg.color};margin-bottom:3px">${a.title}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">${a.detail}</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:600;padding:2px 9px;background:${cfg.color}22;color:${cfg.color};border-radius:99px">${a.category}</span>
+          ${a.facility !== '—' ? `<span style="font-size:11px;color:var(--text3)">📍 ${a.facility}</span>` : ''}
+          ${a.daysOverdue ? `<span style="font-size:11px;color:${cfg.color};font-weight:600">${a.daysOverdue}d overdue</span>` : ''}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:11px;border-color:${cfg.border};color:${cfg.color}" onclick="window._alertActions[${idx}]()">
+        ${a.actionLabel}
+      </button>
+    </div>`;
+  };
+
+  const statsHtml = `
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
+    <div class="stat-card"><div class="stat-icon" style="background:var(--red-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--red)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val" style="color:var(--red)">${critical.length||'0'}</div><div class="stat-label">Critical</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 3.5L14 6l-2.5 2.5.6 3.5L9 10.4 5.9 12l.6-3.5L4 6l3.5-.5z" stroke="var(--amber)" stroke-width="1.5" stroke-linejoin="round"/></svg></div><div class="stat-val" style="color:var(--amber)">${high.length||'0'}</div><div class="stat-label">High Priority</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--purple-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3a6 6 0 0 1 6 6v3l1 1H2l1-1v-3a6 6 0 0 1 6-6zM7 15a2 2 0 0 0 4 0" stroke="var(--purple)" stroke-width="1.5"/></svg></div><div class="stat-val" style="color:var(--purple)">${medium.length||'0'}</div><div class="stat-label">Medium Priority</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--blue)" stroke-width="1.5"/><path d="M9 8v5M9 6v.5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-val" style="color:var(--blue)">${low.length||'0'}</div><div class="stat-label">Informational</div></div>
+  </div>`;
+
+  if (!alerts.length) {
+    container.innerHTML = statsHtml + `<div class="card"><div class="empty-state" style="padding:80px">
+      <div class="empty-icon" style="width:60px;height:60px;background:var(--green-dim);border-color:#2dba7a30"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M4 13l6 6 12-12" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h4 style="color:var(--green)">All clear — no active alerts</h4>
+      <p>All credentials are current, reassessments are on schedule, and no signatures are pending.</p>
+    </div></div>`;
+    return;
+  }
+
+  const sectionHtml = (title, color, items, startIdx) => {
+    if (!items.length) return '';
+    return `<div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:${color}">${title}</div>
+        <span style="font-size:11px;font-weight:600;padding:2px 10px;background:${color}22;color:${color};border-radius:99px">${items.length}</span>
+      </div>
+      ${items.map((a, i) => alertCard(a, startIdx + i)).join('')}
+    </div>`;
+  };
+
+  let idx = 0;
+  container.innerHTML = statsHtml +
+    sectionHtml('🚨 Critical — Immediate Action Required', 'var(--red)', critical, idx) +
+    sectionHtml('⚠️ High Priority', 'var(--amber)', high, (idx += critical.length, idx)) +
+    sectionHtml('🔔 Medium Priority', 'var(--purple)', medium, (idx += high.length, idx)) +
+    sectionHtml('ℹ️ Informational', 'var(--blue)', low, (idx += medium.length, idx));
+}
 
 pageRenderers.archive = () => `
 <div class="topbar">
