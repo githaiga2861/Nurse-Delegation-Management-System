@@ -696,6 +696,10 @@ textarea.form-input{resize:vertical;min-height:80px}
           <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="5" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 5h14M6 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           Archive
         </div>
+        <div class="nav-item" onclick="showPage('sessions')">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="8" r="1.5" fill="currentColor"/><path d="M8 8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Sessions & 2FA
+        </div>
       </div>
       <div class="sidebar-bottom">
         <div class="avatar-pill">
@@ -719,7 +723,8 @@ textarea.form-input{resize:vertical;min-height:80px}
       <div id="page-documents"  style="display:none"></div>
       <div id="page-compliance" style="display:none"></div>
       <div id="page-alerts"     style="display:none"></div>
-      <div id="page-archive"    style="display:none"></div>
+      <div id="page-archive"     style="display:none"></div>
+      <div id="page-sessions"    style="display:none"></div>
     </div>
 
   </div>
@@ -4530,6 +4535,42 @@ function openGenerateFromCase14484(caseId){
   },100);
 }
 
+function openGenerateFromCase13678b(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13678bModal();
+    setTimeout(()=>{
+      const cs=document.getElementById('asmp_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onAsmpClientChange(cs);}
+    },200);
+  },100);
+}
+
+function openGenerateFromCase13680(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13680Modal();
+    setTimeout(()=>{
+      const cs=document.getElementById('rsc_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onRscClientChange(cs);}
+    },200);
+  },100);
+}
+
+function openGenerateFromCase13681(caseId){
+  const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
+  showPage('documents');
+  setTimeout(()=>{
+    open13681Modal();
+    setTimeout(()=>{
+      const cs=document.getElementById('chg_client');
+      if(cs&&c.clientId){cs.value=c.clientId;onChgClientChange(cs);}
+    },200);
+  },100);
+}
+
 function openGenerateFromCase13678a(caseId){
   const c=window.delegationCases.find(x=>x.id===caseId);if(!c)return;
   showPage('documents');
@@ -4540,6 +4581,127 @@ function openGenerateFromCase13678a(caseId){
       if(cs&&c.clientId){cs.value=c.clientId;onPrnClientChange(cs);}
     },200);
   },100);
+}
+
+function openMedDelegationModal(caseId, editId){
+  // Populate client select
+  const cs=document.getElementById('medDelClient');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  // Populate caregiver select
+  const cgs=document.getElementById('medDelCaregiver');
+  if(cgs){cgs.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  // Reset all fields
+  ['medDelName','medDelDose','medDelFrequency','medDelReason','medDelPhysician','medDelInstructions','medDelSideEffects','medDelReportRn','medDelReport911','medDelNotes','medDelPrnSymptoms','medDelPrnMax','medDelPrnInterval'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('medDelRoute').value='';
+  document.getElementById('medDelStatus').value='Active';
+  document.getElementById('medDelIsPrn').value='no';
+  document.getElementById('medDelPrnPanel').style.display='none';
+  document.getElementById('medDelStartDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('medDelEndDate').value='';
+  document.getElementById('medDelEditId').value=editId||'';
+  document.getElementById('medDelCaseId').value=caseId||'';
+  document.getElementById('medDelModalTitle').textContent=editId?'Edit Medication Delegation':'Delegate Medication';
+  // Auto-fill RN name
+  if(currentProfile?.full_name)document.getElementById('medDelRn').value=currentProfile.full_name;
+  document.getElementById('medDelDate').value=new Date().toISOString().split('T')[0];
+  // If opened from a case, pre-select client & caregiver
+  if(caseId){
+    const dc=window.delegationCases.find(x=>x.id===caseId);
+    if(dc){
+      if(cs&&dc.clientId)cs.value=dc.clientId;
+      if(cgs&&dc.caregiverId)cgs.value=dc.caregiverId;
+      const cl=window.clients.find(x=>x.id===dc.clientId);
+      if(cl&&cl.physician)document.getElementById('medDelPhysician').value=cl.physician;
+    }
+  }
+  openModal('medDelegationModal');
+}
+
+function onMedDelClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  if(cl.caregiverId){const cgs=document.getElementById('medDelCaregiver');if(cgs)cgs.value=cl.caregiverId;}
+  const physEl=document.getElementById('medDelPhysician');if(physEl&&cl.physician)physEl.value=cl.physician;
+}
+
+function onMedDelPrnChange(sel){
+  document.getElementById('medDelPrnPanel').style.display=sel.value==='yes'?'block':'none';
+}
+
+async function saveMedDelegation(){
+  const clientId=document.getElementById('medDelClient').value;
+  const medName=document.getElementById('medDelName').value.trim();
+  const dose=document.getElementById('medDelDose').value.trim();
+  const freq=document.getElementById('medDelFrequency').value.trim();
+  const reason=document.getElementById('medDelReason').value.trim();
+  if(!clientId){alert('Please select a client.');return;}
+  if(!medName){alert('Medication name is required.');return;}
+  if(!dose){alert('Dosage is required.');return;}
+  if(!freq){alert('Frequency is required.');return;}
+  if(!reason){alert('Reason / Indication is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const caregiverId=document.getElementById('medDelCaregiver').value;
+  const caseId=document.getElementById('medDelCaseId').value;
+  const isPrn=document.getElementById('medDelIsPrn').value==='yes';
+  const taskName=`${isPrn?'PRN: ':''}${medName} ${dose}`;
+  // Build task object to add to the delegation case
+  const now=new Date().toISOString();
+  const task={
+    id:'task-med-'+Date.now(),
+    name:taskName,
+    type:isPrn?'PRN Medication':'Medication Administration',
+    status:document.getElementById('medDelStatus').value,
+    instructions:[
+      document.getElementById('medDelInstructions').value,
+      `Route: ${document.getElementById('medDelRoute').value||'—'}`,
+      isPrn?`Trigger symptoms: ${document.getElementById('medDelPrnSymptoms').value||'—'}`:'',
+      isPrn?`Not to exceed: ${document.getElementById('medDelPrnMax').value||'—'}`:'',
+    ].filter(Boolean).join('\n'),
+    precautions:document.getElementById('medDelSideEffects').value,
+    thresholds:document.getElementById('medDelReport911').value,
+    escalation:document.getElementById('medDelReportRn').value,
+    version:'v1.0',
+    updatedDate:now.split('T')[0],
+    history:[],
+    createdAt:now,
+    medDetails:{
+      name:medName,dose,frequency:freq,
+      route:document.getElementById('medDelRoute').value,
+      reason,
+      physician:document.getElementById('medDelPhysician').value,
+      startDate:document.getElementById('medDelStartDate').value,
+      endDate:document.getElementById('medDelEndDate').value,
+      status:document.getElementById('medDelStatus').value,
+      isPrn,
+      prnSymptoms:document.getElementById('medDelPrnSymptoms').value,
+      prnMax:document.getElementById('medDelPrnMax').value,
+      prnInterval:document.getElementById('medDelPrnInterval').value,
+      notes:document.getElementById('medDelNotes').value,
+      delegatingRn:document.getElementById('medDelRn').value,
+      dateDelegated:document.getElementById('medDelDate').value,
+    }
+  };
+  // Find existing case or create via upsert
+  let dc=(window.delegationCases||[]).find(c=>c.clientId===clientId);
+  if(!dc&&caseId)dc=window.delegationCases.find(c=>c.id===caseId);
+  if(dc){
+    dc.tasks=dc.tasks||[];
+    dc.tasks.push(task);
+    dc.timeline=dc.timeline||[];
+    dc.timeline.push({date:now,action:`Medication delegated: ${taskName}`,by:currentProfile?.full_name||'RN'});
+    dc.updated_at=now;
+    initSupa();
+    if(supa&&currentUser)await supa.from('delegation_cases').update({tasks:JSON.stringify(dc.tasks),timeline:JSON.stringify(dc.timeline),updated_at:now}).eq('id',dc.id);
+  } else {
+    // No case yet — create one via upsertCaseFromForm
+    const fd={delegatedTask:taskName,steps:task.instructions,whatRnd:task.escalation,whatEmergency:task.thresholds};
+    await upsertCaseFromForm({clientId,caregiverId,formId:'form-13678',formData:fd});
+  }
+  closeModal('medDelegationModal');
+  refreshDashboard();
+  if(document.getElementById('casesTableBody')){updateCaseStats();renderCasesView();}
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none'&&dc)detail.innerHTML=buildCaseDetailHtml(dc);
+  alert(`✅ Medication delegated: ${taskName}\n\nAdded as a task on the delegation case for ${cl?cl.first+' '+cl.last:'this client'}.`);
 }
 
 function openGenerateFromCase(caseId,formId){
@@ -6423,6 +6585,235 @@ function switchClientProfileTab(el,tab){
   }
 }
 
+async function loadMedDelegations(clientId){
+  // Med delegations are stored as tasks of type 'Medication Administration' or 'PRN Medication' on the case
+  // This just ensures the in-memory store is current — already loaded via loadCasesFromSupabase
+}
+
+function buildMedDelegationsPanel(clientId){
+  const cases=(window.delegationCases||[]).filter(c=>c.clientId===clientId);
+  const medTasks=cases.flatMap(c=>(c.tasks||[]).filter(t=>t.type==='Medication Administration'||t.type==='PRN Medication'));
+  if(!medTasks.length)return '<div style="color:var(--text3);font-size:13px">No medication delegations on file. Use the Delegate Medication button above to add one.</div>';
+  return '<div style="display:grid;gap:10px">'+medTasks.map(t=>{
+    const md=t.medDetails||{};
+    return `<div style="padding:12px 14px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name}</div>
+        <span class="status ${t.status==='Active'?'status-active':t.status==='Discontinued'?'status-closed':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${t.status}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 14px;font-size:11.5px;color:var(--text3)">
+        ${md.dose?`<span><strong style="color:var(--text2)">Dose:</strong> ${md.dose}</span>`:''}
+        ${md.frequency?`<span><strong style="color:var(--text2)">Freq:</strong> ${md.frequency}</span>`:''}
+        ${md.route?`<span><strong style="color:var(--text2)">Route:</strong> ${md.route}</span>`:''}
+        ${md.reason?`<span style="grid-column:span 2"><strong style="color:var(--text2)">Reason:</strong> ${md.reason}</span>`:''}
+        ${md.startDate?`<span><strong style="color:var(--text2)">Since:</strong> ${md.startDate}</span>`:''}
+      </div>
+      ${t.instructions?`<div style="margin-top:8px;font-size:11.5px;color:var(--text3);line-height:1.6;white-space:pre-wrap">${t.instructions}</div>`:''}
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function loadMedImages(clientId){
+  const grid=document.getElementById('medImageGrid-'+clientId);
+  if(!grid)return;
+  try{
+    const stored=JSON.parse(localStorage.getItem('gy_med_images_'+clientId)||'[]');
+    renderMedImageGrid(clientId,stored);
+  }catch(e){}
+}
+
+function renderMedImageGrid(clientId,images){
+  const grid=document.getElementById('medImageGrid-'+clientId);
+  if(!grid)return;
+  if(!images.length){grid.innerHTML='<div style="font-size:12px;color:var(--text3)">No images uploaded yet.</div>';return;}
+  grid.innerHTML=images.map((img,i)=>`
+    <div style="position:relative;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:1;background:var(--bg1)">
+      <img src="${img.url}" alt="${img.name||'Medication'}" style="width:100%;height:100%;object-fit:cover">
+      <button onclick="deleteMedImage('${clientId}',${i})" style="position:absolute;top:4px;right:4px;background:var(--red);border:none;border-radius:50%;width:18px;height:18px;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+      <div style="padding:4px;font-size:10px;color:var(--text3);background:var(--bg2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${img.name||'Image'}</div>
+    </div>`).join('');
+}
+
+function handleMedImageUpload(event,clientId){
+  const files=[...event.target.files];
+  processMedImageFiles(files,clientId);
+}
+
+function handleMedImageDrop(event,clientId){
+  event.preventDefault();
+  document.getElementById('medImageDropZone-'+clientId).style.borderColor='var(--border2)';
+  const files=[...event.dataTransfer.files].filter(f=>f.type.startsWith('image/'));
+  processMedImageFiles(files,clientId);
+}
+
+function processMedImageFiles(files,clientId){
+  const existing=JSON.parse(localStorage.getItem('gy_med_images_'+clientId)||'[]');
+  let pending=files.length;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      existing.push({url:e.target.result,name:file.name,size:file.size,uploadedAt:new Date().toISOString()});
+      pending--;
+      if(pending===0){
+        localStorage.setItem('gy_med_images_'+clientId,JSON.stringify(existing));
+        renderMedImageGrid(clientId,existing);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function deleteMedImage(clientId,idx){
+  if(!confirm('Remove this image?'))return;
+  const images=JSON.parse(localStorage.getItem('gy_med_images_'+clientId)||'[]');
+  images.splice(idx,1);
+  localStorage.setItem('gy_med_images_'+clientId,JSON.stringify(images));
+  renderMedImageGrid(clientId,images);
+}
+
+function handleSignedDrop(event){
+  event.preventDefault();
+  document.getElementById('signedDropzone').style.borderColor='var(--border2)';
+  const files=[...event.dataTransfer.files];
+  if(files.length)handleSignedFile(files[0]);
+}
+
+function handleSignedFileSelect(event){
+  const file=event.target.files[0];
+  if(file)handleSignedFile(file);
+}
+
+function handleSignedFile(file){
+  const label=document.getElementById('matchFileLabel');
+  if(label)label.textContent=file.name;
+  const sel=document.getElementById('matchDraftSelect');
+  if(sel){
+    sel.innerHTML='<option value="">— Standalone (not linked to a draft) —</option>';
+    (window.formDrafts||[]).forEach(d=>sel.insertAdjacentHTML('beforeend',`<option value="${d.id}">${d.form_name} — ${d.client_name} (${new Date(d.created_at).toLocaleDateString('en-US')})</option>`));
+    if(window._preselectedDraftId){sel.value=window._preselectedDraftId;window._preselectedDraftId=null;}
+  }
+  window._pendingSignedFile=file;
+  openModal('matchDraftModal');
+}
+
+async function submitMatchDraft(){
+  const file=window._pendingSignedFile;
+  if(!file){closeModal('matchDraftModal');return;}
+  const draftId=document.getElementById('matchDraftSelect').value;
+  const draft=draftId?(window.formDrafts||[]).find(d=>d.id===draftId):null;
+  const btn=document.getElementById('matchSubmitBtn');
+  btn.textContent='Uploading…';btn.disabled=true;
+  const now=new Date().toISOString();
+  // Store as base64 locally (no Supabase storage bucket required)
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const signedDoc={
+      id:Date.now().toString(),
+      user_id:currentUser?.id,
+      form_id:draft?.form_id||'uploaded',
+      form_name:draft?.form_name||file.name,
+      client_id:draft?.client_id||null,
+      client_name:draft?.client_name||'—',
+      caregiver_id:draft?.caregiver_id||null,
+      caregiver_name:draft?.caregiver_name||'—',
+      facility_id:draft?.facility_id||null,
+      facility_name:draft?.facility_name||'—',
+      file_url:e.target.result,
+      file_name:file.name,
+      status:'Signed & Filed',
+      draft_id:draftId||null,
+      created_at:now,
+      updated_at:now
+    };
+    initSupa();
+    if(supa&&currentUser){
+      try{await supa.from('signed_documents').insert({...signedDoc,file_url:null,file_name:file.name});}catch(err){}
+    }
+    window.signedDocs=window.signedDocs||[];
+    window.signedDocs.unshift(signedDoc);
+    if(draft){draft.status='Signed & Filed';}
+    window._pendingSignedFile=null;
+    btn.textContent='Upload & Link';btn.disabled=false;
+    closeModal('matchDraftModal');
+    updateAlertsBadge();
+    renderDraftsTable(window.formDrafts);
+    loadSignedList();
+    refreshDashboard();
+    alert(`✅ Signed document uploaded and linked.\n\nForm: ${signedDoc.form_name}`);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadSignedList(){
+  initSupa();
+  if(!supa||!currentUser)return;
+  const {data}=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  window.signedDocs=data||[];
+  const tbody=document.getElementById('signedTableBody');if(!tbody)return;
+  const empty=document.getElementById('signedEmptyRow');
+  tbody.querySelectorAll('tr:not(#signedEmptyRow)').forEach(r=>r.remove());
+  const chip=document.getElementById('signedCountChip');if(chip)chip.textContent=(data||[]).length+' signed';
+  if(!(data||[]).length){if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
+  tbody.insertAdjacentHTML('afterbegin',(data||[]).map(d=>`
+    <tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${d.form_name}</td>
+      <td style="font-size:12.5px">${d.client_name||'—'}</td>
+      <td style="font-size:12.5px">${d.caregiver_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${d.facility_name||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+      <td><span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed & Filed</span></td>
+      <td>${d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px">View</a>`:''}</td>
+    </tr>`).join(''));
+}
+
+function editDraft(id){
+  const d=(window.formDrafts||[]).find(x=>x.id===id);if(!d)return;
+  const fd=d.form_data||{};
+  document.getElementById('editDraftId').value=id;
+  document.getElementById('editDraftFormName').textContent=d.form_name;
+  const s=(elId,val)=>{const el=document.getElementById(elId);if(el)el.value=val||'';};
+  s('editDelegatedTask',fd.delegatedTask||'');s('editExpectedOutcome',fd.expectedOutcome||'');
+  s('editMedications',fd.medications||'');s('editVerifDate',fd.verifDate||'');
+  s('editVerifName',fd.verifName||'');s('editVerifMethod',fd.verifMethod||'');
+  s('editSteps',fd.steps||'');s('editRndName',fd.rndName||'');s('editRndPhone',fd.rndPhone||'');
+  s('editWhatRnd',fd.whatRnd||'');s('editHcpName',fd.hcpName||'');s('editHcpPhone',fd.hcpPhone||'');
+  s('editWhatHcp',fd.whatHcp||'');s('editWhatEmergency',fd.whatEmergency||'');
+  s('editIpName',fd.ipName||'');s('editProviderOne',fd.providerOne||'');
+  openModal('editDraftModal');
+}
+
+async function saveEditedDraft(){
+  const id=document.getElementById('editDraftId').value;
+  const d=(window.formDrafts||[]).find(x=>x.id===id);if(!d)return;
+  const g=elId=>document.getElementById(elId)?.value||'';
+  d.form_data={...d.form_data,
+    delegatedTask:g('editDelegatedTask'),expectedOutcome:g('editExpectedOutcome'),
+    medications:g('editMedications'),verifDate:g('editVerifDate'),
+    verifName:g('editVerifName'),verifMethod:g('editVerifMethod'),
+    steps:g('editSteps'),rndName:g('editRndName'),rndPhone:g('editRndPhone'),
+    whatRnd:g('editWhatRnd'),hcpName:g('editHcpName'),hcpPhone:g('editHcpPhone'),
+    whatHcp:g('editWhatHcp'),whatEmergency:g('editWhatEmergency'),
+    ipName:g('editIpName'),providerOne:g('editProviderOne'),
+  };
+  d.updated_at=new Date().toISOString();
+  initSupa();
+  if(supa&&currentUser)await supa.from('form_drafts').update({form_data:d.form_data,updated_at:d.updated_at}).eq('id',id);
+  closeModal('editDraftModal');
+  renderDraftsTable(window.formDrafts);
+  alert('✅ Draft updated.');
+}
+
+async function deleteDraft(id){
+  if(!confirm('Permanently delete this draft?'))return;
+  initSupa();
+  if(supa&&currentUser)await supa.from('form_drafts').delete().eq('id',id);
+  window.formDrafts=(window.formDrafts||[]).filter(x=>x.id!==id);
+  renderDraftsTable(window.formDrafts);
+  updateAlertsBadge();
+  refreshDashboard();
+}
+
 function renderLinksTable(){const body=document.getElementById('clLinksBody');if(!body)return;const linked=window.clients.filter(c=>c.caregiverId);if(!linked.length){body.innerHTML='<div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div>';return;}body.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Caregiver</th><th>Facility</th><th>Status</th><th></th></tr></thead><tbody>'+linked.map(c=>`<tr><td style="font-weight:600;color:var(--text)">${c.first} ${c.last}</td><td>${c.caregiverName}</td><td>${c.facilityName}</td><td><span class="status status-active"><span class="status-dot"></span>Linked</span></td><td><button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button></td></tr>`).join('')+'</tbody></table></div>';}
 function switchClTab(el,tab){
   // Hide profile view if open
@@ -7962,6 +8353,512 @@ function build10217PrintHtml(fd, draft){
 </div>
 
 </body></html>`;
+}
+
+// ── MISSING MODAL OPENERS ─────────────────────────
+function open13678ConsentModal(){
+  const cs=document.getElementById('con_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['con_acesId','con_dob','con_address','con_clientPhone','con_diagnosis','con_allergies','con_facilityContact','con_facilityPhone','con_facilityFax','con_facilityEmail','con_hcpName','con_hcpPhone','con_clientSig','con_sigPhone','con_sigDate','con_verbalFrom','con_verbalRel','con_verbalDate','con_rnName','con_rnPhone','con_rnSig','con_rnDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('input[name="con_setting"]').forEach(r=>r.checked=false);
+  document.getElementById('con_sigDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('con_rnDate').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name){document.getElementById('con_rnName').value=currentProfile.full_name;document.getElementById('con_rnSig').value=currentProfile.full_name;}
+  openModal('generate13678ConsentModal');
+}
+
+function onConClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('con_acesId',cl.acesId||cl.dshsId||'');
+  s('con_dob',cl.dob||'');
+  s('con_address',cl.address||'');
+  s('con_clientPhone','');
+  s('con_diagnosis',cl.diagnosis||'');
+  s('con_allergies',cl.allergies||'');
+  s('con_hcpName',cl.physician||'');
+  s('con_hcpPhone',cl.physicianPhone||'');
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  if(fac){
+    s('con_facilityContact',fac.contactName||'');
+    s('con_facilityPhone',fac.phone||'');
+    s('con_facilityEmail',fac.email||'');
+    const settingMap={'Adult Family Home (AFH)':'Licensed Adult Family Home','Client Residential Home':'Private Home','Assisted Living Facility':'Licensed Assisted Living Facilities'};
+    const radio=document.querySelector(`input[name="con_setting"][value="${settingMap[fac.type]||''}"]`);
+    if(radio)radio.checked=true;
+  }
+}
+
+async function submitGenerate13678Consent(){
+  const clientId=document.getElementById('con_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const setting=document.querySelector('input[name="con_setting"]:checked')?.value||'';
+  const formData={
+    clientName:cl?`${cl.last}, ${cl.first}`:'',
+    acesId:document.getElementById('con_acesId').value||cl?.acesId||'',
+    dob:document.getElementById('con_dob').value||cl?.dob||'',
+    address:document.getElementById('con_address').value||cl?.address||'',
+    clientPhone:document.getElementById('con_clientPhone').value,
+    diagnosis:document.getElementById('con_diagnosis').value||cl?.diagnosis||'',
+    allergies:document.getElementById('con_allergies').value||cl?.allergies||'',
+    facilityContact:document.getElementById('con_facilityContact').value||fac?.contactName||'',
+    facilityPhone:document.getElementById('con_facilityPhone').value||fac?.phone||'',
+    facilityFax:document.getElementById('con_facilityFax').value,
+    facilityEmail:document.getElementById('con_facilityEmail').value||fac?.email||'',
+    setting,
+    hcpName:document.getElementById('con_hcpName').value||cl?.physician||'',
+    hcpPhone:document.getElementById('con_hcpPhone').value||cl?.physicianPhone||'',
+    clientSig:document.getElementById('con_clientSig').value,
+    sigPhone:document.getElementById('con_sigPhone').value,
+    sigDate:document.getElementById('con_sigDate').value,
+    verbalFrom:document.getElementById('con_verbalFrom').value,
+    verbalRel:document.getElementById('con_verbalRel').value,
+    verbalDate:document.getElementById('con_verbalDate').value,
+    rnName:document.getElementById('con_rnName').value||currentProfile?.full_name||'',
+    rnPhone:document.getElementById('con_rnPhone').value,
+    rnSig:document.getElementById('con_rnSig').value,
+    rnDate:document.getElementById('con_rnDate').value,
+  };
+  const btn=document.getElementById('con_submitBtn');btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13678-consent',form_name:'13-678, Consent for Delegation Process',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13678-consent',formData});
+  updateAlertsBadge();
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13678ConsentModal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert('✅ Consent for Delegation Process saved to Drafts.\n\nDelegation case consent status updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+}
+
+function open13680Modal(){
+  const cs=document.getElementById('rsc_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['rsc_acesId','rsc_dob','rsc_facilityName','rsc_facilityPhone','rsc_rK','rsc_caseManager','rsc_notifyDate','rsc_altPlan','rsc_rndSig','rsc_date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('rsc_setting').value='AFH';
+  ['rsc_rA','rsc_rB','rsc_rC','rsc_rD','rsc_rE','rsc_rF','rsc_rG','rsc_rH','rsc_rI','rsc_rJ'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  document.querySelectorAll('input[name="rsc_notifyMethod"]').forEach(r=>r.checked=false);
+  document.getElementById('rsc_date').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name)document.getElementById('rsc_rndSig').value=currentProfile.full_name;
+  // Init caregiver rows
+  const ct=document.getElementById('rsc_caregiversContainer');
+  if(ct){ct.innerHTML='';addRscCaregiverRow();addRscCaregiverRow();}
+  openModal('generate13680Modal');
+}
+
+function onRscClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('rsc_acesId',cl.acesId||cl.dshsId||'');
+  s('rsc_dob',cl.dob||'');
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  if(fac){s('rsc_facilityName',fac.name||'');s('rsc_facilityPhone',fac.phone||'');}
+  const settingEl=document.getElementById('rsc_setting');
+  if(settingEl&&fac){
+    if(fac.type.includes('Adult Family'))settingEl.value='AFH';
+    else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
+    else if(fac.type.includes('Residential'))settingEl.value='In-home';
+  }
+  // Pre-fill assigned caregiver in first row
+  const cg=window.caregivers.find(c=>c.id===cl.caregiverId);
+  if(cg){const firstNameInput=document.querySelector('#rsc_caregiversContainer .rsc-cg-name');if(firstNameInput)firstNameInput.value=`${cg.first} ${cg.last}`;}
+}
+
+let rscCgCount=0;
+function addRscCaregiverRow(){
+  rscCgCount++;
+  const ct=document.getElementById('rsc_caregiversContainer');if(!ct)return;
+  const idx=ct.children.length+1;
+  ct.insertAdjacentHTML('beforeend',`<div style="display:grid;grid-template-columns:2fr 3fr 2fr auto;gap:8px;align-items:center;margin-bottom:8px;padding:8px 10px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+    <input class="form-input rsc-cg-name" placeholder="${idx}. Caregiver name" style="font-size:12px">
+    <input class="form-input rsc-cg-med" placeholder="Medications / treatments rescinded" style="font-size:12px">
+    <input class="form-input rsc-cg-notes" placeholder="Notes" style="font-size:12px">
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:0 4px">✕</button>
+  </div>`);
+}
+
+async function submitGenerate13680(){
+  const clientId=document.getElementById('rsc_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const altPlan=document.getElementById('rsc_altPlan').value.trim();
+  if(!altPlan){alert('Alternative Plan (Field 14) is required.');return;}
+  const rndSig=document.getElementById('rsc_rndSig').value.trim();
+  if(!rndSig){alert('RND Signature is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const reasons=[];
+  const rMap={rA:'A. Client died',rB:"B. Client's condition no longer stable and predictable",rC:'C. Frequent staff turnover',rD:'D. Client / authorized representative requested',rE:'E. NA not competent',rF:'F. NA not willing',rG:'G. NA credential expired',rH:'H. NA no longer working with client',rI:'I. Client safety compromised',rJ:'J. Rescinding facility including clients and nurse assistant'};
+  Object.entries(rMap).forEach(([k,v])=>{if(document.getElementById('rsc_'+k)?.checked)reasons.push(v);});
+  const rK=document.getElementById('rsc_rK').value.trim();if(rK)reasons.push('K. Other: '+rK);
+  const cgRows=[...document.querySelectorAll('#rsc_caregiversContainer > div')].map(row=>{const inputs=row.querySelectorAll('input');return{name:inputs[0]?.value||'',med:inputs[1]?.value||'',notes:inputs[2]?.value||''};}).filter(r=>r.name.trim());
+  const notifyMethod=document.querySelector('input[name="rsc_notifyMethod"]:checked')?.value||'';
+  const formData={
+    clientName:cl?`${cl.last}, ${cl.first}`:'',
+    acesId:document.getElementById('rsc_acesId').value||cl?.acesId||'',
+    dob:document.getElementById('rsc_dob').value||cl?.dob||'',
+    setting:document.getElementById('rsc_setting').value,
+    facilityName:document.getElementById('rsc_facilityName').value||fac?.name||'',
+    facilityPhone:document.getElementById('rsc_facilityPhone').value||fac?.phone||'',
+    reasons,caregivers:cgRows,
+    caseManager:document.getElementById('rsc_caseManager').value,
+    notifyMethod,
+    notifyDate:document.getElementById('rsc_notifyDate').value,
+    altPlan,rndSig,
+    rescindDate:document.getElementById('rsc_date').value,
+    rndName:currentProfile?.full_name||'',
+  };
+  const btn=document.getElementById('rsc_submitBtn');btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13680',form_name:'13-680, Nurse Delegation: Rescinding Delegation',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13680',formData});
+  updateAlertsBadge();
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13680Modal');
+  showPage('documents');
+  setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert('✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case has been closed and all active tasks archived.\n\nPrint from the Drafts tab, then upload the signed copy.');
+}
+
+function open13681Modal(){
+  const cs=document.getElementById('chg_client');
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  ['chg_acesId','chg_dob','chg_notifyDate','chg_byWhom','chg_effectiveDate','chg_verifyName','chg_verifyTitle','chg_verifyDate','chg_taskOrder','chg_dateOrdered','chg_medName','chg_startDate','chg_stopDate','chg_dose','chg_frequency','chg_route','chg_notExceed','chg_medReason','chg_steps','chg_expectedOutcome','chg_rndName','chg_rndPhone','chg_whatRnd','chg_hcpName','chg_hcpPhone','chg_whatHcp','chg_whatEmergency','chg_rndSig','chg_date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('chg_setting').value='AFH';
+  ['chg_newMed','chg_changeMed','chg_newTask','chg_changeTask','chg_taskNewSheet','chg_taskUpdated','chg_taskNoChange','chg_teachingAid'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  document.querySelectorAll('input[name="chg_received"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[name="chg_medIs"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('input[name="chg_delegation"]').forEach(r=>r.checked=false);
+  document.getElementById('chg_verbalSection').style.display='none';
+  document.getElementById('chg_notifyDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('chg_date').value=new Date().toISOString().split('T')[0];
+  if(currentProfile?.full_name){document.getElementById('chg_rndName').value=currentProfile.full_name;document.getElementById('chg_rndSig').value=currentProfile.full_name;}
+  openModal('generate13681Modal');
+}
+
+function onChgClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel.value);if(!cl)return;
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('chg_acesId',cl.acesId||cl.dshsId||'');
+  s('chg_dob',cl.dob||'');
+  s('chg_hcpName',cl.physician||'');
+  s('chg_hcpPhone',cl.physicianPhone||'');
+  const settingEl=document.getElementById('chg_setting');
+  const fac=window.facilities.find(f=>f.id===cl.facilityId);
+  if(settingEl&&fac){
+    if(fac.type.includes('Adult Family'))settingEl.value='AFH';
+    else if(fac.type.includes('Assisted Living'))settingEl.value='ALF';
+    else if(fac.type.includes('Residential'))settingEl.value='In-home';
+  }
+}
+
+function onChgVerbalToggle(){
+  const verbal=document.getElementById('chg_receivedVerbal')?.checked;
+  document.getElementById('chg_verbalSection').style.display=verbal?'block':'none';
+}
+
+async function submitGenerate13681(){
+  const clientId=document.getElementById('chg_client').value;
+  if(!clientId){alert('Please select a client.');return;}
+  const notifyDate=document.getElementById('chg_notifyDate').value;
+  if(!notifyDate){alert('Date RND Was Notified (Field 5) is required.');return;}
+  const rndSig=document.getElementById('chg_rndSig').value.trim();
+  if(!rndSig){alert('RND Signature is required.');return;}
+  const cl=window.clients.find(x=>x.id===clientId);
+  const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+  const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const val=id=>document.getElementById(id)?.value||'';
+  const chkd=id=>document.getElementById(id)?.checked||false;
+  const formData={
+    clientName:cl?`${cl.last}, ${cl.first}`:'',
+    acesId:val('chg_acesId')||cl?.acesId||'',
+    dob:val('chg_dob')||cl?.dob||'',
+    setting:val('chg_setting'),
+    notifyDate,
+    byWhom:val('chg_byWhom'),
+    orderChanges:{newMed:chkd('chg_newMed'),changeMed:chkd('chg_changeMed'),newTask:chkd('chg_newTask'),changeTask:chkd('chg_changeTask')},
+    receivedMethod:document.querySelector('input[name="chg_received"]:checked')?.value||'',
+    effectiveDate:val('chg_effectiveDate'),
+    verifyName:val('chg_verifyName'),
+    verifyTitle:val('chg_verifyTitle'),
+    verifyDate:val('chg_verifyDate'),
+    taskNewSheet:chkd('chg_taskNewSheet'),
+    taskUpdated:chkd('chg_taskUpdated'),
+    taskNoChange:chkd('chg_taskNoChange'),
+    taskOrder:val('chg_taskOrder'),
+    medIs:document.querySelector('input[name="chg_medIs"]:checked')?.value||'',
+    dateOrdered:val('chg_dateOrdered'),
+    medName:val('chg_medName'),
+    startDate:val('chg_startDate'),
+    stopDate:val('chg_stopDate'),
+    dose:val('chg_dose'),
+    frequency:val('chg_frequency'),
+    route:val('chg_route'),
+    notExceed:val('chg_notExceed'),
+    medReason:val('chg_medReason'),
+    steps:val('chg_steps'),
+    expectedOutcome:val('chg_expectedOutcome'),
+    rndName:val('chg_rndName')||currentProfile?.full_name||'',
+    rndPhone:val('chg_rndPhone'),
+    whatRnd:val('chg_whatRnd'),
+    hcpName:val('chg_hcpName')||cl?.physician||'',
+    hcpPhone:val('chg_hcpPhone')||cl?.physicianPhone||'',
+    whatHcp:val('chg_whatHcp'),
+    whatEmergency:val('chg_whatEmergency'),
+    teachingAid:chkd('chg_teachingAid'),
+    delegateImmediately:document.getElementById('chg_delegateImmediate')?.checked||false,
+    siteVisitRequired:document.getElementById('chg_delegateSiteVisit')?.checked||false,
+    rndSig,signDate:val('chg_date'),
+  };
+  const btn=document.getElementById('chg_submitBtn');btn.textContent='Generating…';btn.disabled=true;
+  const now=new Date().toISOString();
+  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13681',form_name:'13-681, Nurse Delegation: Change in Medical / Treatment Orders',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  initSupa();
+  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
+  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13681',formData});
+  updateAlertsBadge();
+  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  closeModal('generate13681Modal');
+  showPage('documents');
+  setTimeout(()=>{ docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
+  alert('✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case tasks updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+}
+
+// ── ACTIVE SESSIONS PAGE ──────────────────────────
+pageRenderers.sessions = () => {
+  setTimeout(()=>renderSessionsPage(),0);
+  return `
+<div class="topbar">
+  <div class="topbar-title">Active Sessions & Security</div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="renderSessionsPage()">↻ Refresh</button>
+  </div>
+</div>
+<div class="page-content" id="sessionsPageContent">
+  <div style="color:var(--text3);font-size:13px">Loading session data…</div>
+</div>`;
+};
+
+async function renderSessionsPage(){
+  const container=document.getElementById('sessionsPageContent');
+  if(!container)return;
+  initSupa();
+  let sessions=[];
+  if(supa&&currentUser){
+    try{
+      const {data}=await supa.auth.admin?.listSessions?.()??{data:null};
+      sessions=data||[];
+    }catch(e){sessions=[];}
+  }
+  const deviceIcon=ua=>{
+    if(!ua)return '🖥️';
+    const u=ua.toLowerCase();
+    if(u.includes('mobile')||u.includes('android')||u.includes('iphone'))return '📱';
+    if(u.includes('tablet')||u.includes('ipad'))return '📱';
+    if(u.includes('chromebook')||u.includes('cros'))return '💻';
+    return '🖥️';
+  };
+  const now=new Date();
+  // Since Supabase admin session list isn't available client-side without service key,
+  // we show the current session info and a last-sign-in from the user object
+  const profile=currentProfile||{};
+  const lastSignIn=currentUser?.last_sign_in_at?new Date(currentUser.last_sign_in_at):null;
+  const signedInAge=lastSignIn?Math.round((now-lastSignIn)/60000):null;
+  const ageLabel=signedInAge!=null?(signedInAge<60?signedInAge+'m ago':Math.round(signedInAge/60)+'h ago'):'—';
+  container.innerHTML=`
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:28px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--green)" stroke-width="1.5"/><path d="M5 9l3 3 5-5" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-val" style="color:var(--green)">Active</div>
+      <div class="stat-label">Current Session</div>
+      <div class="stat-change">Signed in ${ageLabel}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="10" rx="2" stroke="var(--blue)" stroke-width="1.5"/><path d="M5 5V4a3 3 0 0 1 8 0v1" stroke="var(--blue)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val" style="color:var(--blue)">${profile.full_name||currentUser?.email||'—'}</div>
+      <div class="stat-label">Signed-in Account</div>
+      <div class="stat-change">Golden Years RN</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--amber-dim)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2 5v4c0 3.5 3 5.5 6.5 6 3.5-.5 6.5-2.5 6.5-6V5L9 1.5z" stroke="var(--amber)" stroke-width="1.5"/></svg></div>
+      <div class="stat-val" style="color:var(--amber)">${currentUser?.phone?'Enabled':'Not set'}</div>
+      <div class="stat-label">2FA / MFA Status</div>
+      <div class="stat-change">${currentUser?.phone?'Phone 2FA active':'No 2FA configured'}</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Current Session</span></div>
+      <div class="card-body" style="padding:20px 24px">
+        <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--green-dim);border:1px solid #2dba7a30;border-radius:var(--radius-sm);margin-bottom:16px">
+          <div style="font-size:28px">🖥️</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--green)">This Device — Active Now</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Last activity: ${ageLabel}</div>
+            <div style="font-size:11px;color:var(--text3)">User ID: <span style="font-family:var(--mono)">${currentUser?.id?.slice(0,16)||'—'}…</span></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px;color:var(--red)" onclick="if(confirm('Sign out of this session?'))signOut()">Sign Out</button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.7">
+          <strong style="color:var(--text2)">Account email:</strong> ${currentUser?.email||'—'}<br>
+          <strong style="color:var(--text2)">Last sign-in:</strong> ${lastSignIn?lastSignIn.toLocaleString('en-US'):'—'}<br>
+          <strong style="color:var(--text2)">Email verified:</strong> ${currentUser?.email_confirmed_at?'✓ Yes':'Not yet'}<br>
+          <strong style="color:var(--text2)">Provider:</strong> ${currentUser?.app_metadata?.provider||'email'}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Security Settings</span></div>
+      <div class="card-body" style="padding:20px 24px">
+        <div style="margin-bottom:20px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Two-Factor Authentication (2FA)</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:12px">
+            2FA adds a second verification step at sign-in. When enabled, you will be asked for a one-time code from your authenticator app after entering your password.
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="open2FASetupPanel()">
+              ${currentUser?.phone?'Manage 2FA':'Enable 2FA (TOTP)'}
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="openChangePasswordPanel()">Change Password</button>
+          </div>
+        </div>
+        <div id="twofaPanel" style="display:none;margin-top:16px;padding:16px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Set Up Authenticator App</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:12px">
+            1. Download <strong>Google Authenticator</strong> or <strong>Authy</strong> on your phone.<br>
+            2. In the app, tap <strong>Add Account → Scan QR Code</strong>.<br>
+            3. Scan the QR code that Supabase will email you, or enter your Supabase project URL to enable TOTP.<br>
+            4. Enter the 6-digit code from the app to verify.
+          </div>
+          <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:12px">
+            ⚠ Full TOTP enrollment requires enabling MFA in your Supabase project settings (Authentication → MFA). Contact your system administrator to activate this feature.
+          </div>
+          <div class="form-group" style="margin-bottom:10px"><label class="form-label">Enter 6-digit code from authenticator app</label><input class="form-input" id="totpCodeInput" placeholder="000000" maxlength="6" style="font-family:var(--mono);font-size:1.2rem;letter-spacing:0.2em;text-align:center"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="verifyTotpCode()">Verify & Enable</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('twofaPanel').style.display='none'">Cancel</button>
+          </div>
+        </div>
+        <div id="changePwPanel" style="display:none;margin-top:16px;padding:16px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Change Password</div>
+          <div class="form-group" style="margin-bottom:10px"><label class="form-label">New Password</label><input class="form-input" type="password" id="newPwInput" placeholder="At least 8 characters"></div>
+          <div class="form-group" style="margin-bottom:10px"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="newPwConfirm" placeholder="Repeat new password"></div>
+          <div id="pwChangeError" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="submitPasswordChange()">Update Password</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('changePwPanel').style.display='none'">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:span 2">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Session Security Tips</span></div>
+      <div class="card-body" style="padding:20px 24px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          ${[
+            ['🔒','Always sign out on shared devices','Never leave a session open on shared computers, tablets, or phones.'],
+            ['🔑','Use a strong unique password','Your password should be at least 12 characters with letters, numbers and symbols.'],
+            ['📱','Enable 2FA','Two-factor authentication significantly reduces the risk of unauthorized access.'],
+            ['🔔','Review sessions regularly','Check this page periodically to ensure no unexpected devices are signed in.'],
+            ['🚫','Do not share credentials','Never share your login credentials with other staff members.'],
+            ['📋','HIPAA compliance','This system contains protected health information. Unauthorized access is a federal violation.'],
+          ].map(([icon,title,desc])=>`
+          <div style="padding:14px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm)">
+            <div style="font-size:20px;margin-bottom:8px">${icon}</div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:4px">${title}</div>
+            <div style="font-size:11.5px;color:var(--text3);line-height:1.6">${desc}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function open2FASetupPanel(){
+  const p=document.getElementById('twofaPanel');
+  if(p)p.style.display=p.style.display==='none'?'block':'none';
+  const cp=document.getElementById('changePwPanel');if(cp)cp.style.display='none';
+}
+
+function openChangePasswordPanel(){
+  const p=document.getElementById('changePwPanel');
+  if(p)p.style.display=p.style.display==='none'?'block':'none';
+  const tp=document.getElementById('twofaPanel');if(tp)tp.style.display='none';
+}
+
+async function verifyTotpCode(){
+  const code=document.getElementById('totpCodeInput')?.value.trim();
+  if(!code||code.length!==6){alert('Please enter the 6-digit code from your authenticator app.');return;}
+  alert('⚠ TOTP verification requires the MFA feature enabled in your Supabase project.\n\nContact your system administrator to enable Multi-Factor Authentication in the Supabase dashboard under Authentication → MFA.');
+}
+
+async function submitPasswordChange(){
+  const newPw=document.getElementById('newPwInput')?.value||'';
+  const confirm=document.getElementById('newPwConfirm')?.value||'';
+  const errEl=document.getElementById('pwChangeError');
+  if(errEl)errEl.textContent='';
+  if(newPw.length<8){if(errEl)errEl.textContent='Password must be at least 8 characters.';return;}
+  if(newPw!==confirm){if(errEl)errEl.textContent='Passwords do not match.';return;}
+  initSupa();
+  if(!supa){alert('Not connected.');return;}
+  const {error}=await supa.auth.updateUser({password:newPw});
+  if(error){if(errEl)errEl.textContent=error.message;return;}
+  alert('✅ Password updated successfully. You will need to sign in again on other devices.');
+  document.getElementById('changePwPanel').style.display='none';
+  document.getElementById('newPwInput').value='';
+  document.getElementById('newPwConfirm').value='';
+}
+
+// ── MODAL DRAFT PERSISTENCE ───────────────────────
+const PERSISTENT_MODALS=['generateModal','generate14484Modal','generate13678aModal','generate13680Modal','generate13681Modal','generate13678ConsentModal','generate13678bModal','generate10217Modal','newCaseModal','facilityModal','caregiverModal','clientModal','medDelegationModal'];
+function _pageKey(){return 'gy_page_'+(currentUser?.id||'anon');}
+function _draftKey(modalId){return 'gy_draft_'+modalId+'_'+(currentUser?.id||'anon');}
+function saveModalDraft(modalId){
+  try{
+    const el=document.getElementById(modalId);if(!el)return;
+    const data={};
+    el.querySelectorAll('input,select,textarea').forEach(f=>{
+      if(f.id&&f.type!=='file'){
+        if(f.type==='checkbox'||f.type==='radio'){if(f.checked)data[f.id]=f.value||'true';}
+        else data[f.id]=f.value;
+      }
+    });
+    if(Object.keys(data).length)localStorage.setItem(_draftKey(modalId),JSON.stringify(data));
+  }catch(e){}
+}
+function hasDraftData(modalId){try{return !!localStorage.getItem(_draftKey(modalId));}catch(e){return false;}}
+function restoreModalDraft(modalId){
+  try{
+    const raw=localStorage.getItem(_draftKey(modalId));if(!raw)return;
+    const data=JSON.parse(raw);
+    Object.entries(data).forEach(([id,val])=>{
+      const el=document.getElementById(id);if(!el)return;
+      if(el.type==='checkbox'){el.checked=(val==='true'||el.value===val);}
+      else if(el.type==='radio'){if(el.value===val)el.checked=true;}
+      else el.value=val;
+    });
+  }catch(e){}
+}
+function clearModalDraft(modalId){try{localStorage.removeItem(_draftKey(modalId));}catch(e){}}
+function clearModalDraftAndReset(modalId){clearModalDraft(modalId);const el=document.getElementById(modalId);if(el){const badge=el.querySelector('.draft-restore-badge');if(badge)badge.remove();};}
+function attachModalDraftListeners(){
+  PERSISTENT_MODALS.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    ['input','change'].forEach(evt=>el.addEventListener(evt,()=>saveModalDraft(id)));
+  });
 }
 
 // ── SIGN OUT ──────────────────────────────────────
