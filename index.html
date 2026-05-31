@@ -1024,6 +1024,181 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- Medication Delegation Modal -->
+<div class="overlay" id="medDelegationModal">
+  <div class="modal" style="width:min(680px,95vw)">
+    <div class="modal-header">
+      <div>
+        <h4 id="medDelModalTitle">Delegate Medication</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Record a delegated medication order — reflects on client profile</p>
+      </div>
+      <button onclick="closeModal('medDelegationModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="medDelEditId">
+      <input type="hidden" id="medDelCaseId">
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Assignment</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Client *</label>
+            <select class="form-input form-select" id="medDelClient" onchange="onMedDelClientChange(this)">
+              <option value="">Select client…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Caregiver</label>
+            <select class="form-input form-select" id="medDelCaregiver">
+              <option value="">Select caregiver…</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Medication Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Medication Name *</label>
+            <input class="form-input" id="medDelName" placeholder="e.g. Metformin, Lisinopril">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dosage *</label>
+            <input class="form-input" id="medDelDose" placeholder="e.g. 500mg, 10mg">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Frequency *</label>
+            <input class="form-input" id="medDelFrequency" placeholder="e.g. Once daily, BID, TID">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Route</label>
+            <select class="form-input form-select" id="medDelRoute">
+              <option value="">Select…</option>
+              <option>PO (Oral)</option>
+              <option>Topical</option>
+              <option>Suppository</option>
+              <option>Eye Drops</option>
+              <option>Ear Drops</option>
+              <option>Nasal Spray</option>
+              <option>Inhaler</option>
+              <option>Injection</option>
+              <option>Patch</option>
+              <option>Sublingual</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Reason / Indication *</label>
+            <input class="form-input" id="medDelReason" placeholder="e.g. Type 2 Diabetes, Hypertension">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prescribing Physician</label>
+            <input class="form-input" id="medDelPhysician" placeholder="Auto-fills from client profile">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Special Instructions</label>
+          <textarea class="form-input" id="medDelInstructions" rows="2" placeholder="e.g. Take with food, monitor blood pressure, do not crush…"></textarea>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Delegation Period</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Date *</label>
+            <input class="form-input" type="date" id="medDelStartDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date (leave blank if ongoing)</label>
+            <input class="form-input" type="date" id="medDelEndDate">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Delegation Status</label>
+            <select class="form-input form-select" id="medDelStatus">
+              <option value="Active">Active</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Discontinued">Discontinued</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PRN Medication?</label>
+            <select class="form-input form-select" id="medDelIsPrn" onchange="onMedDelPrnChange(this)">
+              <option value="no">No — Scheduled</option>
+              <option value="yes">Yes — As Needed (PRN)</option>
+            </select>
+          </div>
+        </div>
+        <div id="medDelPrnPanel" style="display:none;background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:12px 14px;margin-top:4px">
+          <div class="label" style="margin-bottom:8px;color:var(--amber)">PRN Administration Details</div>
+          <div class="form-group">
+            <label class="form-label">Trigger Symptoms</label>
+            <textarea class="form-input" id="medDelPrnSymptoms" rows="2" placeholder="Describe symptoms that indicate this medication should be given…"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Not to Exceed</label>
+              <input class="form-input" id="medDelPrnMax" placeholder="e.g. 3 doses per 24 hours">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Min Interval Between Doses</label>
+              <input class="form-input" id="medDelPrnInterval" placeholder="e.g. 4 hours">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+        <div class="label" style="margin-bottom:12px">Safety & Reporting</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Side Effects to Watch For</label>
+            <textarea class="form-input" id="medDelSideEffects" rows="2" placeholder="Known side effects the caregiver should monitor…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">What to Report to RN</label>
+            <textarea class="form-input" id="medDelReportRn" rows="2" placeholder="Signs or symptoms requiring RN notification…"></textarea>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">What to Report to 911</label>
+          <textarea class="form-input" id="medDelReport911" rows="2" placeholder="Emergency signs requiring 911 call…"></textarea>
+        </div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:12px">Authorization</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Delegating RN *</label>
+            <input class="form-input" id="medDelRn" placeholder="Auto-fills from your profile">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date Delegated *</label>
+            <input class="form-input" type="date" id="medDelDate">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="medDelNotes" rows="2" placeholder="Any additional clinical notes…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('medDelegationModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveMedDelegation()">Save Medication Delegation</button>
+    </div>
+  </div>
+</div>
+
 <!-- New Case Modal -->
 <div class="overlay" id="newCaseModal">
   <div class="modal" style="width:min(700px,95vw)">
@@ -1726,6 +1901,7 @@ pageRenderers.cases = () => {
   <div class="topbar-actions">
     <input class="form-input" style="width:200px;padding:8px 14px;font-size:13px" placeholder="Search cases…" oninput="filterCases(this.value)">
     <select class="form-input form-select" style="width:auto;padding:8px 36px 8px 14px;font-size:13px" onchange="filterCasesByStatus(this.value)" id="caseStatusFilter"><option value="">All Statuses</option><option>Draft</option><option>Pending Consent</option><option>Active</option><option>Requires Reassessment</option><option>Suspended</option><option>Closed</option></select>
+    <button class="btn btn-ghost btn-sm" onclick="openMedDelegationModal(null,null)" style="border-color:var(--amber-dim);color:var(--amber)">💊 Delegate Medication</button>
     <button class="btn btn-primary btn-sm" onclick="openNewCaseModal()">+ New Case</button>
   </div>
 </div>
@@ -2530,6 +2706,13 @@ function buildCaseDetailHtml(c){
   <!-- TAB: FORMS -->
   <div id="caseTabForms" style="display:none">
     <p style="font-size:13px;color:var(--text3);margin-bottom:20px">Generate DSHS forms pre-filled with this case's client, caregiver, and instruction data. No re-entry needed.</p>
+    <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--amber)">💊 Medication Delegation</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">Formally delegate a medication to the caregiver on this case — records which medication, dosage, duration, and safety instructions. Reflects on the client's profile.</div>
+      </div>
+      <button class="btn btn-sm" style="background:var(--amber);color:#fff;flex-shrink:0" onclick="openMedDelegationModal('${c.id}',null)">+ Delegate Medication</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
       <div class="doc-card" style="border-color:var(--blue-dim)"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--blue-glow);border:1px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📋</div><div class="doc-meta"><div class="doc-name">DSHS 13-678 — Nursing Instructions</div><div class="doc-info">Auto-fill with case tasks &amp; instructions</div></div><button class="btn btn-primary btn-sm" onclick="openGenerateFromCase('${c.id}','form-13678')">Generate</button></div>
       <div class="doc-card"><div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📄</div><div class="doc-meta"><div class="doc-name">Consent for Delegation</div><div class="doc-info">Coming soon</div></div><button class="btn btn-ghost btn-sm" style="opacity:0.4;cursor:not-allowed">Generate</button></div>
@@ -4545,9 +4728,21 @@ function buildClientProfileHtml(c){
   <!-- TAB: MEDICATIONS -->
   <div id="cpTabMedications" style="display:none">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+      <!-- Delegated Medications live panel -->
       <div class="card" style="grid-column:span 2">
         <div class="card-header">
-          <span style="font-size:13px;font-weight:600">Current Medications</span>
+          <span style="font-size:13px;font-weight:600">💊 Delegated Medications</span>
+          <button class="btn btn-primary btn-sm" onclick="openMedDelegationModal(null,null);setTimeout(()=>{const s=document.getElementById('medDelClient');if(s){s.value='${c.id}';onMedDelClientChange(s);}},200)">+ Delegate Medication</button>
+        </div>
+        <div class="card-body" style="padding:16px 24px" id="medDelPanel-${c.id}">
+          <div style="font-size:12px;color:var(--text3)">Loading…</div>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header">
+          <span style="font-size:13px;font-weight:600">Current Medications (Free Text)</span>
           <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
         </div>
         <div class="card-body" style="padding:16px 24px">
@@ -4698,11 +4893,15 @@ function switchClientProfileTab(el,tab){
   });
   const d=document.getElementById('cpTab'+tab);if(d)d.style.display='block';
   if(tab==='Medications'){
-    // Find the client ID from the active profile
     const grid=document.querySelector('[id^="medImageGrid-"]');
     if(grid){
       const clientId=grid.id.replace('medImageGrid-','');
       loadMedImages(clientId);
+      // Load delegations and render panel
+      loadMedDelegations(clientId).then(()=>{
+        const panel=document.getElementById('medDelPanel-'+clientId);
+        if(panel) panel.innerHTML=buildMedDelegationsPanel(clientId);
+      });
     }
   }
 }
@@ -6152,6 +6351,343 @@ function attachModalDraftListeners(){
     modal.addEventListener('input',  ()=>saveModalDraft(modalId));
     modal.addEventListener('change', ()=>saveModalDraft(modalId));
   });
+}
+
+// ── MEDICATION DELEGATION ─────────────────────────
+window.medDelegations = {}; // { clientId: [...records] }
+
+function openMedDelegationModal(caseId, editId){
+  // Populate client select
+  const cs = document.getElementById('medDelClient');
+  if(cs){
+    cs.innerHTML = '<option value="">Select client…</option>';
+    window.clients.filter(c=>c.status==='Active').forEach(c=>
+      cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
+    );
+  }
+  // Populate caregiver select
+  const cgs = document.getElementById('medDelCaregiver');
+  if(cgs){
+    cgs.innerHTML = '<option value="">Select caregiver…</option>';
+    window.caregivers.filter(c=>c.status==='Active').forEach(c=>
+      cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`)
+    );
+  }
+  // Reset all fields
+  ['medDelName','medDelDose','medDelFrequency','medDelReason','medDelPhysician',
+   'medDelInstructions','medDelEndDate','medDelPrnSymptoms','medDelPrnMax',
+   'medDelPrnInterval','medDelSideEffects','medDelReportRn','medDelReport911','medDelNotes']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('medDelRoute').value='';
+  document.getElementById('medDelStatus').value='Active';
+  document.getElementById('medDelIsPrn').value='no';
+  document.getElementById('medDelPrnPanel').style.display='none';
+  document.getElementById('medDelStartDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('medDelDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('medDelEditId').value=editId||'';
+  document.getElementById('medDelCaseId').value=caseId||'';
+  document.getElementById('medDelModalTitle').textContent=editId?'Edit Medication Delegation':'Delegate Medication';
+  if(currentProfile?.full_name) document.getElementById('medDelRn').value=currentProfile.full_name;
+
+  // If opened from a case, pre-select client and caregiver
+  if(caseId){
+    const dc=window.delegationCases.find(x=>x.id===caseId);
+    if(dc){
+      if(cs) cs.value=dc.clientId||'';
+      if(cgs) cgs.value=dc.caregiverId||'';
+      onMedDelClientChange(cs);
+    }
+  }
+
+  // If editing existing record
+  if(editId){
+    // Find the record across all clients
+    let rec=null;
+    Object.values(window.medDelegations).forEach(arr=>{
+      const found=arr.find(x=>x.id===editId);
+      if(found) rec=found;
+    });
+    if(rec){
+      if(cs) cs.value=rec.clientId||'';
+      onMedDelClientChange(cs);
+      if(cgs) cgs.value=rec.caregiverId||'';
+      document.getElementById('medDelName').value=rec.medName||'';
+      document.getElementById('medDelDose').value=rec.dose||'';
+      document.getElementById('medDelFrequency').value=rec.frequency||'';
+      document.getElementById('medDelRoute').value=rec.route||'';
+      document.getElementById('medDelReason').value=rec.reason||'';
+      document.getElementById('medDelPhysician').value=rec.physician||'';
+      document.getElementById('medDelInstructions').value=rec.instructions||'';
+      document.getElementById('medDelStartDate').value=rec.startDate||'';
+      document.getElementById('medDelEndDate').value=rec.endDate||'';
+      document.getElementById('medDelStatus').value=rec.status||'Active';
+      document.getElementById('medDelIsPrn').value=rec.isPrn?'yes':'no';
+      document.getElementById('medDelPrnPanel').style.display=rec.isPrn?'block':'none';
+      document.getElementById('medDelPrnSymptoms').value=rec.prnSymptoms||'';
+      document.getElementById('medDelPrnMax').value=rec.prnMax||'';
+      document.getElementById('medDelPrnInterval').value=rec.prnInterval||'';
+      document.getElementById('medDelSideEffects').value=rec.sideEffects||'';
+      document.getElementById('medDelReportRn').value=rec.reportRn||'';
+      document.getElementById('medDelReport911').value=rec.report911||'';
+      document.getElementById('medDelRn').value=rec.rnName||'';
+      document.getElementById('medDelDate').value=rec.delegatedDate||'';
+      document.getElementById('medDelNotes').value=rec.notes||'';
+    }
+  }
+
+  openModal('medDelegationModal');
+}
+
+function onMedDelClientChange(sel){
+  const cl=window.clients.find(x=>x.id===sel?.value);
+  if(!cl) return;
+  // Auto-fill physician
+  const phys=document.getElementById('medDelPhysician');
+  if(phys&&cl.physician) phys.value=cl.physician;
+  // Auto-link caregiver
+  if(cl.caregiverId){
+    const cgs=document.getElementById('medDelCaregiver');
+    if(cgs) cgs.value=cl.caregiverId;
+  }
+}
+
+function onMedDelPrnChange(sel){
+  document.getElementById('medDelPrnPanel').style.display=sel.value==='yes'?'block':'none';
+}
+
+async function saveMedDelegation(){
+  initSupa();
+  const clientId=document.getElementById('medDelClient').value;
+  const medName=document.getElementById('medDelName').value.trim();
+  const dose=document.getElementById('medDelDose').value.trim();
+  const frequency=document.getElementById('medDelFrequency').value.trim();
+  const reason=document.getElementById('medDelReason').value.trim();
+  const startDate=document.getElementById('medDelStartDate').value;
+  const rnName=document.getElementById('medDelRn').value.trim();
+  const delegatedDate=document.getElementById('medDelDate').value;
+
+  if(!clientId){alert('Please select a client.');return;}
+  if(!medName){alert('Medication name is required.');return;}
+  if(!dose){alert('Dosage is required.');return;}
+  if(!frequency){alert('Frequency is required.');return;}
+  if(!reason){alert('Reason / Indication is required.');return;}
+  if(!startDate){alert('Start date is required.');return;}
+  if(!rnName){alert('Delegating RN name is required.');return;}
+
+  const editId=document.getElementById('medDelEditId').value;
+  const caseId=document.getElementById('medDelCaseId').value;
+  const caregiverId=document.getElementById('medDelCaregiver').value;
+  const cl=window.clients.find(x=>x.id===clientId);
+  const cg=window.caregivers.find(x=>x.id===caregiverId);
+  const isPrn=document.getElementById('medDelIsPrn').value==='yes';
+  const now=new Date().toISOString();
+
+  const rec={
+    id: editId||(Date.now().toString()+Math.random().toString(36).slice(2)),
+    user_id: currentUser?.id,
+    client_id: clientId,
+    clientId,
+    clientName: cl?`${cl.first} ${cl.last}`:'—',
+    case_id: caseId||null,
+    caseId: caseId||null,
+    caregiverId,
+    caregiverName: cg?`${cg.first} ${cg.last}`:'—',
+    medName, dose, frequency,
+    route: document.getElementById('medDelRoute').value,
+    reason,
+    physician: document.getElementById('medDelPhysician').value,
+    instructions: document.getElementById('medDelInstructions').value,
+    startDate,
+    endDate: document.getElementById('medDelEndDate').value||null,
+    status: document.getElementById('medDelStatus').value,
+    isPrn,
+    prnSymptoms: isPrn?document.getElementById('medDelPrnSymptoms').value:'',
+    prnMax: isPrn?document.getElementById('medDelPrnMax').value:'',
+    prnInterval: isPrn?document.getElementById('medDelPrnInterval').value:'',
+    sideEffects: document.getElementById('medDelSideEffects').value,
+    reportRn: document.getElementById('medDelReportRn').value,
+    report911: document.getElementById('medDelReport911').value,
+    rnName,
+    delegatedDate,
+    notes: document.getElementById('medDelNotes').value,
+    created_at: editId?(window.medDelegations[clientId]||[]).find(x=>x.id===editId)?.created_at||now:now,
+    updated_at: now
+  };
+
+  // Save to Supabase
+  if(supa&&currentUser){
+    const row={
+      id: rec.id, user_id: rec.user_id,
+      client_id: clientId, case_id: caseId||null,
+      caregiver_id: caregiverId||null,
+      caregiver_name: rec.caregiverName,
+      client_name: rec.clientName,
+      med_name: rec.medName, dose: rec.dose,
+      frequency: rec.frequency, route: rec.route,
+      reason: rec.reason, physician: rec.physician,
+      instructions: rec.instructions,
+      start_date: rec.startDate,
+      end_date: rec.endDate||null,
+      status: rec.status,
+      is_prn: rec.isPrn,
+      prn_symptoms: rec.prnSymptoms,
+      prn_max: rec.prnMax,
+      prn_interval: rec.prnInterval,
+      side_effects: rec.sideEffects,
+      report_rn: rec.reportRn,
+      report_911: rec.report911,
+      rn_name: rec.rnName,
+      delegated_date: rec.delegatedDate,
+      notes: rec.notes,
+      created_at: rec.created_at,
+      updated_at: rec.updated_at
+    };
+    const {error}=await supa.from('med_delegations').upsert(row);
+    if(error) console.error('Med delegation save error:', error);
+  }
+
+  // Update in-memory store
+  if(!window.medDelegations[clientId]) window.medDelegations[clientId]=[];
+  window.medDelegations[clientId]=window.medDelegations[clientId].filter(x=>x.id!==rec.id);
+  window.medDelegations[clientId].unshift(rec);
+
+  // Add timeline entry to linked case
+  if(caseId){
+    const dc=window.delegationCases.find(x=>x.id===caseId);
+    if(dc){
+      dc.timeline=dc.timeline||[];
+      dc.timeline.push({date:now,action:`Medication delegated: ${medName} ${dose} ${frequency}${rec.endDate?' — until '+rec.endDate:''}`,by:rnName});
+      dc.updated_at=now;
+      if(supa&&currentUser) await supa.from('delegation_cases').update({timeline:JSON.stringify(dc.timeline),updated_at:now}).eq('id',caseId);
+    }
+  }
+
+  closeModal('medDelegationModal');
+
+  // Refresh any open case detail
+  const detail=document.getElementById('caseDetailView');
+  if(detail&&detail.style.display!=='none'&&caseId){
+    const dc=window.delegationCases.find(x=>x.id===caseId);
+    if(dc) detail.innerHTML=buildCaseDetailHtml(dc);
+  }
+
+  // Refresh client profile if open
+  const profileView=document.getElementById('clientProfileView');
+  if(profileView&&profileView.style.display!=='none'){
+    const cl=window.clients.find(x=>x.id===clientId);
+    if(cl) profileView.innerHTML=buildClientProfileHtml(cl);
+  }
+
+  refreshDashboard();
+  alert(`✅ Medication delegation saved.\n\n${rec.medName} ${rec.dose} ${rec.frequency} delegated for ${rec.clientName}${rec.endDate?' until '+rec.endDate:' (ongoing)'}.`);
+}
+
+async function loadMedDelegations(clientId){
+  initSupa();
+  if(!supa||!currentUser) return [];
+  const {data,error}=await supa.from('med_delegations')
+    .select('*').eq('client_id',clientId).eq('user_id',currentUser.id)
+    .order('created_at',{ascending:false});
+  if(error){console.error(error);return [];}
+  const mapped=(data||[]).map(r=>({
+    ...r,
+    clientId: r.client_id, clientName: r.client_name,
+    caseId: r.case_id, caregiverId: r.caregiver_id,
+    caregiverName: r.caregiver_name,
+    medName: r.med_name, isPrn: r.is_prn,
+    prnSymptoms: r.prn_symptoms, prnMax: r.prn_max,
+    prnInterval: r.prn_interval, sideEffects: r.side_effects,
+    reportRn: r.report_rn, report911: r.report_911,
+    rnName: r.rn_name, delegatedDate: r.delegated_date,
+    startDate: r.start_date, endDate: r.end_date,
+  }));
+  window.medDelegations[clientId]=mapped;
+  return mapped;
+}
+
+async function deleteMedDelegation(id, clientId){
+  if(!confirm('Delete this medication delegation record?')) return;
+  initSupa();
+  if(supa&&currentUser) await supa.from('med_delegations').delete().eq('id',id);
+  if(window.medDelegations[clientId])
+    window.medDelegations[clientId]=window.medDelegations[clientId].filter(x=>x.id!==id);
+  // Refresh profile if open
+  const profileView=document.getElementById('clientProfileView');
+  if(profileView&&profileView.style.display!=='none'){
+    const cl=window.clients.find(x=>x.id===clientId);
+    if(cl) profileView.innerHTML=buildClientProfileHtml(cl);
+  }
+}
+
+function buildMedDelegationsPanel(clientId){
+  const recs=window.medDelegations[clientId]||[];
+  const today=new Date();
+
+  if(!recs.length) return `
+    <div class="empty-state" style="padding:40px">
+      <div class="empty-icon">💊</div>
+      <h4>No medication delegations</h4>
+      <p>No medications have been formally delegated for this client.</p>
+      <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openMedDelegationModal(null,null);setTimeout(()=>{const s=document.getElementById('medDelClient');if(s){s.value='${clientId}';onMedDelClientChange(s);}},200)">+ Delegate Medication</button>
+    </div>`;
+
+  return `
+    <div style="margin-bottom:16px;display:flex;justify-content:flex-end">
+      <button class="btn btn-primary btn-sm" onclick="openMedDelegationModal(null,null);setTimeout(()=>{const s=document.getElementById('medDelClient');if(s){s.value='${clientId}';onMedDelClientChange(s);}},200)">+ Delegate Medication</button>
+    </div>
+    ${recs.map(r=>{
+      const isExpired=r.endDate&&new Date(r.endDate)<today;
+      const isOngoing=!r.endDate;
+      const statusColor=r.status==='Active'?'var(--green)':r.status==='Discontinued'?'var(--red)':r.status==='On Hold'?'var(--amber)':'var(--text3)';
+      const statusClass=r.status==='Active'?'status-active':r.status==='Discontinued'?'status-suspended':r.status==='On Hold'?'status-pending':'status-draft';
+      const borderColor=isExpired?'#e0525230':r.status==='Active'?'#2dba7a30':'var(--border)';
+      const bgColor=isExpired?'var(--red-dim)':r.status==='Active'?'var(--green-dim)':'var(--bg1)';
+
+      return `
+      <div style="border:1px solid ${borderColor};border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;background:${bgColor}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${r.medName}
+              ${r.isPrn?`<span style="font-size:10px;padding:2px 8px;background:var(--amber-dim);color:var(--amber);border-radius:99px;margin-left:6px;font-weight:600">PRN</span>`:''}
+            </div>
+            <div style="font-size:13px;color:var(--text2);margin-top:2px">${r.dose} · ${r.frequency}${r.route?' · '+r.route:''}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.reason}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="status ${statusClass}" style="font-size:10px"><span class="status-dot"></span>${r.status}${isExpired?' — Expired':''}</span>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openMedDelegationModal('${r.caseId||''}','${r.id}')">Edit</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="deleteMedDelegation('${r.id}','${clientId}')">Delete</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;font-size:12px;margin-bottom:${r.instructions||r.sideEffects||r.reportRn||r.isPrn?'12px':'0'}">
+          <div><span style="color:var(--text3)">Delegated by</span><br><span style="color:var(--text);font-weight:500">${r.rnName||'—'}</span></div>
+          <div><span style="color:var(--text3)">Physician</span><br><span style="color:var(--text)">${r.physician||'—'}</span></div>
+          <div><span style="color:var(--text3)">Start Date</span><br><span style="color:var(--text);font-family:var(--mono)">${r.startDate||'—'}</span></div>
+          <div><span style="color:var(--text3)">End Date</span><br><span style="color:${isExpired?'var(--red)':isOngoing?'var(--green)':'var(--text)'};font-family:var(--mono)">${r.endDate||'Ongoing'}</span></div>
+          <div><span style="color:var(--text3)">Caregiver</span><br><span style="color:var(--text)">${r.caregiverName||'—'}</span></div>
+          <div><span style="color:var(--text3)">Date Delegated</span><br><span style="color:var(--text);font-family:var(--mono)">${r.delegatedDate||'—'}</span></div>
+        </div>
+
+        ${r.instructions?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px"><span style="font-weight:600;color:var(--text)">Instructions: </span>${r.instructions}</div>`:''}
+
+        ${r.isPrn?`<div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--amber);margin-bottom:8px">
+          <div style="font-weight:600;margin-bottom:4px">PRN Details</div>
+          ${r.prnSymptoms?`<div><span style="opacity:0.7">Trigger: </span>${r.prnSymptoms}</div>`:''}
+          ${r.prnMax?`<div><span style="opacity:0.7">Not to exceed: </span>${r.prnMax}</div>`:''}
+          ${r.prnInterval?`<div><span style="opacity:0.7">Min interval: </span>${r.prnInterval}</div>`:''}
+        </div>`:''}
+
+        ${r.sideEffects||r.reportRn||r.report911?`
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          ${r.sideEffects?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">Side Effects</div><div style="color:var(--text2)">${r.sideEffects}</div></div>`:''}
+          ${r.reportRn?`<div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--blue);margin-bottom:3px">Report to RN</div><div style="color:var(--text2)">${r.reportRn}</div></div>`:''}
+          ${r.report911?`<div style="background:var(--red-dim);border:1px solid #e0525230;border-radius:6px;padding:8px 10px;font-size:11px"><div style="font-weight:600;color:var(--red);margin-bottom:3px">Report to 911</div><div style="color:var(--text2)">${r.report911}</div></div>`:''}
+        </div>`:''}
+
+        ${r.notes?`<div style="margin-top:8px;font-size:12px;color:var(--text3)"><span style="font-weight:500">Notes:</span> ${r.notes}</div>`:''}
+      </div>`;
+    }).join('')}`;
 }
 
 // ── MED IMAGE UPLOAD ──────────────────────────────
