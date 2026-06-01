@@ -1,0 +1,154 @@
+# ══════════════════════════════════════════════════
+# Golden Years RN Management System — .gitignore
+# ══════════════════════════════════════════════════
+
+
+# ── ENVIRONMENT & SECRETS ─────────────────────────
+# NEVER commit real credentials. These files hold
+# your Supabase URL, anon key, and any future API keys.
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+*.env
+secrets.json
+secrets.yaml
+secrets.yml
+config.local.js
+config.secret.js
+
+
+# ── BUILT / DEPLOYED OUTPUT ───────────────────────
+# If you ever add a build step (e.g. inject env vars
+# into index.html via a script), the output goes here.
+dist/
+build/
+out/
+.output/
+
+# The "compiled" index.html that has real credentials
+# injected by your build script — never commit this.
+# Commit index.template.html instead (with __SUPA_URL__
+# and __SUPA_KEY__ placeholders).
+# Uncomment the line below ONLY if you rename your
+# source file to index.template.html:
+# index.html
+
+
+# ── NODE / NPM (if you ever add a build tool) ─────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+.npmrc
+
+
+# ── OPERATING SYSTEM ──────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+
+# ── EDITOR & IDE ──────────────────────────────────
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains (WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+Session.vim
+.netrwhist
+
+# Emacs
+\#*\#
+.\#*
+*.elc
+auto-save-list
+tramp
+
+
+# ── LOGS & TEMP FILES ─────────────────────────────
+logs/
+*.log
+*.log.*
+tmp/
+temp/
+.temp/
+.tmp/
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+
+
+# ── LOCAL DEV TOOLING ─────────────────────────────
+# If you use a local HTTPS proxy or live-reload server
+.parcel-cache/
+.cache/
+.eslintcache
+.stylelintcache
+
+
+# ── SUPABASE LOCAL DEV (if you ever run supabase locally) ──
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+
+# ── GITHUB PAGES SPECIFIC ─────────────────────────
+# Jekyll build output (GitHub Pages uses Jekyll under the hood)
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+
+# ── SECURITY AUDIT ARTIFACTS ──────────────────────
+# Outputs from tools like npm audit, snyk, etc.
+audit-results/
+*.audit.json
+snyk-results/
+
+
+# ── TEST COVERAGE ─────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
