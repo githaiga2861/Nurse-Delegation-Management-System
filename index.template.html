@@ -1802,73 +1802,74 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 
-<!-- 06-200 Nurse Delegation Billing Form Modal -->
+<!-- 06-200 Nurse Delegation Billing Form Modal — In-System Spreadsheet -->
 <div class="overlay" id="generate06200Modal">
-  <div class="modal" style="width:min(560px,95vw)">
+  <div class="modal" style="width:min(1100px,98vw);max-height:94vh">
     <div class="modal-header">
       <div>
-        <h4>Generate 06-200 — Nurse Delegation: Billing Form</h4>
-        <p style="font-size:11px;color:var(--text3);margin-top:2px">Monthly billing sheet · 1 Unit = 15 minutes · Service Code H2014</p>
+        <h4>DSHS 06-200 — Nurse Delegation: Billing Form</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Monthly billing sheet · Service Code H2014 · 1 Unit = 15 minutes · Fill in-system, then download or save to Drafts</p>
       </div>
       <button onclick="closeModal('generate06200Modal')" class="btn btn-ghost btn-sm">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:0">
 
-      <div style="background:var(--green-dim);border:1px solid #2dba7a30;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--green);line-height:1.6">
-        ✓ This downloads the <strong>DSHS 06-200</strong> Excel workbook pre-loaded with your active client list. Open it in Excel or Google Sheets, select client names from the dropdown, and enter daily units. The TOTAL column calculates automatically.
-      </div>
-
-      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
-        <div class="label" style="margin-bottom:12px">Billing Period</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Billing Month *</label>
-            <select class="form-input form-select" id="b06_month">
-              <option value="">Select month…</option>
-              <option>January</option><option>February</option><option>March</option>
-              <option>April</option><option>May</option><option>June</option>
-              <option>July</option><option>August</option><option>September</option>
-              <option>October</option><option>November</option><option>December</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Year *</label>
-            <input class="form-input" id="b06_year" type="number" min="2020" max="2099"
-              placeholder="e.g. 2025">
-          </div>
+      <!-- TOP HEADER STRIP -->
+      <div style="background:var(--bg3);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin-bottom:0;min-width:150px">
+          <label class="form-label">Billing Month *</label>
+          <select class="form-input form-select" id="b06_month" onchange="render06200Sheet()" style="font-size:12px;padding:7px 32px 7px 10px">
+            <option value="">Select…</option>
+            <option>January</option><option>February</option><option>March</option>
+            <option>April</option><option>May</option><option>June</option>
+            <option>July</option><option>August</option><option>September</option>
+            <option>October</option><option>November</option><option>December</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;width:90px">
+          <label class="form-label">Year *</label>
+          <input class="form-input" id="b06_year" type="number" min="2020" max="2099" placeholder="2025" onchange="render06200Sheet()" style="font-size:12px;padding:7px 10px">
+        </div>
+        <div class="form-group" style="margin-bottom:0;width:140px">
+          <label class="form-label">NPI Number</label>
+          <input class="form-input" id="b06_npi" placeholder="10-digit NPI" style="font-size:12px;padding:7px 10px">
+        </div>
+        <div class="form-group" style="margin-bottom:0;width:140px">
+          <label class="form-label">Taxonomy Code</label>
+          <input class="form-input" id="b06_taxonomy" placeholder="163W00000X" style="font-size:12px;padding:7px 10px">
+        </div>
+        <div class="form-group" style="margin-bottom:0;width:180px">
+          <label class="form-label">RN Name</label>
+          <input class="form-input" id="b06_rnName" placeholder="Auto-fills from profile" style="font-size:12px;padding:7px 10px">
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end;padding-bottom:1px">
+          <button class="btn btn-ghost btn-sm" onclick="add06200Row()" style="font-size:12px">+ Add Client Row</button>
+          <button class="btn btn-ghost btn-sm" onclick="clear06200Sheet()" style="font-size:12px;color:var(--text3)">Clear Sheet</button>
         </div>
       </div>
 
-      <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
-        <div class="label" style="margin-bottom:12px">RN Details</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">NPI Number</label>
-            <input class="form-input" id="b06_npi" placeholder="10-digit NPI">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Taxonomy Code</label>
-            <input class="form-input" id="b06_taxonomy" placeholder="e.g. 163W00000X">
-          </div>
+      <!-- SPREADSHEET AREA -->
+      <div style="overflow:auto;max-height:calc(94vh - 240px);background:#fff" id="b06_sheetWrap">
+        <div id="b06_sheetInner" style="min-width:1400px;padding:0">
+          <!-- Rendered by render06200Sheet() -->
+          <div style="padding:32px;text-align:center;color:#888;font-size:13px">Select a billing month and year above to load the sheet.</div>
         </div>
       </div>
 
-      <div>
-        <div class="label" style="margin-bottom:10px">Clients to Include</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
-          All <strong id="b06_clientCount">0</strong> active clients from your system will be pre-loaded into the Excel dropdown. You choose which ones to bill in the spreadsheet itself.
-        </p>
-        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);max-height:160px;overflow-y:auto" id="b06_clientPreview">
-          <div style="padding:12px 14px;font-size:12px;color:var(--text3)">No active clients found.</div>
-        </div>
+      <!-- LEGEND -->
+      <div style="background:var(--bg3);border-top:1px solid var(--border);padding:8px 20px;font-size:11px;color:var(--text3);display:flex;gap:20px;flex-wrap:wrap">
+        <span>📋 <strong>Service Code:</strong> H2014</span>
+        <span>⏱ <strong>1 Unit = 15 minutes</strong></span>
+        <span>📅 Enter units per day (0–96). TOTAL column auto-calculates.</span>
+        <span>💡 Leave cells blank or 0 for days with no service.</span>
       </div>
 
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="gap:10px">
       <button onclick="closeModal('generate06200Modal')" class="btn btn-ghost btn-sm">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="b06_submitBtn"
-        style="background:var(--green)" onclick="submitGenerate06200()">
-        ⬇ Download Billing Form
+      <button class="btn btn-ghost btn-sm" onclick="save06200ToDrafts()" style="border-color:#2dba7a40;color:var(--green)">Save to Drafts</button>
+      <button class="btn btn-primary btn-sm" id="b06_submitBtn" style="background:var(--green)" onclick="download06200Excel()">
+        ⬇ Download Excel
       </button>
     </div>
   </div>
@@ -3799,9 +3800,36 @@ pageRenderers.documents = () => {
     <div style="margin-bottom:24px">
       <div class="label" style="margin-bottom:12px">Coming Soon</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Referral & Communication Forms</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
         ${docShellGen2('01-212','Nurse Delegation: Referral and Communication','Sends a referral to the RN Delegator Agency and records the delegating nurse\'s response including tasks delegated, assessment date, and follow-up information.','form-01-212','var(--blue)')}
         ${docShellGen2('13-893','Nurse Delegation: Request For Additional Unit','Requests additional billing units beyond the 100 authorized per month. Requires supporting documents including 14-484, 13-678, and 10-217 forms.','form-13-893','var(--amber)')}
-        ${docShellGen2('06-200','Nurse Delegation: Billing Form','Monthly billing sheet tracking units (Assessment/Training, Collateral Contact, Travel Time, Documentation, Billing) per client per day. Client names auto-populate from the system client list.','form-06-200','var(--green)')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px">Billing</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:10px;transition:border-color 0.15s;cursor:default"
+             onmouseover="this.style.borderColor='#2dba7a40'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:38px;height:38px;border-radius:var(--radius-sm);background:var(--green-dim);border:1px solid #2dba7a40;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--green);flex-shrink:0;letter-spacing:-0.02em">06-200</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3">Nurse Delegation: Billing Form</div>
+              <div style="font-size:10px;font-weight:600;color:var(--green);letter-spacing:0.04em">DSHS 06-200</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.6">Monthly billing sheet tracking units per client per day. Fill out the spreadsheet-style form directly in-system. Client names auto-populate from your active client list.</div>
+          <div style="margin-top:2px">
+            <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--green);color:#fff" onclick="open06200Modal()">
+              📊 Fill Excel Form →
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -9650,206 +9678,305 @@ async function submitGenerate13681(){
   alert('✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case tasks updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
 }
 
-// ── 06-200 BILLING FORM ───────────────────────────
+// ── 06-200 BILLING FORM — IN-SYSTEM SPREADSHEET ──
+// State: array of row objects {clientName, dob, icd10, acesId, serviceType, days:[31 values]}
+window._b06Rows = [];
+const B06_SERVICE_TYPES = [
+  'Assessment / Training',
+  'Collateral Contact',
+  'Travel Time',
+  'Documentation',
+  'Billing',
+];
+
 function open06200Modal(){
-  // Pre-fill year with current year
   const yearEl=document.getElementById('b06_year');
-  if(yearEl&&!yearEl.value) yearEl.value=new Date().getFullYear();
-
-  // Pre-fill NPI and taxonomy from RN profile if available
+  if(yearEl && !yearEl.value) yearEl.value = new Date().getFullYear();
+  const rnEl=document.getElementById('b06_rnName');
+  if(rnEl && currentProfile?.full_name && !rnEl.value) rnEl.value = currentProfile.full_name;
   const npiEl=document.getElementById('b06_npi');
-  if(npiEl&&currentProfile?.npi) npiEl.value=currentProfile.npi;
+  if(npiEl && currentProfile?.npi && !npiEl.value) npiEl.value = currentProfile.npi;
 
-  // Show active client count and preview list
-  const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
-  const countEl=document.getElementById('b06_clientCount');
-  if(countEl) countEl.textContent=activeClients.length;
-
-  const preview=document.getElementById('b06_clientPreview');
-  if(preview){
-    if(!activeClients.length){
-      preview.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--text3)">No active clients found. Add clients first.</div>';
-    } else {
-      preview.innerHTML=activeClients.map((c,i)=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:${i<activeClients.length-1?'1px solid var(--border)':'none'}">
-          <span style="font-size:12.5px;font-weight:600;color:var(--text)">${c.first} ${c.last}</span>
-          <span style="font-size:11px;color:var(--text3)">${c.dob||'—'}</span>
-        </div>`).join('');
+  // Seed rows from active clients if sheet is empty
+  if(!window._b06Rows.length){
+    const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
+    window._b06Rows = activeClients.map(c=>({
+      clientName:`${c.first} ${c.last}`,
+      dob: c.dob||'',
+      icd10: c.diagnosis||'',
+      acesId: c.acesId||c.dshsId||'',
+      days: Array(31).fill(''),
+    }));
+    // Ensure at least 4 rows
+    while(window._b06Rows.length < 4){
+      window._b06Rows.push({clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')});
     }
   }
 
   openModal('generate06200Modal');
+  render06200Sheet();
 }
 
-async function submitGenerate06200(){
-  const month  = document.getElementById('b06_month').value;
-  const year   = document.getElementById('b06_year').value;
-  const npi    = Sanitizer.stripDangerous(document.getElementById('b06_npi').value.trim());
-  const taxonomy = Sanitizer.stripDangerous(document.getElementById('b06_taxonomy').value.trim());
+function _b06DaysInMonth(){
+  const month=document.getElementById('b06_month')?.value;
+  const year=parseInt(document.getElementById('b06_year')?.value)||new Date().getFullYear();
+  if(!month) return 31;
+  const monthIdx=['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(month);
+  return new Date(year, monthIdx+1, 0).getDate();
+}
 
-  if(!month){ alert('Please select a billing month.'); return; }
-  if(!year||isNaN(year)){ alert('Please enter a valid year.'); return; }
+function render06200Sheet(){
+  const wrap=document.getElementById('b06_sheetInner');
+  if(!wrap) return;
+  const month=document.getElementById('b06_month')?.value||'';
+  const year=document.getElementById('b06_year')?.value||'';
+  if(!month||!year){ wrap.innerHTML='<div style="padding:32px;text-align:center;color:#888;font-size:13px">Select a billing month and year above to load the sheet.</div>'; return; }
 
-  const btn=document.getElementById('b06_submitBtn');
-  btn.textContent='Building…';
-  btn.disabled=true;
+  const daysInMonth=_b06DaysInMonth();
+  const dayNums=Array.from({length:daysInMonth},(_,i)=>i+1);
 
+  // CSS for the spreadsheet table
+  const tableCSS=`
+  <style>
+  #b06_table { border-collapse:collapse; font-family:Arial,sans-serif; font-size:11px; color:#111; width:100%; }
+  #b06_table th, #b06_table td { border:1px solid #ccc; padding:0; white-space:nowrap; }
+  #b06_table th { background:#1a3a5e; color:#fff; font-weight:700; font-size:10px; text-transform:uppercase; text-align:center; padding:4px 3px; letter-spacing:0.04em; }
+  #b06_table th.hdr-day { background:#1a4a72; font-size:9px; padding:3px 1px; min-width:22px; }
+  #b06_table th.hdr-total { background:#0d2d4a; }
+  #b06_table td.cell-label { background:#e8f0f8; font-weight:700; font-size:10px; padding:4px 6px; min-width:170px; color:#1a3a5e; text-transform:uppercase; letter-spacing:0.04em; border-right:2px solid #aac; }
+  #b06_table td.cell-client-hdr { background:#d0e4f7; font-weight:700; font-size:10px; color:#0d2d4a; padding:3px 5px; border-bottom:2px solid #aac; }
+  #b06_table td.cell-client-input { background:#fff; padding:1px; }
+  #b06_table td.cell-client-input input { width:100%; border:none; padding:4px 5px; font-size:11px; font-family:Arial,sans-serif; color:#111; background:transparent; outline:none; }
+  #b06_table td.cell-client-input input:focus { background:#fffde7; }
+  #b06_table td.cell-day { background:#fff; padding:1px; min-width:22px; }
+  #b06_table td.cell-day input { width:100%; border:none; padding:3px 1px; font-size:11px; text-align:center; font-family:Arial,sans-serif; color:#111; background:transparent; outline:none; }
+  #b06_table td.cell-day input:focus { background:#fffde7; }
+  #b06_table td.cell-total { background:#e8f5e8; font-weight:700; text-align:center; padding:3px 5px; color:#1a5e1a; font-size:11px; min-width:36px; }
+  #b06_table td.cell-total-zero { background:#f5f5f5; color:#aaa; }
+  #b06_table .row-svc td.cell-label { background:#f0f4f8; font-weight:600; font-size:10px; color:#2a4a6e; text-transform:none; letter-spacing:0; }
+  #b06_table .row-client-block { background:#d0e4f7; }
+  #b06_table td.cell-del { background:#fff8f8; padding:1px; text-align:center; width:24px; }
+  #b06_table td.cell-del button { background:none; border:none; cursor:pointer; color:#c55; font-size:13px; padding:2px 4px; }
+  #b06_table td.cell-del button:hover { color:#e00; }
+  #b06_table .row-title td { background:#1a3a5e; color:#fff; font-size:11px; font-weight:700; padding:5px 8px; }
+  #b06_table .row-subtitle td { background:#2a5a8e; color:#e8f0f8; font-size:10px; padding:3px 8px; }
+  </style>`;
+
+  // Build header row
+  const dayHeaders=dayNums.map(d=>`<th class="hdr-day">${d}</th>`).join('');
+
+  // Build client blocks
+  let clientRowsHtml='';
+  window._b06Rows.forEach((row,ri)=>{
+    // Total = sum of all day inputs for this row
+    const total=row.days.slice(0,daysInMonth).reduce((s,v)=>s+(parseInt(v)||0),0);
+    const dayInputs=dayNums.map((d,di)=>`
+      <td class="cell-day">
+        <input type="number" min="0" max="96" value="${row.days[di]||''}"
+          data-row="${ri}" data-day="${di}"
+          oninput="b06UpdateCell(this)"
+          placeholder="">
+      </td>`).join('');
+    clientRowsHtml+=`
+    <tr class="row-client-block" data-rowblock="${ri}">
+      <td class="cell-client-hdr" colspan="2">Client ${ri+1}</td>
+      <td class="cell-client-input" colspan="2">
+        <input list="b06_clientList" value="${Sanitizer.escapeHtml(row.clientName)}"
+          data-row="${ri}" data-field="clientName"
+          oninput="b06UpdateMeta(this)"
+          placeholder="Client name…" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      </td>
+      <td class="cell-client-input">
+        <input type="text" value="${Sanitizer.escapeHtml(row.dob)}"
+          data-row="${ri}" data-field="dob"
+          oninput="b06UpdateMeta(this)"
+          placeholder="DOB" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      </td>
+      <td class="cell-client-input" colspan="2">
+        <input type="text" value="${Sanitizer.escapeHtml(row.icd10)}"
+          data-row="${ri}" data-field="icd10"
+          oninput="b06UpdateMeta(this)"
+          placeholder="ICD-10 / Diagnosis" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      </td>
+      <td class="cell-client-input">
+        <input type="text" value="${Sanitizer.escapeHtml(row.acesId)}"
+          data-row="${ri}" data-field="acesId"
+          oninput="b06UpdateMeta(this)"
+          placeholder="ACES ID" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      </td>
+      ${Array(daysInMonth).fill('').map((_,di)=>`<td class="cell-day"><input type="number" min="0" max="96" value="${row.days[di]||''}" data-row="${ri}" data-day="${di}" oninput="b06UpdateCell(this)" placeholder=""></td>`).join('')}
+      <td class="${total>0?'cell-total':'cell-total cell-total-zero'}" id="b06_total_${ri}">${total||'0'}</td>
+      <td class="cell-del"><button onclick="b06DeleteRow(${ri})" title="Remove row">✕</button></td>
+    </tr>`;
+  });
+
+  // Datalist for client name autocomplete
   const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
+  const datalist=`<datalist id="b06_clientList">${activeClients.map(c=>`<option value="${Sanitizer.escapeHtml(c.first+' '+c.last)}">`).join('')}</datalist>`;
+
+  wrap.innerHTML=tableCSS+datalist+`
+  <table id="b06_table" style="margin:0">
+    <!-- Title rows -->
+    <tr class="row-title">
+      <td colspan="${daysInMonth+4}" style="font-size:13px">DSHS 06-200 — Nurse Delegation Billing Form &nbsp;|&nbsp; Service Code: H2014 &nbsp;|&nbsp; 1 Unit = 15 Minutes</td>
+      <td colspan="2" style="font-size:10px;text-align:right">Month: <strong>${month} ${year}</strong></td>
+    </tr>
+    <tr class="row-subtitle">
+      <td colspan="${daysInMonth+6}">RN: ${Sanitizer.escapeHtml(document.getElementById('b06_rnName')?.value||'—')} &nbsp;|&nbsp; NPI: ${Sanitizer.escapeHtml(document.getElementById('b06_npi')?.value||'—')} &nbsp;|&nbsp; Taxonomy: ${Sanitizer.escapeHtml(document.getElementById('b06_taxonomy')?.value||'—')}</td>
+    </tr>
+    <!-- Column headers -->
+    <tr>
+      <th style="min-width:120px;text-align:left;padding:4px 6px">Client Name</th>
+      <th style="min-width:80px">DOB</th>
+      <th style="min-width:140px">ICD-10 / Diagnosis</th>
+      <th style="min-width:80px">ACES ID</th>
+      ${dayHeaders}
+      <th class="hdr-total" style="min-width:36px">TOTAL</th>
+      <th style="background:#1a3a5e;width:24px"></th>
+    </tr>
+    <!-- Client rows -->
+    ${clientRowsHtml}
+    <!-- Grand total row -->
+    <tr style="background:#d0e8d0">
+      <td class="cell-label" colspan="4" style="text-align:right;font-size:11px;color:#1a5e1a;font-weight:700">GRAND TOTAL (all clients)</td>
+      ${dayNums.map((_,di)=>`<td class="cell-total" id="b06_gtotal_${di}" style="font-size:10px">0</td>`).join('')}
+      <td class="cell-total" id="b06_gtotal_all" style="background:#c0e8c0;font-size:12px">0</td>
+      <td style="background:#d0e8d0"></td>
+    </tr>
+    <!-- Footer -->
+    <tr style="background:#f0f4f8">
+      <td colspan="${daysInMonth+6}" style="font-size:9px;color:#555;padding:4px 8px">DSHS 06-200 (05/2023) &nbsp;|&nbsp; Distribution: Copy in client chart and in RND file &nbsp;|&nbsp; To register concerns: 1-800-562-6078</td>
+    </tr>
+  </table>`;
+
+  b06RecalcTotals();
+}
+
+function b06UpdateCell(input){
+  const ri=parseInt(input.dataset.row);
+  const di=parseInt(input.dataset.day);
+  if(!window._b06Rows[ri]) return;
+  window._b06Rows[ri].days[di]=input.value;
+  b06RecalcTotals();
+}
+
+function b06UpdateMeta(input){
+  const ri=parseInt(input.dataset.row);
+  const field=input.dataset.field;
+  if(!window._b06Rows[ri]) return;
+  window._b06Rows[ri][field]=input.value;
+}
+
+function b06RecalcTotals(){
+  const daysInMonth=_b06DaysInMonth();
+  const colTotals=Array(daysInMonth).fill(0);
+  let grandTotal=0;
+  window._b06Rows.forEach((row,ri)=>{
+    const rowTotal=row.days.slice(0,daysInMonth).reduce((s,v)=>s+(parseInt(v)||0),0);
+    grandTotal+=rowTotal;
+    row.days.slice(0,daysInMonth).forEach((v,di)=>colTotals[di]+=(parseInt(v)||0));
+    const el=document.getElementById('b06_total_'+ri);
+    if(el){ el.textContent=rowTotal||'0'; el.className=rowTotal>0?'cell-total':'cell-total cell-total-zero'; }
+  });
+  colTotals.forEach((v,di)=>{const el=document.getElementById('b06_gtotal_'+di);if(el)el.textContent=v||'0';});
+  const gtEl=document.getElementById('b06_gtotal_all');if(gtEl)gtEl.textContent=grandTotal||'0';
+}
+
+function add06200Row(){
+  window._b06Rows.push({clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')});
+  render06200Sheet();
+  // Scroll to bottom
+  setTimeout(()=>{const w=document.getElementById('b06_sheetWrap');if(w)w.scrollTop=w.scrollHeight;},50);
+}
+
+function b06DeleteRow(ri){
+  if(window._b06Rows.length<=1){alert('At least one row is required.');return;}
+  window._b06Rows.splice(ri,1);
+  render06200Sheet();
+}
+
+function clear06200Sheet(){
+  if(!confirm('Clear all entries in the billing sheet?')) return;
+  window._b06Rows=window._b06Rows.map(r=>({...r,days:Array(31).fill('')}));
+  render06200Sheet();
+}
+
+async function save06200ToDrafts(){
+  const month=document.getElementById('b06_month')?.value;
+  const year=document.getElementById('b06_year')?.value;
+  if(!month||!year){alert('Please select a billing month and year first.');return;}
+  const daysInMonth=_b06DaysInMonth();
   const billingMonth=`${month} ${year}`;
+  const now=new Date().toISOString();
+  const formData={
+    billingMonth, npi:document.getElementById('b06_npi')?.value||'',
+    taxonomy:document.getElementById('b06_taxonomy')?.value||'',
+    rnName:document.getElementById('b06_rnName')?.value||currentProfile?.full_name||'',
+    rows:window._b06Rows.map(r=>({...r,days:r.days.slice(0,daysInMonth)})),
+    daysInMonth,
+  };
+  const draft={
+    id:Date.now().toString(), user_id:currentUser?.id,
+    form_id:'form-06-200',
+    form_name:`06-200 Billing Form — ${billingMonth}`,
+    client_id:null,
+    client_name:`${window._b06Rows.filter(r=>r.clientName).length} client(s)`,
+    caregiver_id:null, caregiver_name:'—',
+    facility_id:null, facility_name:'—',
+    form_data:formData, status:'Draft — Billing Sheet',
+    created_at:now, updated_at:now
+  };
+  initSupa();
+  if(supa&&currentUser){try{await supa.from('form_drafts').insert(draft);}catch(e){}}
+  window.formDrafts=window.formDrafts||[];
+  window.formDrafts.unshift(draft);
+  updateAlertsBadge();
+  alert(`✅ Billing sheet saved to Drafts — ${billingMonth}`);
+}
 
+async function download06200Excel(){
+  const month=document.getElementById('b06_month')?.value;
+  const year=document.getElementById('b06_year')?.value;
+  if(!month||!year){alert('Please select a billing month and year first.');return;}
+  const npi=document.getElementById('b06_npi')?.value||'';
+  const taxonomy=document.getElementById('b06_taxonomy')?.value||'';
+  const rnName=document.getElementById('b06_rnName')?.value||currentProfile?.full_name||'';
+  const billingMonth=`${month} ${year}`;
+  const daysInMonth=_b06DaysInMonth();
+  const btn=document.getElementById('b06_submitBtn');
+  btn.textContent='Building…';btn.disabled=true;
   try{
-    // Download the pre-built template from the repo, inject client data,
-    // then trigger a browser download.
-    // We use SheetJS (xlsx library) which is already available in the app.
-    // Load template via fetch from the same origin
-    const templateUrl='DSHS_06-200_Nurse_Delegation_Billing.xlsx';
-    let arrayBuffer;
-    try{
-      const resp=await fetch(templateUrl);
-      if(!resp.ok) throw new Error('Template file not found at: '+templateUrl);
-      arrayBuffer=await resp.arrayBuffer();
-    }catch(fetchErr){
-      // If template not yet deployed, build a minimal workbook in-memory
-      arrayBuffer=null;
-    }
-
-    // Use SheetJS (loaded below if needed)
     await loadSheetJS();
     const XLSX=window.XLSX;
-
-    let wb;
-    if(arrayBuffer){
-      wb=XLSX.read(arrayBuffer,{type:'array'});
-    } else {
-      // Build minimal workbook in memory if template unavailable
-      wb=buildMinimal06200(XLSX, billingMonth, npi, taxonomy, activeClients);
-    }
-
-    // Inject billing month, NPI, taxonomy into named cells
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    if(ws){
-      // Billing month → cell AJ4 area (BILLING MONTH value)
-      if(!ws['AJ5']) ws['AJ5']={t:'s',v:''};
-      ws['AJ5']={t:'s',v:billingMonth};
-      // NPI → AC3
-      if(!ws['AC3']) ws['AC3']={t:'s',v:''};
-      ws['AC3']={t:'s',v:npi};
-      // Taxonomy → I4 area
-      if(!ws['I4']) ws['I4']={t:'s',v:''};
-      ws['I4']={t:'s',v:taxonomy};
-    }
-
-    // Inject client list into 'Client List' sheet
-    const clSheet=wb.Sheets['Client List'];
-    if(clSheet && activeClients.length){
-      activeClients.forEach((c,i)=>{
-        const row=i+2; // row 1 is header
-        clSheet[`A${row}`]={t:'s',v:`${c.first} ${c.last}`};
-        clSheet[`B${row}`]={t:'s',v:c.dob||''};
-        clSheet[`C${row}`]={t:'s',v:c.diagnosis||''};
-        clSheet[`D${row}`]={t:'s',v:c.acesId||c.dshsId||''};
-      });
-      // Update sheet range
-      const lastRow=activeClients.length+1;
-      clSheet['!ref']=`A1:D${lastRow}`;
-    }
-
-    // Trigger download
-    const filename=`DSHS_06-200_Billing_${month}_${year}.xlsx`;
-    XLSX.writeFile(wb, filename);
-
-    // Log to drafts for audit trail
-    const now=new Date().toISOString();
-    const draft={
-      id:Date.now().toString(),
-      user_id:currentUser?.id,
-      form_id:'form-06-200',
-      form_name:'06-200, Nurse Delegation: Billing Form',
-      client_id:null,
-      client_name:`${activeClients.length} client${activeClients.length===1?'':'s'}`,
-      caregiver_id:null,
-      caregiver_name:'—',
-      facility_id:null,
-      facility_name:'—',
-      form_data:{billingMonth,npi,taxonomy,clientCount:activeClients.length},
-      status:'Downloaded',
-      created_at:now,
-      updated_at:now
-    };
-    initSupa();
-    if(supa&&currentUser){
-      try{await supa.from('form_drafts').insert(draft);}catch(e){}
-    }
-    window.formDrafts=window.formDrafts||[];
-    window.formDrafts.unshift(draft);
-    updateAlertsBadge();
-
-    btn.textContent='⬇ Download Billing Form';
-    btn.disabled=false;
-    closeModal('generate06200Modal');
-
-    alert(`✅ DSHS 06-200 downloaded: ${filename}\n\nClients loaded: ${activeClients.length}\nBilling Month: ${billingMonth}\n\nOpen in Excel or Google Sheets. Select client names from the dropdown in each CLIENT'S NAME cell, then enter daily units.`);
-
-  }catch(err){
-    console.error('06-200 generation error:', err);
-    alert('Error generating form: '+err.message);
-    btn.textContent='⬇ Download Billing Form';
-    btn.disabled=false;
-  }
-}
-
-function buildMinimal06200(XLSX, billingMonth, npi, taxonomy, clients){
-  // Fallback: builds a functional workbook entirely in memory
-  // when the template file is not yet deployed
-  const wb=XLSX.utils.book_new();
-
-  // ── Client List sheet ─────────────────────────
-  const clData=[['CLIENT_NAME','DATE_OF_BIRTH','ICD10','ACES_ID']];
-  clients.forEach(c=>clData.push([
-    `${c.first} ${c.last}`, c.dob||'', c.diagnosis||'', c.acesId||c.dshsId||''
-  ]));
-  // Pad to 51 rows for dropdown range
-  while(clData.length<52) clData.push(['','','','']);
-  const clSheet=XLSX.utils.aoa_to_sheet(clData);
-  clSheet['!cols']=[{wch:30},{wch:15},{wch:15},{wch:15}];
-  XLSX.utils.book_append_sheet(wb, clSheet, 'Client List');
-
-  // ── Main billing sheet ────────────────────────
-  const days=Array.from({length:31},(_,i)=>i+1);
-  const headers=['SERVICE TYPE',...days,'TOTAL'];
-
-  const serviceRows=[
-    'ASSESSMENT / TRAINING',
-    'COLLATERAL CONTACT',
-    'TRAVEL TIME',
-    'DOCUMENTATION',
-    'BILLING',
-  ];
-
-  const wsData=[];
-  // Title row
-  wsData.push(['Registered Nurse (RN) Delegation Billing','','','',
-               ...Array(31).fill(''),
-               `NPI: ${npi}  |  Taxonomy: ${taxonomy}  |  Billing Month: ${billingMonth}`]);
-  wsData.push(['Service Code: H2014  |  1 Unit = 15 minutes']);
-  wsData.push(headers);
-
-  // 4 client blocks
-  for(let b=0;b<4;b++){
-    wsData.push([`CLIENT'S NAME`,...Array(17).fill(''),'DATE OF BIRTH',...Array(8).fill(''),'ICD-10 CODE',...Array(8).fill('')]);
-    wsData.push(['← Select from dropdown',...Array(31).fill(''),'']);
-    serviceRows.forEach(label=>{
-      wsData.push([label,...Array(31).fill(0),'']);
+    const wb=XLSX.utils.book_new();
+    // Build sheet data
+    const dayNums=Array.from({length:daysInMonth},(_,i)=>i+1);
+    const headers=['Client Name','DOB','ICD-10 / Diagnosis','ACES ID',...dayNums.map(d=>`Day ${d}`),'TOTAL'];
+    const wsData=[];
+    wsData.push([`DSHS 06-200 — Nurse Delegation Billing Form | ${billingMonth} | RN: ${rnName} | NPI: ${npi} | Taxonomy: ${taxonomy}`, ...Array(headers.length-1).fill('')]);
+    wsData.push(['Service Code: H2014 | 1 Unit = 15 Minutes', ...Array(headers.length-1).fill('')]);
+    wsData.push(headers);
+    window._b06Rows.forEach((row,ri)=>{
+      const dayVals=dayNums.map((_,di)=>parseInt(row.days[di])||0);
+      const total=dayVals.reduce((a,b)=>a+b,0);
+      wsData.push([row.clientName,row.dob,row.icd10,row.acesId,...dayVals,{f:`SUM(E${wsData.length+1}:${XLSX.utils.encode_col(3+daysInMonth)}${wsData.length+1})`}]);
     });
-    wsData.push([]);
+    // Grand total row
+    wsData.push(['','','','GRAND TOTAL',...dayNums.map((_,di)=>{const col=XLSX.utils.encode_col(4+di);return {f:`SUM(${col}4:${col}${3+window._b06Rows.length})`};}),{f:`SUM(E${4+window._b06Rows.length}:${XLSX.utils.encode_col(3+daysInMonth)}${4+window._b06Rows.length})`}]);
+    wsData.push(['DSHS 06-200 (05/2023) | Distribution: Copy in client chart and in RND file | 1-800-562-6078']);
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols']=[{wch:28},{wch:12},{wch:22},{wch:12},...Array(daysInMonth).fill({wch:4.5}),{wch:8}];
+    XLSX.utils.book_append_sheet(wb,ws,'06-200 Billing');
+    const filename=`DSHS_06-200_Billing_${month}_${year}.xlsx`;
+    XLSX.writeFile(wb,filename);
+    // Save to drafts silently
+    await save06200ToDrafts();
+    btn.textContent='⬇ Download Excel';btn.disabled=false;
+    alert(`✅ Downloaded: ${filename}\n\nBilling Month: ${billingMonth}\nClients: ${window._b06Rows.filter(r=>r.clientName).length}`);
+  }catch(err){
+    alert('Error: '+err.message);
+    btn.textContent='⬇ Download Excel';btn.disabled=false;
   }
-
-  wsData.push(['DSHS 06-200 (05/2023)']);
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:24},...Array(31).fill({wch:3.5}),{wch:6}];
-  XLSX.utils.book_append_sheet(wb, ws, '06-200 Billing Form');
-
-  return wb;
 }
 
 async function loadSheetJS(){
