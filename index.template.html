@@ -9314,20 +9314,84 @@ pageRenderers.sessions = () => {
 };
 
 // ── SESSION FINGERPRINT HELPERS ───────────────────
-function _getSessionKey(){ return 'gy_sess2_'+(currentUser?.id||'anon'); }
+function _getSessionKey(){ return 'gy_sess3_'+(currentUser?.id||'anon'); }
 
 function _buildFingerprint(){
-  // Use a stable set of signals that do NOT change on refresh
-  const ua=navigator.userAgent||'';
-  const lang=navigator.language||'';
-  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
-  const screen=`${window.screen.width}x${window.screen.height}`;
-  const platform=navigator.platform||'';
-  // Simple hash
-  const raw=ua+lang+tz+screen+platform;
+  // Combines device-specific signals that survive refresh
+  // but differ between devices even on the same network/WiFi.
+  // IP is fetched separately and stored alongside the fingerprint.
+  const ua        = navigator.userAgent||'';
+  const lang      = navigator.language||'';
+  const langs     = (navigator.languages||[]).join(',');
+  const tz        = Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+  const screen    = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
+  const platform  = navigator.platform||'';
+  const cores     = navigator.hardwareConcurrency||0;
+  const memory    = navigator.deviceMemory||0;        // GB RAM (Chrome only)
+  const touch     = navigator.maxTouchPoints||0;
+  const plugins   = Array.from(navigator.plugins||[]).map(p=>p.name).sort().join(',');
+  // Canvas fingerprint — draws text and reads pixel data
+  // Different GPU/driver/OS renders produce different hashes
+  let canvasFp='';
+  try{
+    const c=document.createElement('canvas');
+    const ctx=c.getContext('2d');
+    ctx.textBaseline='top';
+    ctx.font='14px Arial';
+    ctx.fillStyle='#f60';
+    ctx.fillRect(125,1,62,20);
+    ctx.fillStyle='#069';
+    ctx.fillText('GoldenYears🏥',2,15);
+    ctx.fillStyle='rgba(102,204,0,0.7)';
+    ctx.fillText('GoldenYears🏥',4,17);
+    canvasFp=c.toDataURL().slice(-50);
+  }catch(e){}
+  // WebGL renderer string — unique per GPU
+  let webgl='';
+  try{
+    const cv=document.createElement('canvas');
+    const gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+    if(gl){
+      const dbg=gl.getExtension('WEBGL_debug_renderer_info');
+      if(dbg) webgl=gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)||'';
+    }
+  }catch(e){}
+
+  const raw=[ua,lang,langs,tz,screen,platform,cores,memory,touch,plugins,canvasFp,webgl].join('|');
   let h=0;
   for(let i=0;i<raw.length;i++){h=((h<<5)-h)+raw.charCodeAt(i);h|=0;}
   return 'fp_'+(h>>>0).toString(16);
+}
+
+// Fetch real public IP address using a free, privacy-safe API
+async function _fetchIP(){
+  // Try multiple providers in order — return first success
+  const providers=[
+    ()=>fetch('https://api.ipify.org?format=json',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>d.ip),
+    ()=>fetch('https://api4.my-ip.io/ip.json',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>d.ip),
+    ()=>fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>({ip:d.ip,city:d.city,region:d.region,country:d.country_name})),
+  ];
+  for(const provider of providers){
+    try{
+      const result=await provider();
+      if(typeof result==='string') return {ip:result,city:null,region:null,country:null};
+      if(result?.ip) return result;
+    }catch(e){}
+  }
+  return {ip:'Unknown',city:null,region:null,country:null};
+}
+
+// Fetch location details from IP
+async function _fetchLocation(ip){
+  if(!ip||ip==='Unknown') return {city:null,region:null,country:null};
+  try{
+    const r=await fetch(`https://ipapi.co/${ip}/json/`,{signal:AbortSignal.timeout(3000)});
+    const d=await r.json();
+    if(d.error) return {city:null,region:null,country:null};
+    return {city:d.city||null,region:d.region||null,country:d.country_name||null};
+  }catch(e){
+    return {city:null,region:null,country:null};
+  }
 }
 
 function _parseUA(ua){
@@ -9362,31 +9426,64 @@ function _timeAgo(dateStr){
   return new Date(dateStr).toLocaleDateString('en-US');
 }
 
-function _recordSession(){
-  // Record or update this session based on fingerprint (survives refresh)
-  const fp=_buildFingerprint();
-  const key=_getSessionKey();
+async function _recordSession(){
+  const fp  = _buildFingerprint();
+  const key = _getSessionKey();
   let sessions=[];
   try{sessions=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
   const now=new Date().toISOString();
   const existing=sessions.find(s=>s.fp===fp);
+
   if(existing){
+    // Update last seen and page load count
     existing.last_seen=now;
     existing.count=(existing.count||1)+1;
+    // Refresh IP in background every 10 visits (IP can change)
+    if((existing.count%10===0)||!existing.ip||existing.ip==='Unknown'){
+      _fetchIP().then(async ipData=>{
+        existing.ip=ipData.ip;
+        if(ipData.city){
+          existing.city=ipData.city;
+          existing.region=ipData.region;
+          existing.country=ipData.country;
+        } else if(existing.ip&&existing.ip!=='Unknown'&&!existing.city){
+          const loc=await _fetchLocation(existing.ip);
+          existing.city=loc.city;
+          existing.region=loc.region;
+          existing.country=loc.country;
+        }
+        try{localStorage.setItem(key,JSON.stringify(sessions));}catch(e){}
+      });
+    }
   } else {
+    // New device — fetch IP and location before recording
+    const ipData = await _fetchIP();
+    let city=ipData.city, region=ipData.region, country=ipData.country;
+    // If provider didn't return location, fetch it separately
+    if(ipData.ip&&ipData.ip!=='Unknown'&&!city){
+      const loc=await _fetchLocation(ipData.ip);
+      city=loc.city; region=loc.region; country=loc.country;
+    }
     sessions.unshift({
       fp,
-      ua:navigator.userAgent,
-      platform:navigator.platform||'',
-      lang:navigator.language||'',
-      tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',
-      screen:`${window.screen.width}x${window.screen.height}`,
-      created_at:currentUser?.last_sign_in_at||now,
-      last_seen:now,
-      count:1,
-      isCurrent:true
+      ua:           navigator.userAgent,
+      platform:     navigator.platform||'',
+      lang:         navigator.language||'',
+      tz:           Intl.DateTimeFormat().resolvedOptions().timeZone||'',
+      screen:       `${window.screen.width}x${window.screen.height}`,
+      cores:        navigator.hardwareConcurrency||null,
+      memory:       navigator.deviceMemory||null,
+      touch:        navigator.maxTouchPoints||0,
+      ip:           ipData.ip||'Unknown',
+      city,region,country,
+      // first_seen = when this device first signed in
+      first_seen:   currentUser?.last_sign_in_at||now,
+      // last_seen   = updated every page load
+      last_seen:    now,
+      count:        1,
     });
   }
+
   // Mark only this fp as current
   sessions=sessions.map(s=>({...s,isCurrent:s.fp===fp}));
   // Prune sessions older than 30 days
@@ -9417,7 +9514,7 @@ async function renderSessionsPage(){
   initSupa();
 
   // Record/update this session (stable fingerprint — not affected by refresh)
-  const sessions=_recordSession();
+  const sessions=await _recordSession();
   const currentFp=_buildFingerprint();
 
   const now=new Date();
@@ -9499,39 +9596,93 @@ async function renderSessionsPage(){
           <button class="btn btn-ghost btn-sm" onclick="renderSessionsPage()">↻</button>
         </div>
         <div id="sessionsListEl">
-          ${sessions.length===0?`<div class="empty-state" style="padding:40px"><h4>No sessions recorded</h4></div>`
-          :sessions.map(s=>{
-            const {browser,os,device}=_parseUA(s.ua);
-            const isCurrent=s.fp===currentFp;
-            const lastSeenLabel=_timeAgo(s.last_seen);
-            const signInTime=s.created_at?new Date(s.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-            return `<div style="display:flex;align-items:flex-start;gap:14px;padding:16px 24px;border-bottom:1px solid var(--border);${isCurrent?'background:color-mix(in srgb,var(--green) 4%,transparent)':''}">
-              <div style="width:40px;height:40px;border-radius:var(--radius-sm);background:${isCurrent?'var(--green-dim)':'var(--bg3)'};border:1px solid ${isCurrent?'#2dba7a30':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/>${device==='mobile'?'<path d="M8 14h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>':'<path d="M6 17h8M10 14v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>'}</svg>
-              </div>
-              <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-                  <span style="font-size:13px;font-weight:600;color:var(--text)">${browser} on ${os}</span>
-                  ${isCurrent?'<span style="font-size:10px;font-weight:700;padding:2px 8px;background:var(--green-dim);color:var(--green);border-radius:99px;border:1px solid #2dba7a30">This device</span>':''}
+          ${sessions.length===0
+            ?`<div class="empty-state" style="padding:40px"><h4>No sessions recorded</h4></div>`
+            :sessions.map(s=>{
+              const {browser,os,device}=_parseUA(s.ua);
+              const isCurrent=s.fp===currentFp;
+              const lastSeenLabel  = _timeAgo(s.last_seen);
+              const firstSeenFmt   = s.first_seen
+                ? new Date(s.first_seen).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
+                : '—';
+              const lastSeenFmt    = s.last_seen
+                ? new Date(s.last_seen).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
+                : '—';
+              // Build location string
+              const locationParts=[s.city,s.region,s.country].filter(Boolean);
+              const locationStr=locationParts.length?locationParts.join(', '):'Location unknown';
+              // Device detail badges
+              const badges=[];
+              if(s.cores)  badges.push(`${s.cores}-core CPU`);
+              if(s.memory) badges.push(`${s.memory}GB RAM`);
+              if(s.touch>0)badges.push('Touch screen');
+              return `
+              <div style="border-bottom:1px solid var(--border);${isCurrent?'background:color-mix(in srgb,var(--green) 5%,transparent)':''}">
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 24px">
+
+                  <!-- Device icon -->
+                  <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${isCurrent?'var(--green-dim)':'var(--bg3)'};border:1px solid ${isCurrent?'#2dba7a30':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                      ${device==='mobile'
+                        ?`<rect x="6" y="2" width="10" height="18" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M9 17h4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`
+                        :`<rect x="2" y="4" width="18" height="13" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M7 20h8M11 17v3" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`}
+                    </svg>
+                  </div>
+
+                  <!-- Session info -->
+                  <div style="flex:1;min-width:0">
+
+                    <!-- Row 1: browser + badges -->
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+                      <span style="font-size:13px;font-weight:700;color:var(--text)">${browser} on ${os}</span>
+                      ${isCurrent?`<span style="font-size:10px;font-weight:700;padding:2px 9px;background:var(--green-dim);color:var(--green);border-radius:99px;border:1px solid #2dba7a30">● This device</span>`:''}
+                      ${!isCurrent&&s.count>1?`<span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:99px;border:1px solid var(--border)">${s.count} visits</span>`:''}
+                    </div>
+
+                    <!-- Row 2: IP + location -->
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="var(--text3)" stroke-width="1.2"/><path d="M6 1.5v9M1.5 6h9M2.5 3.5C3.5 4.5 5 5 6 5s2.5-.5 3.5-1.5M2.5 8.5C3.5 7.5 5 7 6 7s2.5.5 3.5 1.5" stroke="var(--text3)" stroke-width="1"/></svg>
+                      <span style="font-size:11.5px;font-family:var(--mono);color:${isCurrent?'var(--blue)':'var(--text2)'};font-weight:600">${s.ip||'—'}</span>
+                      <span style="font-size:11px;color:var(--text3)">·</span>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C4 1 2.5 2.6 2.5 4.5c0 2.8 3.5 6.5 3.5 6.5s3.5-3.7 3.5-6.5C9.5 2.6 8 1 6 1z" stroke="var(--text3)" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1.2" stroke="var(--text3)" stroke-width="1"/></svg>
+                      <span style="font-size:11.5px;color:var(--text2)">${locationStr}</span>
+                    </div>
+
+                    <!-- Row 3: timezone + screen -->
+                    <div style="font-size:11.5px;color:var(--text3);margin-bottom:5px">
+                      ${s.tz||'Unknown timezone'} · ${s.screen||'—'}
+                      ${badges.length?'· '+badges.join(' · '):''}
+                    </div>
+
+                    <!-- Row 4: timestamps -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:4px">
+                      <div style="display:flex;align-items:center;gap:5px">
+                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="var(--green)" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="var(--green)" stroke-width="1.2" stroke-linecap="round"/></svg>
+                        <span style="font-size:10.5px;color:var(--text3)">First seen</span>
+                        <span style="font-size:10.5px;color:var(--text2);font-weight:600">${firstSeenFmt}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px">
+                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2" stroke-linecap="round"/></svg>
+                        <span style="font-size:10.5px;color:var(--text3)">Last seen</span>
+                        <span style="font-size:10.5px;color:${isCurrent?'var(--green)':'var(--text2)'};font-weight:600">${isCurrent?'Active now':lastSeenFmt}</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <!-- Action button -->
+                  <div style="flex-shrink:0;padding-top:2px">
+                    ${isCurrent
+                      ?`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="if(confirm('Sign out of this session?'))signOut()">Sign out</button>`
+                      :`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="removeStoredSession2('${s.fp}')">Remove</button>`}
+                  </div>
+
                 </div>
-                <div style="font-size:11.5px;color:var(--text3);line-height:1.6">
-                  ${s.tz||'Unknown timezone'} · ${s.screen||'—'}
-                  ${isCurrent?'<span style="color:var(--green);font-weight:600;margin-left:6px">● Active now</span>':`<span style="margin-left:6px">Last seen ${lastSeenLabel}</span>`}
-                </div>
-                <div style="font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)">
-                  First seen: ${signInTime}${s.count&&s.count>1?` · ${s.count} page loads`:''}
-                </div>
-              </div>
-              <div style="flex-shrink:0;padding-top:2px">
-                ${isCurrent
-                  ?`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="if(confirm('Sign out of this session?'))signOut()">Sign out</button>`
-                  :`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="removeStoredSession2('${s.fp}')">Remove</button>`}
-              </div>
-            </div>`;
-          }).join('')}
+              </div>`;
+            }).join('')}
         </div>
         <div style="padding:12px 24px;font-size:11.5px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);background:var(--bg3)">
-          Sessions are identified by device fingerprint (browser + OS + screen + timezone). The same device will always be recognised as the same session even after refreshing.
+          Sessions are identified by a unique device fingerprint combining browser, OS, GPU, screen, CPU cores, and RAM. Two devices on the same WiFi network always appear as separate entries. IP addresses and locations are fetched on first visit and refreshed periodically.
         </div>
       </div>
 
@@ -9988,7 +10139,7 @@ document.addEventListener('DOMContentLoaded', () => {
   supa.auth.getSession().then(({ data }) => {
     if(!data?.session?.user) return;
     currentUser = data.session.user;
-    _recordSession(); // stable fingerprint — not affected by refresh
+    _recordSession(); // async — runs in background, doesn't block UI
     document.getElementById('landing').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     // Fetch profile and all data simultaneously
