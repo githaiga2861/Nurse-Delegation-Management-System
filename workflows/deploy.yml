@@ -1,0 +1,113 @@
+# ══════════════════════════════════════════════════════════════
+# .github/workflows/deploy.yml
+#
+# Deploys to GitHub Pages, injecting Supabase credentials
+# from GitHub Secrets at build time. Credentials NEVER appear
+# in source control — only in the deployed artifact.
+#
+# SETUP INSTRUCTIONS:
+#   1. Go to your GitHub repo → Settings → Secrets and variables
+#      → Actions → New repository secret
+#   2. Add two secrets:
+#        SUPA_URL   =  https://your-project.supabase.co
+#        SUPA_KEY   =  your-anon-public-key
+#   3. Rename index.html → index.template.html in your repo
+#   4. Push — this workflow will build and deploy automatically
+# ══════════════════════════════════════════════════════════════
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main          # Trigger on push to main branch
+  workflow_dispatch:  # Allow manual trigger from Actions tab
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+
+      # ── 1. Checkout source ──────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Validate secrets are set ─────────────
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.SUPA_URL }}" ]; then
+            echo "❌ Secret SUPA_URL is not set."
+            echo "   Go to: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SUPA_KEY }}" ]; then
+            echo "❌ Secret SUPA_KEY is not set."
+            echo "   Go to: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "✅ All required secrets are present."
+
+      # ── 3. Inject credentials ───────────────────
+      - name: Inject environment variables into HTML
+        run: |
+          # Source file must be index.template.html with __SUPA_URL__
+          # and __SUPA_KEY__ placeholders in the meta tags
+          if [ ! -f "index.template.html" ]; then
+            echo "❌ index.template.html not found."
+            echo "   Rename your index.html to index.template.html"
+            echo "   and replace hardcoded credentials with placeholders."
+            exit 1
+          fi
+
+          cp index.template.html index.html
+
+          sed -i "s|__SUPA_URL__|${{ secrets.SUPA_URL }}|g" index.html
+          sed -i "s|__SUPA_KEY__|${{ secrets.SUPA_KEY }}|g" index.html
+
+          # Verify placeholders were replaced
+          if grep -q "__SUPA_URL__\|__SUPA_KEY__" index.html; then
+            echo "❌ Credential injection failed — placeholders still in index.html"
+            exit 1
+          fi
+
+          echo "✅ Credentials injected successfully."
+
+          # Safety check: never log the actual key values
+          echo "   URL injected: $(echo '${{ secrets.SUPA_URL }}' | cut -c1-20)..."
+
+      # ── 4. Build artifact list ───────────────────
+      - name: List build output
+        run: |
+          echo "Files to be deployed:"
+          ls -la
+
+      # ── 5. Setup GitHub Pages ───────────────────
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # ── 6. Upload artifact ──────────────────────
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repo root as the site
+          path: '.'
+
+      # ── 7. Deploy ───────────────────────────────
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
