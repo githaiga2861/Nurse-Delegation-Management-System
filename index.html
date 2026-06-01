@@ -1,4 +1,35 @@
 <!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║  SECURITY — READ BEFORE COMMITTING TO GIT               ║
+  ╠══════════════════════════════════════════════════════════╣
+  ║  This file must NOT contain real Supabase credentials.  ║
+  ║  Credentials are injected via meta tags at build time.  ║
+  ║                                                          ║
+  ║  Required files (add to .gitignore):                    ║
+  ║    .env.local          — local dev credentials           ║
+  ║    _config.yml         — if using Jekyll                 ║
+  ║                                                          ║
+  ║  .env.local template:                                    ║
+  ║    SUPA_URL=https://your-project.supabase.co            ║
+  ║    SUPA_KEY=your-anon-public-key                        ║
+  ║                                                          ║
+  ║  GitHub Actions secret injection (in .yml workflow):    ║
+  ║    - run: |                                              ║
+  ║        sed -i "s|__SUPA_URL__|${{ secrets.SUPA_URL }}|g" index.html
+  ║        sed -i "s|__SUPA_KEY__|${{ secrets.SUPA_KEY }}|g" index.html
+  ║                                                          ║
+  ║  Local build script (build.sh):                         ║
+  ║    source .env.local                                     ║
+  ║    sed -i "s|__SUPA_URL__|$SUPA_URL|g" index.html       ║
+  ║    sed -i "s|__SUPA_KEY__|$SUPA_KEY|g" index.html       ║
+  ║                                                          ║
+  ║  .gitignore must include:                               ║
+  ║    .env*                                                 ║
+  ║    *.local                                              ║
+  ║    dist/                                                 ║
+  ╚══════════════════════════════════════════════════════════╝
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -586,7 +617,34 @@ textarea.form-input{resize:vertical;min-height:80px}
   .sidebar .nav-item{ font-size:8px; padding:4px 2px; }
   .sidebar .nav-item svg{ width:18px;height:18px; }
 }
-</style>
+</style><!--
+  ══════════════════════════════════════════════════════════════════
+  ENVIRONMENT CONFIGURATION
+  ══════════════════════════════════════════════════════════════════
+  For GitHub Pages / static hosting: set these meta tags via your
+  CI/CD pipeline or build script. NEVER hardcode values here.
+
+  GitHub Actions example (in your workflow .yml):
+    sed -i "s|__SUPA_URL__|${{ secrets.SUPA_URL }}|g" index.html
+    sed -i "s|__SUPA_KEY__|${{ secrets.SUPA_ANON_KEY }}|g" index.html
+
+  Local dev: create a build script that replaces the placeholders.
+  Add index.html to .gitignore if it contains real values.
+  ══════════════════════════════════════════════════════════════════
+-->
+<meta name="x-supa-url" content="__SUPA_URL__">
+<meta name="x-supa-key" content="__SUPA_KEY__">
+
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://chart.googleapis.com https://cdnjs.cloudflare.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data: https://chart.googleapis.com;
+  connect-src 'self' https://*.supabase.co https://*.supabase.io;
+  frame-ancestors 'none';
+">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Inline minimal manifest to prevent 404 when running from GitHub Pages root
@@ -2269,15 +2327,401 @@ if('serviceWorker' in navigator){
 ═══════════════════════════════════════════════ -->
 <script>
 
-// ── SUPABASE ──────────────────────────────────────
-const SUPA_URL = 'https://uldywugntkykeftuzxys.supabase.co';
-const SUPA_KEY = 'sb_publishable_kCCHxG8VAO_APnGWxCgLDg_Wj6Vxjj7';
+// ── ENVIRONMENT CONFIG ────────────────────────────
+// Credentials are injected at build time via meta tags.
+// See the meta tag comments in <head> for CI/CD setup instructions.
+// NEVER commit real credentials to source control.
+function _readMeta(name){
+  const el=document.querySelector(`meta[name="${name}"]`);
+  const val=el?.content||'';
+  // Reject if still a placeholder (not replaced by build pipeline)
+  if(!val||val.startsWith('__')||val===''){
+    console.warn(`[GY Security] Meta tag "${name}" is missing or unreplaced. Check your build/CI pipeline.`);
+    return null;
+  }
+  return val;
+}
+
+const SUPA_URL = _readMeta('x-supa-url');
+const SUPA_KEY = _readMeta('x-supa-key');
 let supa = null;
 let currentUser = null;
 let currentProfile = null;
+
 function initSupa(){
-  if(!supa && window.supabase) supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  if(supa) return;
+  if(!window.supabase){ console.error('[GY] Supabase SDK not loaded'); return; }
+  if(!SUPA_URL||!SUPA_KEY){ console.error('[GY] Missing Supabase credentials — check meta tags'); return; }
+  supa = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }
+  });
 }
+
+// ══════════════════════════════════════════════════
+// SECURITY MODULE
+// ══════════════════════════════════════════════════
+
+// ── 1. RATE LIMITER ──────────────────────────────
+// Enforces max 5 auth attempts per 15-minute window.
+// State is persisted in localStorage so refreshing
+// the page does NOT reset the counter.
+const RateLimiter = (() => {
+  const WINDOW_MS   = 15 * 60 * 1000;  // 15 minutes
+  const MAX_ATTEMPTS = 5;
+  const STORAGE_KEY  = 'gy_rl_auth';
+
+  function _load(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{"attempts":[],"lockedUntil":0}'); }
+    catch(e){ return {attempts:[],lockedUntil:0}; }
+  }
+  function _save(state){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){} }
+
+  function check(){
+    const now = Date.now();
+    const state = _load();
+    // Still locked?
+    if(state.lockedUntil > now){
+      const secsLeft = Math.ceil((state.lockedUntil - now)/1000);
+      const minsLeft = Math.ceil(secsLeft/60);
+      return { allowed: false, reason: `Too many sign-in attempts. Try again in ${minsLeft} minute${minsLeft===1?'':'s'}.`, secsLeft };
+    }
+    // Prune attempts outside the window
+    state.attempts = (state.attempts||[]).filter(t => now - t < WINDOW_MS);
+    if(state.attempts.length >= MAX_ATTEMPTS){
+      state.lockedUntil = now + WINDOW_MS;
+      _save(state);
+      return { allowed: false, reason: `Too many sign-in attempts. Account locked for 15 minutes.`, secsLeft: WINDOW_MS/1000 };
+    }
+    return { allowed: true, remaining: MAX_ATTEMPTS - state.attempts.length };
+  }
+
+  function record(){
+    const now = Date.now();
+    const state = _load();
+    state.attempts = [...(state.attempts||[]).filter(t => now - t < WINDOW_MS), now];
+    _save(state);
+  }
+
+  function reset(){
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  function status(){
+    const now = Date.now();
+    const state = _load();
+    if(state.lockedUntil > now) return { locked: true, secsLeft: Math.ceil((state.lockedUntil-now)/1000) };
+    const recent = (state.attempts||[]).filter(t => now - t < WINDOW_MS);
+    return { locked: false, attempts: recent.length, remaining: MAX_ATTEMPTS - recent.length };
+  }
+
+  return { check, record, reset, status };
+})();
+
+// ── 2. INPUT SANITIZER ────────────────────────────
+// Strips XSS vectors, enforces length limits, and
+// validates typed fields before any DB write.
+const Sanitizer = (() => {
+  const FIELD_MAX_BYTES   = 5_000;   // 5 KB per field
+  const PAYLOAD_MAX_BYTES = 100_000; // 100 KB total payload
+
+  // Escape HTML entities (used for all innerHTML interpolation)
+  function escapeHtml(s){
+    if(s==null) return '';
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#x27;')
+      .replace(/\//g,'&#x2F;')
+      .replace(/`/g,'&#x60;');
+  }
+
+  // Strip dangerous patterns from free-text fields
+  function stripDangerous(s){
+    if(s==null) return '';
+    return String(s)
+      // Remove script tags
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'')
+      // Remove event handlers
+      .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi,'')
+      .replace(/\bon\w+\s*=\s*[^\s>]+/gi,'')
+      // Remove javascript: URIs
+      .replace(/javascript\s*:/gi,'')
+      // Remove data: URIs (potential XSS vector)
+      .replace(/data\s*:\s*text\/html/gi,'')
+      // Remove SQL injection patterns
+      .replace(/('|")\s*(OR|AND)\s*\1?\d*\s*=\s*\d*/gi,'')
+      .replace(/;\s*(DROP|DELETE|INSERT|UPDATE|SELECT|EXEC|UNION)\s+/gi,'');
+  }
+
+  // Validate and clean a single field value
+  function field(value, options={}){
+    const {
+      type   = 'text',    // text|email|phone|date|number|name
+      max    = FIELD_MAX_BYTES,
+      required = false,
+      label  = 'Field',
+    } = options;
+
+    if(value==null||value===''){
+      if(required) return { ok:false, error:`${label} is required.` };
+      return { ok:true, value:'' };
+    }
+
+    let v = String(value).trim();
+
+    // Length check
+    if(new Blob([v]).size > max)
+      return { ok:false, error:`${label} exceeds maximum length (${Math.round(max/1000)}KB).` };
+
+    // Type-specific validation
+    switch(type){
+      case 'email':
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))
+          return { ok:false, error:`${label}: invalid email address.` };
+        v = v.toLowerCase();
+        break;
+      case 'phone':
+        // Allow digits, spaces, dashes, parentheses, plus
+        if(v && !/^[\d\s\-\(\)\+\.ext]{7,20}$/.test(v.replace(/\s/g,'')))
+          return { ok:false, error:`${label}: invalid phone number.` };
+        break;
+      case 'date':
+        if(v && !/^\d{4}-\d{2}-\d{2}$/.test(v))
+          return { ok:false, error:`${label}: date must be YYYY-MM-DD.` };
+        if(v){
+          const d=new Date(v);
+          if(isNaN(d.getTime())) return { ok:false, error:`${label}: invalid date.` };
+          // Reject absurd dates
+          const year=d.getFullYear();
+          if(year<1900||year>2200) return { ok:false, error:`${label}: date out of range.` };
+        }
+        break;
+      case 'number':
+        if(v && isNaN(Number(v)))
+          return { ok:false, error:`${label}: must be a number.` };
+        break;
+      case 'name':
+        // Allow letters, spaces, hyphens, apostrophes, accents
+        if(v && !/^[\p{L}\s'\-\.]{1,100}$/u.test(v))
+          return { ok:false, error:`${label}: contains invalid characters.` };
+        break;
+    }
+
+    // Strip dangerous content from all text types
+    v = stripDangerous(v);
+    return { ok:true, value:v };
+  }
+
+  // Validate an entire payload object
+  function payload(obj){
+    const json = JSON.stringify(obj||{});
+    if(new Blob([json]).size > PAYLOAD_MAX_BYTES)
+      return { ok:false, error:'Payload too large. Please reduce the amount of text entered.' };
+    return { ok:true };
+  }
+
+  // Get a form input value, sanitized
+  function fromInput(id, options={}){
+    const el=document.getElementById(id);
+    if(!el) return { ok:true, value:'' };
+    return field(el.value, options);
+  }
+
+  // Apply sanitization to all text inputs in a modal
+  function sanitizeModal(modalId){
+    const modal=document.getElementById(modalId);
+    if(!modal) return true;
+    let allOk=true;
+    modal.querySelectorAll('input[type="text"],input:not([type]),textarea').forEach(el=>{
+      if(el.value){
+        el.value=stripDangerous(el.value.trim());
+        if(new Blob([el.value]).size>FIELD_MAX_BYTES){
+          el.value=el.value.substring(0,FIELD_MAX_BYTES);
+          allOk=false;
+        }
+      }
+    });
+    return allOk;
+  }
+
+  return { escapeHtml, stripDangerous, field, payload, fromInput, sanitizeModal };
+})();
+
+// Make escapeHtml globally available (replaces the esc() helper used in templates)
+// This upgrades every existing esc() call to use the secure sanitizer
+function esc(s){ return Sanitizer.escapeHtml(s); }
+
+// ── 3. IN-MEMORY CACHE ────────────────────────────
+// TTL-based cache to avoid repeated DB reads.
+// Invalidated on any mutation to that resource type.
+const Cache = (() => {
+  const store = new Map();
+  const DEFAULT_TTL = 5 * 60 * 1000;   // 5 minutes for list data
+  const SHORT_TTL   = 60 * 1000;        // 60 seconds for active page data
+
+  function set(key, value, ttlMs=DEFAULT_TTL){
+    store.set(key, { value, expiresAt: Date.now() + ttlMs });
+  }
+
+  function get(key){
+    const entry = store.get(key);
+    if(!entry) return null;
+    if(Date.now() > entry.expiresAt){ store.delete(key); return null; }
+    return entry.value;
+  }
+
+  function invalidate(prefix){
+    // Invalidate all keys that start with the given prefix
+    for(const key of store.keys()){
+      if(key.startsWith(prefix)) store.delete(key);
+    }
+  }
+
+  function clear(){ store.clear(); }
+
+  function stats(){
+    const now=Date.now();
+    let active=0, expired=0;
+    for(const [k,v] of store.entries()){
+      if(now>v.expiresAt) expired++;
+      else active++;
+    }
+    return { active, expired, total: store.size };
+  }
+
+  // Convenience: wrap an async data-fetching function with cache
+  async function remember(key, fetchFn, ttlMs=DEFAULT_TTL){
+    const cached = get(key);
+    if(cached !== null) return cached;
+    const result = await fetchFn();
+    if(result !== null && result !== undefined) set(key, result, ttlMs);
+    return result;
+  }
+
+  return { set, get, invalidate, clear, stats, remember, SHORT_TTL, DEFAULT_TTL };
+})();
+
+// Cache invalidation helpers — call after any successful mutation
+function invalidateFacilityCache(){ Cache.invalidate(`facilities:`); }
+function invalidateCaregiverCache(){ Cache.invalidate(`caregivers:`); }
+function invalidateClientCache(){ Cache.invalidate(`clients:`); }
+function invalidateCaseCache(){ Cache.invalidate(`cases:`); }
+function invalidateAllCache(){ Cache.clear(); }
+
+// ── 4. REQUEST DEDUPLICATOR ───────────────────────
+// Prevents duplicate in-flight requests to Supabase.
+// If the same key is requested while a request is in
+// flight, the second caller waits for the first result.
+const Dedup = (() => {
+  const inflight = new Map();
+
+  async function run(key, fetchFn){
+    if(inflight.has(key)) return inflight.get(key);
+    const promise = fetchFn().finally(()=>inflight.delete(key));
+    inflight.set(key, promise);
+    return promise;
+  }
+
+  return { run };
+})();
+
+// ── 5. IDLE SESSION TIMEOUT ───────────────────────
+// Signs out automatically after 30 minutes of inactivity.
+const IdleGuard = (() => {
+  const IDLE_MS = 30 * 60 * 1000; // 30 minutes
+  let timer = null;
+  let warnTimer = null;
+  let warnBanner = null;
+
+  function _showWarning(){
+    if(warnBanner) return;
+    warnBanner = document.createElement('div');
+    warnBanner.id = 'gy-idle-banner';
+    warnBanner.style.cssText = [
+      'position:fixed','top:0','left:0','right:0','z-index:9999',
+      'background:var(--amber-dim)','border-bottom:2px solid var(--amber)',
+      'padding:12px 24px','display:flex','align-items:center',
+      'justify-content:space-between','gap:16px','font-size:13px',
+      'color:var(--amber)','font-family:var(--font)'
+    ].join(';');
+    warnBanner.innerHTML = `
+      <span><strong>Session expiring:</strong> You have been idle. You will be signed out in 2 minutes.</span>
+      <button onclick="IdleGuard.reset()" style="background:var(--amber);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Stay signed in</button>
+    `;
+    document.body.appendChild(warnBanner);
+  }
+
+  function _hideWarning(){
+    if(warnBanner){ warnBanner.remove(); warnBanner=null; }
+  }
+
+  function _schedule(){
+    clearTimeout(timer);
+    clearTimeout(warnTimer);
+    // Warn 2 minutes before expiry
+    warnTimer = setTimeout(()=>_showWarning(), IDLE_MS - 2*60*1000);
+    timer = setTimeout(()=>{
+      _hideWarning();
+      if(currentUser) signOut();
+    }, IDLE_MS);
+  }
+
+  function reset(){
+    _hideWarning();
+    _schedule();
+  }
+
+  function start(){
+    // Reset on any user interaction
+    ['mousedown','keydown','touchstart','scroll','click'].forEach(evt=>{
+      document.addEventListener(evt, ()=>reset(), { passive:true, capture:true });
+    });
+    _schedule();
+  }
+
+  function stop(){
+    clearTimeout(timer);
+    clearTimeout(warnTimer);
+    _hideWarning();
+    ['mousedown','keydown','touchstart','scroll','click'].forEach(evt=>{
+      document.removeEventListener(evt, reset);
+    });
+  }
+
+  return { start, stop, reset };
+})();
+
+// ── 6. AUDIT LOGGER ──────────────────────────────
+// Records security events to Supabase audit_log table.
+// Non-blocking — failures are silently swallowed.
+const AuditLog = (() => {
+  async function log(event, details={}){
+    if(!supa||!currentUser) return;
+    try{
+      await supa.from('audit_log').insert({
+        user_id: currentUser.id,
+        event,
+        details: JSON.stringify(details),
+        user_agent: navigator.userAgent.substring(0,256),
+        created_at: new Date().toISOString()
+      });
+    }catch(e){
+      // Audit log failures must not disrupt the user experience
+      console.warn('[AuditLog] Failed to write audit event:', event, e.message);
+    }
+  }
+  return { log };
+})();
+
+// ══════════════════════════════════════════════════
+// END SECURITY MODULE
+// ══════════════════════════════════════════════════
 
 // ── DATA ──────────────────────────────────────────
 window.facilities  = [];
@@ -2422,42 +2866,152 @@ async function loadAllDataThenShow(){
 
 async function submitSignIn(){
   initSupa();
-  const email = document.getElementById('siEmail').value.trim();
-  const password = document.getElementById('siPassword').value;
   const errEl = document.getElementById('siError');
-  const btn = document.getElementById('siBtnSubmit');
+  const btn   = document.getElementById('siBtnSubmit');
   errEl.textContent = '';
-  if(!email || !password){ errEl.textContent = 'Please enter your email and password.'; return; }
-  if(!supa){ errEl.textContent = 'Connection error — please refresh the page.'; return; }
-  btn.textContent = 'Signing in…';
-  btn.disabled = true;
-  const { data, error } = await supa.auth.signInWithPassword({ email, password });
-  if(error){
-    errEl.textContent = error.message;
-    btn.textContent = 'Sign In';
-    btn.disabled = false;
+
+  // ── Rate limit check ──────────────────────────
+  const rl = RateLimiter.check();
+  if(!rl.allowed){
+    errEl.textContent = rl.reason;
+    // Show countdown if locked
+    if(rl.secsLeft){
+      let remaining = rl.secsLeft;
+      const ticker = setInterval(()=>{
+        remaining--;
+        if(remaining<=0){ clearInterval(ticker); errEl.textContent=rl.reason; return; }
+        const m=Math.ceil(remaining/60);
+        errEl.textContent=`Too many attempts. Try again in ${m} minute${m===1?'':'s'}.`;
+      },1000);
+    }
     return;
   }
-  currentUser = data.user;
-  closeModal('signInModal');
-  document.getElementById('landing').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  window.scrollTo(0,0);
-  btn.textContent = 'Sign In';
-  btn.disabled = false;
-  const navSO=document.getElementById('navSignOutBtn');if(navSO)navSO.style.display='inline-flex';
-  await loadAllDataThenShow();
+
+  // ── Input validation ─────────────────────────
+  const emailRes = Sanitizer.fromInput('siEmail', { type:'email', required:true, label:'Email' });
+  if(!emailRes.ok){ errEl.textContent=emailRes.error; return; }
+  const email = emailRes.value;
+  const password = document.getElementById('siPassword').value;
+  if(!password||password.length<6){ errEl.textContent='Password is required.'; return; }
+  if(password.length>256){ errEl.textContent='Password is too long.'; return; }
+
+  if(!supa){ errEl.textContent='Connection error — please refresh the page.'; return; }
+
+  btn.textContent='Signing in…';
+  btn.disabled=true;
+
+  // ── Record attempt before the request ────────
+  RateLimiter.record();
+
+  try{
+    const { data, error } = await supa.auth.signInWithPassword({ email, password });
+
+    if(error){
+      // Map Supabase error messages to user-friendly text (avoid leaking internals)
+      const friendly = error.message.toLowerCase().includes('invalid')
+        ? 'Invalid email or password.'
+        : error.message.toLowerCase().includes('email not confirmed')
+        ? 'Please confirm your email address before signing in.'
+        : 'Sign-in failed. Please try again.';
+      errEl.textContent = friendly;
+
+      const status = RateLimiter.status();
+      if(status.remaining <= 2 && status.remaining > 0){
+        errEl.textContent += ` (${status.remaining} attempt${status.remaining===1?'':'s'} remaining before lockout)`;
+      }
+
+      btn.textContent='Sign In';
+      btn.disabled=false;
+
+      // Audit failed attempt (non-blocking)
+      if(supa){
+        try{
+          await supa.from('audit_log').insert({
+            user_id: null,
+            event: 'auth.failed',
+            details: JSON.stringify({ email, reason: error.message.substring(0,100) }),
+            user_agent: navigator.userAgent.substring(0,256),
+            created_at: new Date().toISOString()
+          });
+        }catch(e){}
+      }
+      return;
+    }
+
+    // ── Success ──────────────────────────────────
+    RateLimiter.reset(); // Clear attempt counter on success
+    currentUser = data.user;
+
+    closeModal('signInModal');
+    document.getElementById('landing').style.display='none';
+    document.getElementById('app').style.display='block';
+    window.scrollTo(0,0);
+    btn.textContent='Sign In';
+    btn.disabled=false;
+
+    const navSO=document.getElementById('navSignOutBtn');
+    if(navSO)navSO.style.display='inline-flex';
+
+    // Start idle timeout guard
+    IdleGuard.start();
+
+    // Audit successful sign-in
+    await AuditLog.log('auth.success', { email });
+
+    await loadAllDataThenShow();
+
+  }catch(e){
+    errEl.textContent='An unexpected error occurred. Please try again.';
+    btn.textContent='Sign In';
+    btn.disabled=false;
+  }
 }
 
-async function loadAllData(){
+async function loadAllData(forceRefresh=false){
   initSupa();
   if(!currentUser || !supa) return;
   const uid = currentUser.id;
-  const [facRes, cgRes, clRes] = await Promise.all([
-    supa.from('facilities').select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('caregivers').select('id,first,last,phone,email,cred_type,cert_num,cert_issued,cert_expiry,training_status,cpr_issued,cpr_expiry,cpr_provider,training_date,training_notes,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at').eq('user_id', uid).order('created_at', { ascending: false }),
-    supa.from('clients').select('id,first,last,dob,gender,dshs_id,aces_id,medicaid,address,facility_id,facility_name,caregiver_id,caregiver_name,status,diagnosis,diagnosis_secondary,allergies,medications,pharmacy,pharmacy_phone,med_notes,care_plan,delegation_req,physician,physician_phone,physician_address,emergency_name,emergency_rel,emergency_phone,guardian,rn_start_date,is_new_client,reassess1,reassess2,reassess3,is_special_case,special_case_type,special_case_notes,special_reassess_dates,created_at').eq('user_id', uid).order('created_at', { ascending: false })
-  ]);
+
+  // ── Cache keys ────────────────────────────────
+  const FAC_KEY = `facilities:${uid}`;
+  const CG_KEY  = `caregivers:${uid}`;
+  const CL_KEY  = `clients:${uid}`;
+
+  // Use cached data if available and not forced refresh
+  const cachedFac = !forceRefresh && Cache.get(FAC_KEY);
+  const cachedCg  = !forceRefresh && Cache.get(CG_KEY);
+  const cachedCl  = !forceRefresh && Cache.get(CL_KEY);
+
+  // Only fetch what's missing/stale
+  const fetches = [];
+  if(!cachedFac) fetches.push(
+    Dedup.run(FAC_KEY, ()=>supa.from('facilities')
+      .select('id,type,name,license,license_exp,status,street,city,zip,county,contact_name,contact_role,phone,email,capacity,client_count,notes,created_at')
+      .eq('user_id',uid).order('created_at',{ascending:false}))
+  );
+  if(!cachedCg) fetches.push(
+    Dedup.run(CG_KEY, ()=>supa.from('caregivers')
+      .select('id,first,last,phone,email,cred_type,cert_num,cert_issued,cert_expiry,training_status,cpr_issued,cpr_expiry,cpr_provider,training_date,training_notes,facility_id,facility_name,status,delegation_eligible,assigned_clients,created_at')
+      .eq('user_id',uid).order('created_at',{ascending:false}))
+  );
+  if(!cachedCl) fetches.push(
+    Dedup.run(CL_KEY, ()=>supa.from('clients')
+      .select('id,first,last,dob,gender,dshs_id,aces_id,medicaid,address,facility_id,facility_name,caregiver_id,caregiver_name,status,diagnosis,diagnosis_secondary,allergies,medications,pharmacy,pharmacy_phone,med_notes,care_plan,delegation_req,physician,physician_phone,physician_address,emergency_name,emergency_rel,emergency_phone,guardian,rn_start_date,is_new_client,reassess1,reassess2,reassess3,is_special_case,special_case_type,special_case_notes,special_reassess_dates,created_at')
+      .eq('user_id',uid).order('created_at',{ascending:false}))
+  );
+
+  const results = await Promise.all(fetches);
+  let ri = 0;
+  const facRes = cachedFac ? { data: cachedFac } : results[ri++];
+  const cgRes  = cachedCg  ? { data: cachedCg  } : results[ri++];
+  const clRes  = cachedCl  ? { data: cachedCl  } : results[ri++];
+
+  // Cache results
+  if(!cachedFac && facRes.data) Cache.set(FAC_KEY, facRes.data, Cache.DEFAULT_TTL);
+  if(!cachedCg  && cgRes.data)  Cache.set(CG_KEY,  cgRes.data,  Cache.DEFAULT_TTL);
+  if(!cachedCl  && clRes.data)  Cache.set(CL_KEY,  clRes.data,  Cache.DEFAULT_TTL);
+
+  const [facResF, cgResF, clResF] = [facRes, cgRes, clRes];
   window.facilities = (facRes.data || []).map(f => ({
       ...f,
       licenseExp: f.license_exp, contactName: f.contact_name,
@@ -4042,6 +4596,7 @@ async function saveCase(){
     await supa.from('delegation_cases').upsert(row);
   }
   window.delegationCases.unshift(caseObj);
+  invalidateCaseCache();
   closeModal('newCaseModal');
   clearModalDraft('newCaseModal');
   updateCaseStats();
@@ -5346,16 +5901,26 @@ function populateFacility(f){
 }
 async function saveFacility(){
   initSupa();
-  const name=document.getElementById('facilityName').value.trim();
-  const type=document.getElementById('facilityType').value||document.getElementById('facilityTypeOther').value.trim();
-  const street=document.getElementById('facilityStreet').value.trim();
-  const contactName=document.getElementById('facilityContactName').value.trim();
-  const phone=document.getElementById('facilityPhone').value.trim();
-  if(!name){alert('Facility name is required.');return;}
+  Sanitizer.sanitizeModal('facilityModal');
+
+  const nameRes = Sanitizer.fromInput('facilityName',{required:true,label:'Facility name',max:200});
+  if(!nameRes.ok){alert(nameRes.error);return;}
+  const name = nameRes.value;
+
+  const type=document.getElementById('facilityType').value||Sanitizer.stripDangerous(document.getElementById('facilityTypeOther').value.trim());
   if(!type){alert('Please select a facility type.');return;}
-  if(!street){alert('Street address is required.');return;}
-  if(!contactName){alert('Primary contact name is required.');return;}
-  if(!phone){alert('Primary phone is required.');return;}
+
+  const streetRes = Sanitizer.fromInput('facilityStreet',{required:true,label:'Street address',max:300});
+  if(!streetRes.ok){alert(streetRes.error);return;}
+  const street = streetRes.value;
+
+  const contactNameRes = Sanitizer.fromInput('facilityContactName',{type:'name',required:true,label:'Contact name'});
+  if(!contactNameRes.ok){alert(contactNameRes.error);return;}
+  const contactName = contactNameRes.value;
+
+  const phoneRes = Sanitizer.fromInput('facilityPhone',{type:'phone',required:true,label:'Phone'});
+  if(!phoneRes.ok){alert(phoneRes.error);return;}
+  const phone = phoneRes.value;
   const now = new Date().toISOString();
   const editId = document.getElementById('facilityEditId')?.value;
   const existingFac = editId ? window.facilities.find(x=>x.id===editId) : null;
@@ -5400,13 +5965,13 @@ async function saveFacility(){
   // Remove both the old record (by original editId) and any accidental duplicate
   window.facilities = window.facilities.filter(x => x.id !== f.id && x.id !== editId);
   if(existingFac){
-    // Edit: put it back in the same position
     const idx = window.facilities.findIndex(x=>x.id===editId);
     if(idx>=0) window.facilities.splice(idx,0,local);
     else window.facilities.unshift(local);
   } else {
     window.facilities.unshift(local);
   }
+  invalidateFacilityCache();
   closeModal('facilityModal');
   clearModalDraft('facilityModal');
   document.getElementById('facilityEditId').value='';
@@ -5674,14 +6239,31 @@ function openCaregiverModal(editId){
 }
 async function saveCaregiver(){
   initSupa();
-  const first=document.getElementById('cgFirst').value.trim(),last=document.getElementById('cgLast').value.trim();
-  const phone=document.getElementById('cgPhone').value.trim(),credType=document.getElementById('cgCredType').value;
-  const certExpiry=document.getElementById('cgCertExpiry').value,cprExpiry=document.getElementById('cgCprExpiry').value;
-  if(!first||!last){alert('Full name is required.');return;}
-  if(!phone){alert('Phone is required.');return;}
+  Sanitizer.sanitizeModal('caregiverModal');
+
+  const firstRes = Sanitizer.fromInput('cgFirst',{type:'name',required:true,label:'First name'});
+  if(!firstRes.ok){alert(firstRes.error);return;}
+  const lastRes  = Sanitizer.fromInput('cgLast', {type:'name',required:true,label:'Last name'});
+  if(!lastRes.ok){alert(lastRes.error);return;}
+  const first=firstRes.value, last=lastRes.value;
+
+  const phoneRes = Sanitizer.fromInput('cgPhone',{type:'phone',required:true,label:'Phone'});
+  if(!phoneRes.ok){alert(phoneRes.error);return;}
+  const phone = phoneRes.value;
+
+  const credType=document.getElementById('cgCredType').value;
   if(!credType){alert('Credential type is required.');return;}
+
+  const certExpiry=document.getElementById('cgCertExpiry').value;
+  const cprExpiry=document.getElementById('cgCprExpiry').value;
   if(!certExpiry){alert('Cert expiry is required.');return;}
   if(!cprExpiry){alert('CPR expiry is required.');return;}
+
+  // Validate dates
+  const ceDateRes = Sanitizer.field(certExpiry,{type:'date',label:'Cert expiry'});
+  if(!ceDateRes.ok){alert(ceDateRes.error);return;}
+  const cprDateRes = Sanitizer.field(cprExpiry,{type:'date',label:'CPR expiry'});
+  if(!cprDateRes.ok){alert(cprDateRes.error);return;}
   const today=new Date(),cExp=new Date(certExpiry),cprExp=new Date(cprExpiry);
   const facilityId=document.getElementById('cgFacility').value;
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
@@ -5737,6 +6319,7 @@ async function saveCaregiver(){
   const c = { ...row, credType: row.cred_type, certNum: row.cert_num, certIssued: row.cert_issued, certExpiry, trainingStatus: row.training_status, cprIssued: row.cpr_issued, cprExpiry, cprProvider: row.cpr_provider, trainingDate: row.training_date, trainingNotes: row.training_notes, facilityId, facilityName, delegationEligible: row.delegation_eligible, certExpired: cExp<today, cprExpired: cprExp<today, certExpiring: cExp>=today&&(cExp-today)<90*86400000, cprExpiring: cprExp>=today&&(cprExp-today)<90*86400000, assignedClients: [] };
   window.caregivers = window.caregivers.filter(x => x.id !== row.id && x.id !== cgEditId);
   window.caregivers.unshift(c);
+  invalidateCaregiverCache();
   closeModal('caregiverModal');
   clearModalDraft('caregiverModal');
   if(document.getElementById('cgEditId')) document.getElementById('cgEditId').value='';
@@ -6099,16 +6682,37 @@ function openClientModal(editId){
 }
 async function saveClient(){
   initSupa();
-  const first=document.getElementById('clFirst').value.trim(),last=document.getElementById('clLast').value.trim();
-  const dob=document.getElementById('clDob').value,facilityId=document.getElementById('clFacility').value;
-  const allergies=document.getElementById('clAllergies').value.trim(),physician=document.getElementById('clPhysician').value.trim();
-  const emergencyName=document.getElementById('clEmergencyName').value.trim(),emergencyPhone=document.getElementById('clEmergencyPhone').value.trim();
-  if(!first||!last){alert('Client name is required.');return;}
+  Sanitizer.sanitizeModal('clientModal');
+
+  const firstRes = Sanitizer.fromInput('clFirst',{type:'name',required:true,label:'First name'});
+  if(!firstRes.ok){alert(firstRes.error);return;}
+  const lastRes  = Sanitizer.fromInput('clLast', {type:'name',required:true,label:'Last name'});
+  if(!lastRes.ok){alert(lastRes.error);return;}
+  const first=firstRes.value, last=lastRes.value;
+
+  const dob=document.getElementById('clDob').value;
   if(!dob){alert('Date of birth is required.');return;}
+  const dobRes=Sanitizer.field(dob,{type:'date',label:'Date of birth'});
+  if(!dobRes.ok){alert(dobRes.error);return;}
+
+  const facilityId=document.getElementById('clFacility').value;
   if(!facilityId){alert('Facility assignment is required.');return;}
-  if(!allergies){alert('Allergy info is required (NKDA if none).');return;}
-  if(!physician){alert('Primary physician is required.');return;}
-  if(!emergencyName||!emergencyPhone){alert('Emergency contact required.');return;}
+
+  const allergiesRes=Sanitizer.fromInput('clAllergies',{required:true,label:'Allergies',max:1000});
+  if(!allergiesRes.ok){alert(allergiesRes.error);return;}
+  const allergies=allergiesRes.value;
+
+  const physicianRes=Sanitizer.fromInput('clPhysician',{type:'name',required:true,label:'Primary physician'});
+  if(!physicianRes.ok){alert(physicianRes.error);return;}
+  const physician=physicianRes.value;
+
+  const emergencyNameRes=Sanitizer.fromInput('clEmergencyName',{type:'name',required:true,label:'Emergency contact name'});
+  if(!emergencyNameRes.ok){alert(emergencyNameRes.error);return;}
+  const emergencyName=emergencyNameRes.value;
+
+  const emergencyPhoneRes=Sanitizer.fromInput('clEmergencyPhone',{type:'phone',required:true,label:'Emergency phone'});
+  if(!emergencyPhoneRes.ok){alert(emergencyPhoneRes.error);return;}
+  const emergencyPhone=emergencyPhoneRes.value;
   const caregiverId=document.getElementById('clCaregiver').value;
   const facilityName=window.facilities.find(f=>f.id===facilityId)?.name||'—';
   const cg=window.caregivers.find(c=>c.id===caregiverId);
@@ -6185,6 +6789,7 @@ async function saveClient(){
   cl.created_at = existingCl ? existingCl.created_at : now2;
   window.clients = window.clients.filter(x => x.id !== cl.id && x.id !== clEditId);
   window.clients.unshift(cl);
+  invalidateClientCache();
 
   // ── AUTO-CREATE DELEGATION CASE for new clients ──────────────────────────
   if(cl.isNewClient && cl.rnStartDate){
@@ -9354,6 +9959,9 @@ function attachModalDraftListeners(){
 async function signOut(){
   if(!confirm('Sign out of Golden Years RN Management System?')) return;
   initSupa();
+  try{ await AuditLog.log('auth.signout',{}); }catch(e){}
+  IdleGuard.stop();
+  invalidateAllCache();
   if(supa) await supa.auth.signOut();
   currentUser = null; currentProfile = null;
   window.facilities = []; window.caregivers = []; window.clients = [];
