@@ -10142,35 +10142,166 @@ function _buildFingerprint(){
   return 'fp_'+(h>>>0).toString(16);
 }
 
-// Fetch real public IP address using a free, privacy-safe API
-async function _fetchIP(){
-  // Try multiple providers in order — return first success
-  const providers=[
-    ()=>fetch('https://api.ipify.org?format=json',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>d.ip),
-    ()=>fetch('https://api4.my-ip.io/ip.json',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>d.ip),
-    ()=>fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(3000)}).then(r=>r.json()).then(d=>({ip:d.ip,city:d.city,region:d.region,country:d.country_name})),
-  ];
-  for(const provider of providers){
-    try{
-      const result=await provider();
-      if(typeof result==='string') return {ip:result,city:null,region:null,country:null};
-      if(result?.ip) return result;
-    }catch(e){}
-  }
-  return {ip:'Unknown',city:null,region:null,country:null};
+// ── IP + GEOLOCATION ──────────────────────────────────────────────
+// Single call returns both IP and location together.
+// Uses a waterfall of providers — each returns the CALLER'S real IP,
+// not a server/CDN IP. Results are cached in sessionStorage so we
+// never make more than one network call per browser session.
+
+const _GEO_CACHE_KEY = 'gy_geo_v2';
+
+// One-time migration: wipe sessions where location was wrongly
+// detected as Nairobi (ipapi.co CDN artifact), forcing a re-fetch
+(function _wipeBadGeo(){
+  try{
+    // Clear old geo cache key from the previous provider
+    sessionStorage.removeItem('gy_geo_v1');
+    sessionStorage.removeItem(_GEO_CACHE_KEY);
+    // Scan all session stores for Nairobi contamination
+    Object.keys(localStorage).forEach(k=>{
+      if(!k.startsWith('gy_sess')) return;
+      try{
+        const sessions = JSON.parse(localStorage.getItem(k)||'[]');
+        let dirty = false;
+        sessions.forEach(s=>{
+          // If city/country looks like the CDN artefact, clear location
+          // fields so they get re-fetched on next _recordSession call
+          if(
+            (s.city==='Nairobi'&&s.country==='Kenya') ||
+            (s.ip==='Unknown') ||
+            (!s.city && s.country==='Kenya')
+          ){
+            s.city=null; s.region=null; s.country=null;
+            s.ip=null; s.isp=null;
+            // Force re-fetch on next visit (count trick)
+            s.count=10;
+            dirty=true;
+          }
+        });
+        if(dirty) localStorage.setItem(k, JSON.stringify(sessions));
+      }catch(e){}
+    });
+  }catch(e){}
+})();
+
+function _geoFromCache(){
+  try{
+    const raw = sessionStorage.getItem(_GEO_CACHE_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    // Discard if older than 4 hours
+    if(Date.now() - (d._ts||0) > 4*60*60*1000) return null;
+    return d;
+  }catch(e){ return null; }
 }
 
-// Fetch location details from IP
-async function _fetchLocation(ip){
-  if(!ip||ip==='Unknown') return {city:null,region:null,country:null};
-  try{
-    const r=await fetch(`https://ipapi.co/${ip}/json/`,{signal:AbortSignal.timeout(3000)});
-    const d=await r.json();
-    if(d.error) return {city:null,region:null,country:null};
-    return {city:d.city||null,region:d.region||null,country:d.country_name||null};
-  }catch(e){
-    return {city:null,region:null,country:null};
+function _geoToCache(data){
+  try{ sessionStorage.setItem(_GEO_CACHE_KEY, JSON.stringify({...data, _ts: Date.now()})); }catch(e){}
+}
+
+async function _fetchIP(){
+  // Return cached result immediately — avoids re-fetching on every
+  // page navigation within the same browser session
+  const cached = _geoFromCache();
+  if(cached && cached.ip && cached.ip !== 'Unknown') return cached;
+
+  const _t = ms => AbortSignal.timeout(ms);
+  const _j = async url => { const r = await fetch(url, {signal:_t(4000)}); if(!r.ok) throw new Error(r.status); return r.json(); };
+
+  // Provider list — each call hits the requester's real IP directly.
+  // ipwho.is and ipwhois.app both return IP + full geo in one shot.
+  // ipify is IP-only fallback; we then use ip-api.com for geo.
+  const providers = [
+
+    // 1. ipwho.is — no key, full geo, reliable CORS, fast
+    async () => {
+      const d = await _j('https://ipwho.is/');
+      if(!d.success || !d.ip) throw new Error('bad');
+      return {
+        ip: d.ip,
+        city: d.city || null,
+        region: d.region || null,
+        country: d.country || null,
+        isp: d.connection?.isp || null,
+        flag: d.flag?.emoji || null,
+      };
+    },
+
+    // 2. ipwhois.app — no key, full geo, good uptime
+    async () => {
+      const d = await _j('https://ipwhois.app/json/');
+      if(!d.success || !d.ip) throw new Error('bad');
+      return {
+        ip: d.ip,
+        city: d.city || null,
+        region: d.region || null,
+        country: d.country || null,
+        isp: d.isp || null,
+        flag: d.country_flag_emoji || null,
+      };
+    },
+
+    // 3. ip-api.com — no key, full geo, JSON endpoint (HTTP only but
+    //    we're already on a mixed-content-safe context via GitHub Pages)
+    async () => {
+      const d = await _j('http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,query');
+      if(d.status !== 'success' || !d.query) throw new Error('bad');
+      return {
+        ip: d.query,
+        city: d.city || null,
+        region: d.regionName || null,
+        country: d.country || null,
+        isp: d.isp || null,
+        flag: null,
+      };
+    },
+
+    // 4. freeipapi.com — no key, HTTPS, returns full geo
+    async () => {
+      const d = await _j('https://freeipapi.com/api/json');
+      if(!d.ipAddress) throw new Error('bad');
+      return {
+        ip: d.ipAddress,
+        city: d.cityName || null,
+        region: d.regionName || null,
+        country: d.countryName || null,
+        isp: null,
+        flag: d.countryCode ? null : null,
+      };
+    },
+
+    // 5. Last resort — ipify gives IP only; skip geo rather than
+    //    making a second call that risks a wrong cached result
+    async () => {
+      const d = await _j('https://api.ipify.org?format=json');
+      if(!d.ip) throw new Error('bad');
+      return { ip: d.ip, city: null, region: null, country: null, isp: null, flag: null };
+    },
+  ];
+
+  for(const provider of providers){
+    try{
+      const result = await provider();
+      if(result?.ip){
+        _geoToCache(result);
+        return result;
+      }
+    }catch(e){
+      // try next provider silently
+    }
   }
+
+  const fallback = {ip:'Unknown', city:null, region:null, country:null, isp:null, flag:null};
+  return fallback;
+}
+
+// _fetchLocation is now a no-op wrapper — geo comes bundled from _fetchIP
+async function _fetchLocation(ip){
+  // Location is already embedded in the _fetchIP result.
+  // This stub exists so existing call-sites don't break.
+  const cached = _geoFromCache();
+  if(cached && cached.ip === ip) return {city:cached.city, region:cached.region, country:cached.country};
+  return {city:null, region:null, country:null};
 }
 
 function _parseUA(ua){
@@ -10218,48 +10349,58 @@ async function _recordSession(){
     existing.last_seen=now;
     existing.count=(existing.count||1)+1;
     // Refresh IP in background every 10 visits (IP can change)
-    if((existing.count%10===0)||!existing.ip||existing.ip==='Unknown'){
-      _fetchIP().then(async ipData=>{
-        existing.ip=ipData.ip;
+    if((existing.count % 10 === 0) || !existing.ip || existing.ip === 'Unknown'){
+      // Clear sessionStorage geo cache so the refresh actually re-fetches
+      try{ sessionStorage.removeItem(_GEO_CACHE_KEY); }catch(e){}
+      _fetchIP().then(async ipData => {
+        if(!ipData.ip || ipData.ip === 'Unknown') return;
+        existing.ip      = ipData.ip;
+        existing.isp     = ipData.isp     || existing.isp     || null;
+        existing.flag    = ipData.flag    || existing.flag    || null;
         if(ipData.city){
-          existing.city=ipData.city;
-          existing.region=ipData.region;
-          existing.country=ipData.country;
-        } else if(existing.ip&&existing.ip!=='Unknown'&&!existing.city){
-          const loc=await _fetchLocation(existing.ip);
-          existing.city=loc.city;
-          existing.region=loc.region;
-          existing.country=loc.country;
+          existing.city    = ipData.city;
+          existing.region  = ipData.region;
+          existing.country = ipData.country;
+        } else if(!existing.city){
+          const loc = await _fetchLocation(ipData.ip);
+          existing.city    = loc.city;
+          existing.region  = loc.region;
+          existing.country = loc.country;
         }
-        try{localStorage.setItem(key,JSON.stringify(sessions));}catch(e){}
+        try{ localStorage.setItem(key, JSON.stringify(sessions)); }catch(e){}
       });
     }
   } else {
-    // New device — fetch IP and location before recording
+    // New device — _fetchIP returns IP + geo in a single call
     const ipData = await _fetchIP();
-    let city=ipData.city, region=ipData.region, country=ipData.country;
-    // If provider didn't return location, fetch it separately
-    if(ipData.ip&&ipData.ip!=='Unknown'&&!city){
-      const loc=await _fetchLocation(ipData.ip);
-      city=loc.city; region=loc.region; country=loc.country;
+    // Only fall back to _fetchLocation if the primary providers gave
+    // an IP but no city (e.g. ipify-only fallback path)
+    let city    = ipData.city;
+    let region  = ipData.region;
+    let country = ipData.country;
+    let isp     = ipData.isp || null;
+    let flag    = ipData.flag || null;
+    if(ipData.ip && ipData.ip !== 'Unknown' && !city){
+      const loc = await _fetchLocation(ipData.ip);
+      city    = loc.city;
+      region  = loc.region;
+      country = loc.country;
     }
     sessions.unshift({
       fp,
-      ua:           navigator.userAgent,
-      platform:     navigator.platform||'',
-      lang:         navigator.language||'',
-      tz:           Intl.DateTimeFormat().resolvedOptions().timeZone||'',
-      screen:       `${window.screen.width}x${window.screen.height}`,
-      cores:        navigator.hardwareConcurrency||null,
-      memory:       navigator.deviceMemory||null,
-      touch:        navigator.maxTouchPoints||0,
-      ip:           ipData.ip||'Unknown',
-      city,region,country,
-      // first_seen = when this device first signed in
-      first_seen:   currentUser?.last_sign_in_at||now,
-      // last_seen   = updated every page load
-      last_seen:    now,
-      count:        1,
+      ua:        navigator.userAgent,
+      platform:  navigator.platform || '',
+      lang:      navigator.language || '',
+      tz:        Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      screen:    `${window.screen.width}x${window.screen.height}`,
+      cores:     navigator.hardwareConcurrency || null,
+      memory:    navigator.deviceMemory || null,
+      touch:     navigator.maxTouchPoints || 0,
+      ip:        ipData.ip || 'Unknown',
+      city, region, country, isp, flag,
+      first_seen: currentUser?.last_sign_in_at || now,
+      last_seen:  now,
+      count:      1,
     });
   }
 
@@ -10418,13 +10559,14 @@ async function renderSessionsPage(){
                       ${!isCurrent&&s.count>1?`<span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:99px;border:1px solid var(--border)">${s.count} visits</span>`:''}
                     </div>
 
-                    <!-- Row 2: IP + location -->
+                    <!-- Row 2: IP + location + ISP -->
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="var(--text3)" stroke-width="1.2"/><path d="M6 1.5v9M1.5 6h9M2.5 3.5C3.5 4.5 5 5 6 5s2.5-.5 3.5-1.5M2.5 8.5C3.5 7.5 5 7 6 7s2.5.5 3.5 1.5" stroke="var(--text3)" stroke-width="1"/></svg>
                       <span style="font-size:11.5px;font-family:var(--mono);color:${isCurrent?'var(--blue)':'var(--text2)'};font-weight:600">${s.ip||'—'}</span>
                       <span style="font-size:11px;color:var(--text3)">·</span>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C4 1 2.5 2.6 2.5 4.5c0 2.8 3.5 6.5 3.5 6.5s3.5-3.7 3.5-6.5C9.5 2.6 8 1 6 1z" stroke="var(--text3)" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1.2" stroke="var(--text3)" stroke-width="1"/></svg>
-                      <span style="font-size:11.5px;color:var(--text2)">${locationStr}</span>
+                      <span style="font-size:11.5px;color:var(--text2)">${s.flag?s.flag+' ':''}${locationStr}</span>
+                      ${s.isp?`<span style="font-size:11px;color:var(--text3)">·</span><span style="font-size:11px;color:var(--text3)">${s.isp}</span>`:''}
                     </div>
 
                     <!-- Row 3: timezone + screen -->
