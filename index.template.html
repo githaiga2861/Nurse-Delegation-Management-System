@@ -2673,6 +2673,64 @@ if('serviceWorker' in navigator){
 ═══════════════════════════════════════════════ -->
 <script>
 
+// ── WASHINGTON STATE TIMEZONE ─────────────────────
+// All dates and times displayed in the app use Pacific Time
+// (America/Los_Angeles) regardless of where the user's device is.
+const WA_TZ = 'America/Los_Angeles';
+
+function waDate(dateInput){
+  // Returns a Date-like object normalised to WA local time.
+  // Pass a Date, ISO string, or timestamp.
+  return new Date(typeof dateInput==='string'||typeof dateInput==='number'
+    ? dateInput : (dateInput||Date.now()));
+}
+
+function waFormat(dateInput, options={}){
+  // Format any date/time value in WA timezone.
+  // Merges caller options with the WA timezone default.
+  const d = waDate(dateInput);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-US', { timeZone: WA_TZ, ...options });
+}
+
+function waDateOnly(dateInput){
+  return waFormat(dateInput, { month:'short', day:'numeric', year:'numeric' });
+}
+
+function waDateShort(dateInput){
+  return waFormat(dateInput, { month:'numeric', day:'numeric', year:'numeric' });
+}
+
+function waTimeOnly(dateInput){
+  return waFormat(dateInput, { hour:'2-digit', minute:'2-digit', timeZoneName:'short' });
+}
+
+function waDateTimeFull(dateInput){
+  return waFormat(dateInput, {
+    weekday:'short', month:'long', day:'numeric',
+    year:'numeric', hour:'2-digit', minute:'2-digit', timeZoneName:'short'
+  });
+}
+
+function waDateTimeMed(dateInput){
+  return waFormat(dateInput, {
+    month:'short', day:'numeric', year:'numeric',
+    hour:'2-digit', minute:'2-digit'
+  });
+}
+
+function waNow(){
+  // Current wall-clock time in WA timezone as a plain Date object.
+  return new Date(new Date().toLocaleString('en-US', { timeZone: WA_TZ }));
+}
+
+function waToday(){
+  // Returns a Date set to midnight WA time today — use for date comparisons.
+  const d = waNow();
+  d.setHours(0,0,0,0);
+  return d;
+}
+
 // ── ENVIRONMENT CONFIG ────────────────────────────
 // Credentials are injected at build time via meta tags.
 // See the meta tag comments in <head> for CI/CD setup instructions.
@@ -3497,7 +3555,8 @@ pageRenderers.dashboard = () => {
 <div class="page-content">
   <div style="margin-bottom:28px">
     <h3 style="margin-bottom:6px;font-size:1.6rem" id="dashGreeting">Good morning</h3>
-    <img src="" onerror="(()=>{const h=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})).getHours();const g=h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night';document.getElementById('dashGreeting').textContent=g;})()">
+    <img src="" onerror="(()=>{const h=waNow().getHours();const g=h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night';const tz=new Date().toLocaleTimeString('en-US',{timeZone:WA_TZ,timeZoneName:'short'}).split(' ').pop();document.getElementById('dashGreeting').textContent=g+', '+((window.currentProfile?.full_name||'').split(' ')[0]||'RN');document.getElementById('dashGreetingSub').textContent=new Date().toLocaleDateString('en-US',{timeZone:WA_TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'})+' · '+tz;})()">
+      <div id="dashGreetingSub" style="font-size:13px;color:var(--text3);margin-top:4px"></div>
     <p style="font-size:14px;margin-top:4px">Golden Years Home Health Supported Living LLC — your delegation workflow overview, all cases, visits, and compliance items in one place.</p>
   </div>
 
@@ -4272,8 +4331,7 @@ async function renderAlertsPage() {
   const container = document.getElementById('alertsPageContent');
   if (!container) return;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = waToday();
   const in30 = new Date(today); in30.setDate(today.getDate() + 30);
   const in60 = new Date(today); in60.setDate(today.getDate() + 60);
   const in90 = new Date(today); in90.setDate(today.getDate() + 90);
@@ -4574,7 +4632,7 @@ function renderArchivePage(filter, typeFilter){
         <td style="font-size:12px;color:var(--text3)">${c.facilityName}</td>
         <td><span class="status ${statusMap[c.status]||'status-closed'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.startDate||'—'}</td>
-        <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.updated_at?new Date(c.updated_at).toLocaleDateString('en-US'):'—'}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.updated_at?waDateShort(c.updated_at):'—'}</td>
         <td style="font-size:12px">${(c.tasks||[]).length} total</td>
         <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="showPage('cases');setTimeout(()=>openCaseDetail('${c.id}'),150)">View →</button></td>
       </tr>`).join('')}</tbody>
@@ -4587,7 +4645,7 @@ function renderArchivePage(filter, typeFilter){
     ${visitRows.length?`<div class="table-wrap"><table>
       <thead><tr><th>Date</th><th>Client</th><th>Caregiver</th><th>Type</th><th>Performance</th><th>Stability</th><th>RN</th><th></th></tr></thead>
       <tbody>${visitRows.map(v=>`<tr>
-        <td style="font-family:var(--mono);font-size:11.5px;font-weight:600">${new Date(v.date).toLocaleDateString('en-US')}</td>
+        <td style="font-family:var(--mono);font-size:11.5px;font-weight:600">${waDateShort(v.date)}</td>
         <td style="font-size:12.5px;font-weight:600;color:var(--text)">${v.clientName}</td>
         <td style="font-size:12px">${v.caregiverName}</td>
         <td style="font-size:12px">${v.type}</td>
@@ -4622,7 +4680,7 @@ function filterArchiveByType(t){ renderArchivePage(document.querySelector('#page
 function updateAlertsBadge(){
   const badge = document.getElementById('alertsBadge');
   if(!badge) return;
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = waToday();
   const in90  = new Date(today); in90.setDate(today.getDate()+90);
   let count = 0;
   // Maintenance alert
@@ -4824,7 +4882,7 @@ function refreshDashboard(){
           return `<tr>
             <td style="font-weight:600;color:var(--text);font-size:12px">${d.form_name}</td>
             <td style="font-size:12px">${d.client_name||'—'}</td>
-            <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
             <td><span class="status ${isSigned?'status-active':'status-pending'}" style="font-size:10px"><span class="status-dot"></span>${isSigned?'Signed':'Awaiting Signature'}</span></td>
             <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="showPage('documents');setTimeout(()=>docsShowTab('${isSigned?'Signed':'Drafts'}'),120)">View</button></td>
           </tr>`;
@@ -4866,7 +4924,7 @@ function openNewCaseModal(editId){
     else if(id==='ncFacility'){sel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend',`<option value="${f.id}">${f.name}</option>`));}
   });
   document.getElementById('ncStatus').value='Draft';
-  document.getElementById('ncStartDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ncStartDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   document.getElementById('ncTasksContainer').innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Add one or more nursing tasks being delegated in this case.</div>';
   document.getElementById('ncConsentClient').checked=false;
   document.getElementById('ncConsentGuardian').checked=false;
@@ -5005,7 +5063,7 @@ function renderCasesView(list){
       <td style="font-size:12px"><span style="color:${consentColor}">${consentSigned}/${consentTotal} signed</span></td>
       <td style="font-size:12px">${lastVisit?new Date(lastVisit.date).toLocaleDateString('en-US'):'—'}</td>
       <td style="font-size:12px"><span style="${reassessOverdue?'color:var(--red);font-weight:600':''}">${c.reassessDate||'—'}</span></td>
-      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.updated_at?new Date(c.updated_at).toLocaleDateString('en-US'):'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${c.updated_at?waDateShort(c.updated_at):'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openNewCaseModal('${c.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="event.stopPropagation();deleteCase('${c.id}')">Delete</button></td>
     </tr>`;
   }).join(''));
@@ -5323,7 +5381,7 @@ function buildCaseDetailHtml(c){
         return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
             <div>
-              <div style="font-size:14px;font-weight:600;color:var(--text)">${new Date(v.date).toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'})}</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text)">${waFormat(v.date,{weekday:'short',month:'long',day:'numeric',year:'numeric'})}</div>
               <div style="font-size:12px;color:var(--text3);margin-top:2px">${v.type} · ${v.rnSig||'RN'}</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
@@ -5390,8 +5448,10 @@ function buildCaseDetailHtml(c){
     :`<div style="position:relative">
       <div style="position:absolute;left:19px;top:0;bottom:0;width:1px;background:var(--border)"></div>
       ${timeline.map((t,i)=>{
-        const d=new Date(t.date);
-        const isToday=d.toDateString()===new Date().toDateString();
+        const d = new Date(t.date);
+        const todayWA = waToday();
+        const dWA = new Date(waFormat(t.date, {year:'numeric',month:'2-digit',day:'2-digit'}));
+        const isToday = dWA.toDateString() === todayWA.toDateString();
         return `<div style="display:flex;gap:16px;padding:0 0 20px;position:relative">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1">
             <div style="width:7px;height:7px;border-radius:50%;background:${i===0?'var(--blue)':'var(--border3)'}"></div>
@@ -5399,9 +5459,9 @@ function buildCaseDetailHtml(c){
           <div style="flex:1;padding-top:8px">
             <div style="font-size:13px;color:var(--text);font-weight:${i===0?'600':'400'};line-height:1.4">${t.action}</div>
             <div style="display:flex;gap:10px;margin-top:4px;font-size:11px;color:var(--text3)">
-              <span>${isToday?'Today':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+              <span>${isToday?'Today':waDateOnly(t.date)}</span>
               <span>·</span>
-              <span>${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+              <span>${waTimeOnly(t.date)}</span>
               <span>·</span>
               <span>${t.by||'RN'}</span>
             </div>
@@ -5430,7 +5490,7 @@ function openTaskModal(caseId,taskId){
   document.getElementById('taskType').value='';
   document.getElementById('taskStatus').value='Active';
   document.getElementById('taskVersion').value='v1.0';
-  document.getElementById('taskUpdatedDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('taskUpdatedDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   document.getElementById('taskModalTitle').textContent=taskId?'Edit Task':'Add Delegated Task';
   if(taskId){
     const c=window.delegationCases.find(x=>x.id===caseId);
@@ -5545,7 +5605,7 @@ function openVisitModal(caseId,visitId){
   document.getElementById('visitType').value='Supervision';
   document.getElementById('visitPerformance').value='';
   document.getElementById('visitStability').value='';
-  document.getElementById('visitDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('visitDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name)document.getElementById('visitRnSig').value=currentProfile.full_name;
   document.getElementById('visitModalTitle').textContent=visitId?'Edit Visit Record':'Log Nursing Visit';
   openModal('visitLogModal');
@@ -5670,14 +5730,14 @@ function openMedDelegationModal(caseId, editId){
   document.getElementById('medDelStatus').value='Active';
   document.getElementById('medDelIsPrn').value='no';
   document.getElementById('medDelPrnPanel').style.display='none';
-  document.getElementById('medDelStartDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('medDelStartDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   document.getElementById('medDelEndDate').value='';
   document.getElementById('medDelEditId').value=editId||'';
   document.getElementById('medDelCaseId').value=caseId||'';
   document.getElementById('medDelModalTitle').textContent=editId?'Edit Medication Delegation':'Delegate Medication';
   // Auto-fill RN name
   if(currentProfile?.full_name)document.getElementById('medDelRn').value=currentProfile.full_name;
-  document.getElementById('medDelDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('medDelDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   // If opened from a case, pre-select client & caregiver
   if(caseId){
     const dc=window.delegationCases.find(x=>x.id===caseId);
@@ -5882,7 +5942,7 @@ function open14484Modal(){
   // add 2 default LTCW rows on page 1
   addNvLtcwRow();addNvLtcwRow();
   // set today's date
-  const today=new Date().toISOString().split('T')[0];
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   document.getElementById('nv_visitDate').value=today;
   // pre-fill RN signature
   if(currentProfile?.full_name)document.getElementById('nv_rndSig').value=currentProfile.full_name;
@@ -6103,7 +6163,7 @@ function open13678aModal(){
       const el=document.getElementById(`prn${o}_${f}`);if(el)el.value='';
     });
     // pre-fill today's date on order 1
-    if(o===1){const el=document.getElementById('prn1_dateOrdered');if(el)el.value=new Date().toISOString().split('T')[0];}
+    if(o===1){const el=document.getElementById('prn1_dateOrdered');if(el)el.value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});}
   }
   // try to auto-fill from active case medications
   openModal('generate13678aModal');
@@ -7885,7 +7945,7 @@ async function loadSignedList(){
       <td style="font-size:12.5px">${d.client_name||'—'}</td>
       <td style="font-size:12.5px">${d.caregiver_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${d.facility_name||'—'}</td>
-      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
       <td><span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed & Filed</span></td>
       <td>${d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px">View</a>`:''}</td>
     </tr>`).join(''));
@@ -8113,7 +8173,7 @@ function renderDraftsTable(list){
       <td style="font-size:12.5px">${d.client_name}</td>
       <td style="font-size:12.5px">${d.caregiver_name}</td>
       <td style="font-size:12px;color:var(--text3)">${d.facility_name}</td>
-      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
       <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Awaiting Signature</span></td>
       <td style="display:flex;gap:6px;flex-wrap:nowrap">
         <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
@@ -9106,7 +9166,7 @@ function open13678bModal(){
   if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['asmp_acesId','asmp_dob','asmp_facilityName','asmp_facilityPhone','asmp_reason','asmp_rndSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('asmp_setting').value='';
-  document.getElementById('asmp_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('asmp_date').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name)document.getElementById('asmp_rndSig').value=currentProfile.full_name;
   openModal('generate13678bModal');
 }
@@ -9273,7 +9333,7 @@ function open10217Modal(){
   document.querySelectorAll('input[name="ctv_credType"]').forEach(r=>r.checked=false);
   ['ctv_basicCoreComp','ctv_basic75hr','ctv_basicFoc','ctv_basicRfoc','ctv_basicDda32','ctv_exemptLetter']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  document.getElementById('ctv_dateVerified').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ctv_dateVerified').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name){
     document.getElementById('ctv_rnSig').value=currentProfile.full_name;
     document.getElementById('ctv_rnName').value=currentProfile.full_name;
@@ -9492,8 +9552,8 @@ function open13678ConsentModal(){
   if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['con_acesId','con_dob','con_address','con_clientPhone','con_diagnosis','con_allergies','con_facilityContact','con_facilityPhone','con_facilityFax','con_facilityEmail','con_hcpName','con_hcpPhone','con_clientSig','con_sigPhone','con_sigDate','con_verbalFrom','con_verbalRel','con_verbalDate','con_rnName','con_rnPhone','con_rnSig','con_rnDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('input[name="con_setting"]').forEach(r=>r.checked=false);
-  document.getElementById('con_sigDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('con_rnDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('con_sigDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
+  document.getElementById('con_rnDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name){document.getElementById('con_rnName').value=currentProfile.full_name;document.getElementById('con_rnSig').value=currentProfile.full_name;}
   openModal('generate13678ConsentModal');
 }
@@ -9575,7 +9635,7 @@ function open13680Modal(){
   document.getElementById('rsc_setting').value='AFH';
   ['rsc_rA','rsc_rB','rsc_rC','rsc_rD','rsc_rE','rsc_rF','rsc_rG','rsc_rH','rsc_rI','rsc_rJ'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   document.querySelectorAll('input[name="rsc_notifyMethod"]').forEach(r=>r.checked=false);
-  document.getElementById('rsc_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rsc_date').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name)document.getElementById('rsc_rndSig').value=currentProfile.full_name;
   // Init caregiver rows
   const ct=document.getElementById('rsc_caregiversContainer');
@@ -9670,8 +9730,8 @@ function open13681Modal(){
   document.querySelectorAll('input[name="chg_medIs"]').forEach(r=>r.checked=false);
   document.querySelectorAll('input[name="chg_delegation"]').forEach(r=>r.checked=false);
   document.getElementById('chg_verbalSection').style.display='none';
-  document.getElementById('chg_notifyDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('chg_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('chg_notifyDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
+  document.getElementById('chg_date').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name){document.getElementById('chg_rndName').value=currentProfile.full_name;document.getElementById('chg_rndSig').value=currentProfile.full_name;}
   openModal('generate13681Modal');
 }
@@ -10327,13 +10387,13 @@ function _parseUA(ua){
 }
 
 function _timeAgo(dateStr){
-  if(!dateStr)return'—';
-  const diff=(Date.now()-new Date(dateStr).getTime())/1000;
-  if(diff<60)return'Just now';
-  if(diff<3600)return Math.floor(diff/60)+'m ago';
-  if(diff<86400)return Math.floor(diff/3600)+'h ago';
-  if(diff<604800)return Math.floor(diff/86400)+'d ago';
-  return new Date(dateStr).toLocaleDateString('en-US');
+  if(!dateStr) return '—';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if(diff < 60)      return 'Just now';
+  if(diff < 3600)    return Math.floor(diff/60)+'m ago';
+  if(diff < 86400)   return Math.floor(diff/3600)+'h ago';
+  if(diff < 604800)  return Math.floor(diff/86400)+'d ago';
+  return waDateOnly(dateStr);
 }
 
 async function _recordSession(){
@@ -10522,12 +10582,8 @@ async function renderSessionsPage(){
               const {browser,os,device}=_parseUA(s.ua);
               const isCurrent=s.fp===currentFp;
               const lastSeenLabel  = _timeAgo(s.last_seen);
-              const firstSeenFmt   = s.first_seen
-                ? new Date(s.first_seen).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
-                : '—';
-              const lastSeenFmt    = s.last_seen
-                ? new Date(s.last_seen).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
-                : '—';
+              const firstSeenFmt = s.first_seen ? waDateTimeMed(s.first_seen) : '—';
+              const lastSeenFmt  = s.last_seen  ? waDateTimeMed(s.last_seen)  : '—';
               // Build location string
               const locationParts=[s.city,s.region,s.country].filter(Boolean);
               const locationStr=locationParts.length?locationParts.join(', '):'Location unknown';
@@ -10619,8 +10675,8 @@ async function renderSessionsPage(){
             ['Email address',   freshUser?.email||'—',                        false],
             ['Email status',    freshUser?.email_confirmed_at?'Verified ✓':'Unverified', false],
             ['Sign-in method',  freshUser?.app_metadata?.provider||'email',  false],
-            ['Last sign-in',    lastSignIn?lastSignIn.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}):'—', false],
-            ['Account created', freshUser?.created_at?new Date(freshUser.created_at).toLocaleDateString('en-US',{dateStyle:'long'}):'—', false],
+            ['Last sign-in',    lastSignIn ? waFormat(lastSignIn,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}) : '—', false],
+            ['Account created', freshUser?.created_at ? waFormat(freshUser.created_at,{month:'long',day:'numeric',year:'numeric',timeZoneName:'short'}) : '—', false],
             ['User ID',         freshUser?.id||'—',                           true],
           ].map(([label,val,mono])=>`
           <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:13px 24px;border-bottom:1px solid var(--border);gap:16px">
@@ -11070,7 +11126,7 @@ function open01212Modal(){
    'ref_notImplemented','ref_otherOptions'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.checked=false;
   });
-  document.getElementById('ref_dateReferral').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ref_dateReferral').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name)document.getElementById('ref_rndName').value=currentProfile.full_name;
   if(currentUser?.email)document.getElementById('ref_rndEmail').value=currentUser.email;
   openModal('generate01212Modal');
@@ -11485,7 +11541,7 @@ function open13893Modal(){
   ['rau_attach14484','rau_attach13678','rau_attach10217','rau_attachBilling','rau_attachOther'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.checked=false;
   });
-  document.getElementById('rau_dateRequested').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rau_dateRequested').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
   if(currentProfile?.full_name)document.getElementById('rau_rndName').value=currentProfile.full_name;
   if(currentUser?.email)document.getElementById('rau_rndEmail').value=currentUser.email;
   openModal('generate13893Modal');
