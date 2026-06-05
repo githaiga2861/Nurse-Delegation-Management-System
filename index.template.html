@@ -6113,8 +6113,10 @@ async function submitGenerate14484(){
   btn.textContent='Generating…';btn.disabled=true;
 
   const now=new Date().toISOString();
+  const existingDraftId = window._editing14484DraftId || null;
+  window._editing14484DraftId = null;
   const draft={
-    id: Date.now().toString(),
+    id: existingDraftId || Date.now().toString(),
     user_id: currentUser?.id,
     form_id: 'form-14484',
     form_name: '14-484, Nurse Delegation: Nursing Visit',
@@ -6131,23 +6133,41 @@ async function submitGenerate14484(){
 
   initSupa();
   if(supa&&currentUser){
-    const {error}=await supa.from('form_drafts').insert(draft);
-    if(error)console.error(error);
+    if(existingDraftId){
+      // Overwrite existing draft
+      const {error}=await supa.from('form_drafts').update({
+        form_data: draft.form_data,
+        client_id: draft.client_id, client_name: draft.client_name,
+        caregiver_id: draft.caregiver_id, caregiver_name: draft.caregiver_name,
+        facility_id: draft.facility_id, facility_name: draft.facility_name,
+        updated_at: now
+      }).eq('id', existingDraftId);
+      if(error)console.error(error);
+    } else {
+      const {error}=await supa.from('form_drafts').insert(draft);
+      if(error)console.error(error);
+    }
   }
   window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
+  if(existingDraftId){
+    const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);
+    if(idx>-1) window.formDrafts[idx]={...window.formDrafts[idx],...draft};
+    else window.formDrafts.unshift(draft);
+  } else {
+    window.formDrafts.unshift(draft);
+  }
 
   updateAlertsBadge();
 
   // Auto-derive / enrich delegation case from nursing visit form
   await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-14484', formData});
 
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate14484Modal');
   clearModalDraft('generate14484Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 14-484 saved to Drafts.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  alert(`✅ 14-484 ${existingDraftId?'updated':'saved to Drafts'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 // ── 13-678A PRN MEDICATION FORM ───────────────────
@@ -6243,8 +6263,10 @@ async function submitGenerate13678a(){
   btn.textContent='Generating…';btn.disabled=true;
 
   const now=new Date().toISOString();
+  const existingDraftId = window._editing13678aDraftId || null;
+  window._editing13678aDraftId = null;
   const draft={
-    id: Date.now().toString(),
+    id: existingDraftId || Date.now().toString(),
     user_id: currentUser?.id,
     form_id: 'form-13678a',
     form_name: '13-678A, Nurse Delegation: PRN Medication',
@@ -6261,21 +6283,26 @@ async function submitGenerate13678a(){
 
   initSupa();
   if(supa&&currentUser){
-    const {error}=await supa.from('form_drafts').insert(draft);
-    if(error)console.error(error);
+    if(existingDraftId){
+      await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,facility_id:draft.facility_id,facility_name:draft.facility_name,updated_at:now}).eq('id',existingDraftId);
+    } else {
+      const {error}=await supa.from('form_drafts').insert(draft);
+      if(error)console.error(error);
+    }
   }
   window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
+  if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}
+  else window.formDrafts.unshift(draft);
 
   // Auto-derive / enrich delegation case from PRN medication form
   await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13678a', formData});
 
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678aModal');
   clearModalDraft('generate13678aModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-678A saved to Drafts with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  alert(`✅ 13-678A ${existingDraftId?'updated':'saved to Drafts'} with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
 }
 
 async function loadCasesFromSupabase(){
@@ -7954,6 +7981,37 @@ async function loadSignedList(){
 function editDraft(id){
   const d=(window.formDrafts||[]).find(x=>x.id===id);if(!d)return;
   const fd=d.form_data||{};
+
+  // Route to the correct modal based on form type
+  if(d.form_id==='form-14484'){
+    edit14484Draft(d,fd); return;
+  }
+  if(d.form_id==='form-13678a'){
+    edit13678aDraft(d,fd); return;
+  }
+  if(d.form_id==='form-13680'){
+    edit13680Draft(d,fd); return;
+  }
+  if(d.form_id==='form-13681'){
+    edit13681Draft(d,fd); return;
+  }
+  if(d.form_id==='form-13678-consent'){
+    edit13678ConsentDraft(d,fd); return;
+  }
+  if(d.form_id==='form-13678b'){
+    edit13678bDraft(d,fd); return;
+  }
+  if(d.form_id==='form-10-217'){
+    edit10217Draft(d,fd); return;
+  }
+  if(d.form_id==='form-01-212'){
+    edit01212Draft(d,fd); return;
+  }
+  if(d.form_id==='form-13-893'){
+    edit13893Draft(d,fd); return;
+  }
+
+  // Fallback: generic 13-678 task-sheet editor
   document.getElementById('editDraftId').value=id;
   document.getElementById('editDraftFormName').textContent=d.form_name;
   const s=(elId,val)=>{const el=document.getElementById(elId);if(el)el.value=val||'';};
@@ -7965,6 +8023,372 @@ function editDraft(id){
   s('editWhatHcp',fd.whatHcp||'');s('editWhatEmergency',fd.whatEmergency||'');
   s('editIpName',fd.ipName||'');s('editProviderOne',fd.providerOne||'');
   openModal('editDraftModal');
+}
+
+// ── 14-484 EDIT DRAFT ─────────────────────────────
+function edit14484Draft(d,fd){
+  // Re-open the 14-484 generation modal pre-populated with saved data
+  open14484Modal();
+  // Store draft ID so save overwrites instead of creating new
+  window._editing14484DraftId = d.id;
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v||'';};
+    const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+
+    // Client select
+    const cs=document.getElementById('nv_client');
+    if(cs&&d.client_id){cs.value=d.client_id;}
+
+    // Fields 1–4
+    s('nv_acesId',fd.acesId);
+    s('nv_dob',fd.dob);
+    if(fd.setting){const el=document.getElementById('nv_setting');if(el)el.value=fd.setting;}
+
+    // Field 5 visit types
+    const vtMap={
+      'Client Assessment (See attached)':'nv_chk_assessment',
+      'Supervisory Visit':'nv_chk_supervisory',
+      'Initial Caregiver Delegation':'nv_chk_initial_delegation',
+      'Condition Change':'nv_chk_condition_change',
+      'Initial Insulin Delegation':'nv_chk_insulin',
+    };
+    (fd.visitTypes||[]).forEach(vt=>{
+      if(vtMap[vt]){chk(vtMap[vt],true);}
+      else if(vt.startsWith('Other: ')){
+        const el=document.getElementById('nv_chk_other_text');
+        if(el)el.value=vt.replace('Other: ','');
+      }
+    });
+
+    // Field 6 tasks
+    s('nv_tasks',fd.tasks);
+    s('nv_tasksRelated',fd.tasksRelated);
+
+    // Field 7 ROS
+    const rosMap={
+      'No Change':'nv_ros_nochange','Cardiovascular':'nv_ros_cardio',
+      'Diet / Weight / Nutrition':'nv_ros_diet','Neurological':'nv_ros_neuro',
+      'GU / Reproductive':'nv_ros_gu','GI':'nv_ros_gi','Respiratory':'nv_ros_resp',
+      'Endocrine':'nv_ros_endo','ADL':'nv_ros_adl','Sensory':'nv_ros_sensory',
+      'Pain':'nv_ros_pain','Integumentary':'nv_ros_integ','Psych / Social':'nv_ros_psych',
+      'Musculoskeletal':'nv_ros_msk','Cognition':'nv_ros_cognition',
+    };
+    (fd.rosChecked||[]).forEach(r=>{
+      if(rosMap[r]){chk(rosMap[r],true);}
+      else if(r.startsWith('Other: ')){
+        const el=document.getElementById('nv_ros_other');
+        if(el)el.value=r.replace('Other: ','');
+      }
+    });
+
+    // Field 8 notes
+    s('nv_notes',fd.notes);
+
+    // Field 9 LTCW rows — clear defaults and rebuild from saved data
+    const ltcwContainer=document.getElementById('nv_ltcw_rows');
+    if(ltcwContainer&&(fd.ltcwRows||[]).length){
+      ltcwContainer.innerHTML='';
+      nvLtcwCount=0;
+      (fd.ltcwRows||[]).forEach(row=>{
+        addNvLtcwRow();
+        const rows=ltcwContainer.querySelectorAll('div[style*="grid"]');
+        const lastRow=rows[rows.length-1];
+        if(!lastRow)return;
+        const inputs=lastRow.querySelectorAll('input,select');
+        if(inputs[0])inputs[0].value=row.name||'';
+        if(inputs[1])inputs[1].value=row.obsDemo||'';
+        if(inputs[2])inputs[2].value=row.verbal||'';
+        if(inputs[3])inputs[3].value=row.recordRev||'';
+        if(inputs[4])inputs[4].value=row.training||'';
+        if(inputs[5])inputs[5].value=row.other||'';
+        const credYes=lastRow.querySelector('.ltcw-cred-yes');
+        const credNo=lastRow.querySelector('.ltcw-cred-no');
+        if(credYes&&row.activeCred==='Yes')credYes.checked=true;
+        if(credNo&&row.activeCred==='No')credNo.checked=true;
+      });
+    }
+
+    // Fields 10–11
+    chk('nv_pg2_notes',fd.hasPg2Notes);
+    chk('nv_stable',fd.clientStable);
+    chk('nv_continue',fd.continueDelegation);
+    chk('nv_rescind',fd.seeRescind);
+
+    // Fields 12–14
+    s('nv_rndSig',fd.rndSig);
+    s('nv_visitDate',fd.visitDate);
+    s('nv_returnDate',fd.returnDate);
+
+    // Page 2 if applicable
+    if(fd.hasPg2Notes){
+      document.getElementById('nv_page2_panel').style.display='block';
+      chk('nv_pg2_notes',true);
+      s('nv_pg2_notesText',fd.pg2Notes);
+      s('nv_rndSig2',fd.rndSig2);
+      s('nv_visitDate2',fd.visitDate2);
+      s('nv_returnDate2',fd.returnDate2);
+      const pg2Container=document.getElementById('nv_ltcw_pg2_rows');
+      if(pg2Container&&(fd.ltcwRowsPg2||[]).length){
+        pg2Container.innerHTML='';
+        (fd.ltcwRowsPg2||[]).forEach(row=>{
+          addNvLtcwPg2Row();
+          const rows=pg2Container.querySelectorAll('div[style*="grid"]');
+          const lastRow=rows[rows.length-1];
+          if(!lastRow)return;
+          const inputs=lastRow.querySelectorAll('input,select');
+          if(inputs[0])inputs[0].value=row.name||'';
+          if(inputs[1])inputs[1].value=row.obsDemo||'';
+          if(inputs[2])inputs[2].value=row.verbal||'';
+          if(inputs[3])inputs[3].value=row.recordRev||'';
+          if(inputs[4])inputs[4].value=row.training||'';
+          if(inputs[5])inputs[5].value=row.other||'';
+        });
+      }
+    }
+
+    // Change submit button to "Save Changes"
+    const btn=document.getElementById('nv_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>saveEdited14484Draft();}
+  },250);
+}
+
+async function saveEdited14484Draft(){
+  const draftId=window._editing14484DraftId;
+  if(!draftId){await submitGenerate14484();return;}
+  // Run the normal submit but intercept to overwrite the existing draft
+  const origId=draftId;
+  window._editing14484DraftId=null;
+  // Submit normally — it will push a NEW draft; then we swap the id
+  await submitGenerate14484();
+  // The newest draft is at index 0 — rename its id to the original
+  const newest=window.formDrafts[0];
+  if(newest&&newest.id!==origId){
+    // Remove the old draft
+    const oldIdx=window.formDrafts.findIndex(x=>x.id===origId);
+    if(oldIdx>-1)window.formDrafts.splice(oldIdx,1);
+    // Update newest to use old id
+    newest.id=origId;
+    initSupa();
+    if(supa&&currentUser){
+      await supa.from('form_drafts').delete().eq('id',origId+'_tmp').catch(()=>{});
+      await supa.from('form_drafts').update({
+        form_data:newest.form_data, updated_at:newest.updated_at,
+        client_id:newest.client_id, client_name:newest.client_name,
+        caregiver_id:newest.caregiver_id, caregiver_name:newest.caregiver_name,
+      }).eq('id',origId);
+    }
+  }
+  renderDraftsTable(window.formDrafts);
+}
+
+// ── STUB EDIT FUNCTIONS FOR OTHER FORM TYPES ──────
+// These reopen the correct generation modal pre-populated.
+// Pattern identical to edit14484Draft above.
+
+function edit13678aDraft(d,fd){
+  open13678aModal();
+  window._editing13678aDraftId=d.id;
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const cs=document.getElementById('prn_client');
+    if(cs&&d.client_id){cs.value=d.client_id;onPrnClientChange(cs);}
+    s('prn_acesId',fd.acesId);s('prn_dob',fd.dob);
+    if(fd.setting){const el=document.getElementById('prn_setting');if(el)el.value=fd.setting;}
+    (fd.orders||[]).forEach((o,i)=>{
+      const n=i+1;
+      s(`prn${n}_dateOrdered`,o.dateOrdered);s(`prn${n}_medName`,o.medName);
+      s(`prn${n}_doseFreq`,o.doseFreq);s(`prn${n}_route`,o.route);
+      s(`prn${n}_notExceed`,o.notExceed);s(`prn${n}_reason`,o.reason);
+      s(`prn${n}_symptoms`,o.symptoms);s(`prn${n}_notes`,o.notes);
+    });
+    const btn=document.getElementById('prn_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>{window._editing13678aDraftId=null;submitGenerate13678a();};}
+  },250);
+}
+
+function edit13680Draft(d,fd){
+  window._editingDraftId_13680=d.id;
+  open13680Modal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const cs=document.getElementById('rsc_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    s('rsc_acesId',fd.acesId);s('rsc_dob',fd.dob);s('rsc_facilityName',fd.facilityName);
+    s('rsc_facilityPhone',fd.facilityPhone);s('rsc_rK',fd.rK||'');
+    s('rsc_caseManager',fd.caseManager);s('rsc_notifyDate',fd.notifyDate);
+    s('rsc_altPlan',fd.altPlan);s('rsc_rndSig',fd.rndSig);s('rsc_date',fd.rescindDate);
+    if(fd.setting){const el=document.getElementById('rsc_setting');if(el)el.value=fd.setting;}
+    (fd.reasons||[]).forEach(r=>{
+      const rMap={'A.':'rsc_rA','B.':'rsc_rB','C.':'rsc_rC','D.':'rsc_rD','E.':'rsc_rE','F.':'rsc_rF','G.':'rsc_rG','H.':'rsc_rH','I.':'rsc_rI','J.':'rsc_rJ'};
+      Object.entries(rMap).forEach(([k,id])=>{if(r.startsWith(k)){const el=document.getElementById(id);if(el)el.checked=true;}});
+    });
+    const btn=document.getElementById('rsc_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate13680();}
+  },250);
+}
+
+function edit13681Draft(d,fd){
+  window._editingDraftId_13681=d.id;
+  open13681Modal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+    const cs=document.getElementById('chg_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    s('chg_acesId',fd.acesId);s('chg_dob',fd.dob);s('chg_notifyDate',fd.notifyDate);
+    s('chg_byWhom',fd.byWhom);s('chg_effectiveDate',fd.effectiveDate);
+    const oc=fd.orderChanges||{};
+    chk('chg_newMed',oc.newMed);chk('chg_changeMed',oc.changeMed);
+    chk('chg_newTask',oc.newTask);chk('chg_changeTask',oc.changeTask);
+    if(fd.receivedMethod){
+      const r=document.querySelector(`input[name="chg_received"][value="${fd.receivedMethod}"]`);
+      if(r)r.checked=true;
+      if(fd.receivedMethod==='Verbal')document.getElementById('chg_verbalSection').style.display='block';
+    }
+    s('chg_verifyName',fd.verifyName);s('chg_verifyTitle',fd.verifyTitle);s('chg_verifyDate',fd.verifyDate);
+    chk('chg_taskNewSheet',fd.taskNewSheet);chk('chg_taskUpdated',fd.taskUpdated);chk('chg_taskNoChange',fd.taskNoChange);
+    s('chg_taskOrder',fd.taskOrder);
+    if(fd.medIs){const r=document.querySelector(`input[name="chg_medIs"][value="${fd.medIs}"]`);if(r)r.checked=true;}
+    s('chg_dateOrdered',fd.dateOrdered);s('chg_medName',fd.medName);s('chg_startDate',fd.startDate);
+    s('chg_stopDate',fd.stopDate);s('chg_dose',fd.dose);s('chg_frequency',fd.frequency);
+    s('chg_route',fd.route);s('chg_notExceed',fd.notExceed);s('chg_medReason',fd.medReason);
+    s('chg_steps',fd.steps);s('chg_expectedOutcome',fd.expectedOutcome);
+    s('chg_rndName',fd.rndName);s('chg_rndPhone',fd.rndPhone);s('chg_whatRnd',fd.whatRnd);
+    s('chg_hcpName',fd.hcpName);s('chg_hcpPhone',fd.hcpPhone);s('chg_whatHcp',fd.whatHcp);
+    s('chg_whatEmergency',fd.whatEmergency);chk('chg_teachingAid',fd.teachingAid);
+    if(fd.delegateImmediately)document.getElementById('chg_delegateImmediate').checked=true;
+    if(fd.siteVisitRequired)document.getElementById('chg_delegateSiteVisit').checked=true;
+    s('chg_rndSig',fd.rndSig);s('chg_date',fd.signDate);
+    const btn=document.getElementById('chg_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate13681();}
+  },250);
+}
+
+function edit13678ConsentDraft(d,fd){
+  window._editingDraftId_13678con=d.id;
+  open13678ConsentModal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const cs=document.getElementById('con_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    s('con_acesId',fd.acesId);s('con_dob',fd.dob);s('con_address',fd.address);
+    s('con_clientPhone',fd.clientPhone);s('con_diagnosis',fd.diagnosis);s('con_allergies',fd.allergies);
+    s('con_facilityContact',fd.facilityContact);s('con_facilityPhone',fd.facilityPhone);
+    s('con_facilityFax',fd.facilityFax);s('con_facilityEmail',fd.facilityEmail);
+    if(fd.setting){const r=document.querySelector(`input[name="con_setting"][value="${fd.setting}"]`);if(r)r.checked=true;}
+    s('con_hcpName',fd.hcpName);s('con_hcpPhone',fd.hcpPhone);s('con_clientSig',fd.clientSig);
+    s('con_sigPhone',fd.sigPhone);s('con_sigDate',fd.sigDate);s('con_verbalFrom',fd.verbalFrom);
+    s('con_verbalRel',fd.verbalRel);s('con_verbalDate',fd.verbalDate);s('con_rnName',fd.rnName);
+    s('con_rnPhone',fd.rnPhone);s('con_rnSig',fd.rnSig);s('con_rnDate',fd.rnDate);
+    const btn=document.getElementById('con_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate13678Consent();}
+  },250);
+}
+
+function edit13678bDraft(d,fd){
+  window._editingDraftId_13678b=d.id;
+  open13678bModal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const cs=document.getElementById('asmp_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    s('asmp_acesId',fd.acesId);s('asmp_dob',fd.dob);
+    if(fd.setting){const el=document.getElementById('asmp_setting');if(el)el.value=fd.setting;}
+    s('asmp_facilityName',fd.facilityName);s('asmp_facilityPhone',fd.facilityPhone);
+    s('asmp_reason',fd.reason);s('asmp_rndSig',fd.rndSig);s('asmp_date',fd.signDate);
+    const btn=document.getElementById('asmp_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate13678b();}
+  },250);
+}
+
+function edit10217Draft(d,fd){
+  window._editingDraftId_10217=d.id;
+  open10217Modal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+    const cgs=document.getElementById('ctv_caregiver');
+    if(cgs&&d.caregiver_id)cgs.value=d.caregiver_id;
+    s('ctv_credNum',fd.credNum);s('ctv_credExpiry',fd.credExpiry);
+    if(fd.credType){const r=document.querySelector(`input[name="ctv_credType"][value="${fd.credType}"]`);if(r)r.checked=true;}
+    s('ctv_coreTrainingDate',fd.coreTrainingDate);s('ctv_diabetesTrainingDate',fd.diabetesTrainingDate);
+    chk('ctv_basicCoreComp',fd.basicCoreComp);s('ctv_basicCoreDateVal',fd.basicCoreDateVal);
+    chk('ctv_basic75hr',fd.basic75hr);s('ctv_basic75hrDate',fd.basic75hrDate);
+    chk('ctv_basicFoc',fd.basicFoc);s('ctv_basicFocDate',fd.basicFocDate);
+    chk('ctv_basicRfoc',fd.basicRfoc);s('ctv_basicRfocDate',fd.basicRfocDate);
+    chk('ctv_basicDda32',fd.basicDda32);s('ctv_basicDda32Date',fd.basicDda32Date);
+    chk('ctv_exemptLetter',fd.exemptLetter);s('ctv_exemptDate',fd.exemptDate);
+    s('ctv_rnSig',fd.rnSig);s('ctv_rnName',fd.rnName);s('ctv_dateVerified',fd.dateVerified);
+    const btn=document.getElementById('ctv_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate10217();}
+  },250);
+}
+
+function edit01212Draft(d,fd){
+  window._editingDraftId_01212=d.id;
+  open01212Modal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+    const cs=document.getElementById('ref_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    chk('ref_officeHCS',fd.office?.hcs);chk('ref_officeAAA',fd.office?.aaa);
+    chk('ref_officeDDA',fd.office?.dda);chk('ref_officeOther',fd.office?.other);
+    s('ref_authNum',fd.authNum);s('ref_rnProviderOne',fd.rnProviderOne);
+    s('ref_dateReferral',fd.dateReferral);
+    chk('ref_methodEmail',fd.method?.email);chk('ref_methodPhone',fd.method?.phone);chk('ref_methodFax',fd.method?.fax);
+    s('ref_nurseDelegator',fd.nurseDelegator);s('ref_nursePhone',fd.nursePhone);
+    s('ref_nurseFax',fd.nurseFax);s('ref_nurseEmail',fd.nurseEmail);
+    s('ref_crmName',fd.crmName);s('ref_crmEmail',fd.crmEmail);
+    s('ref_crmPhone',fd.crmPhone);s('ref_crmFax',fd.crmFax);
+    s('ref_guardianName',fd.guardianName);s('ref_acesId',fd.acesId);s('ref_dob',fd.dob);
+    s('ref_clientPhone',fd.clientPhone);s('ref_address',fd.address);
+    s('ref_ltcwName',fd.ltcwName);s('ref_ltcwPhone',fd.ltcwPhone);s('ref_ltcwFax',fd.ltcwFax);
+    s('ref_clientEmail',fd.clientEmail);s('ref_primaryLang',fd.primaryLang);
+    chk('ref_needsInterpreter',fd.needsInterpreter);chk('ref_deaf',fd.deaf);
+    s('ref_diagnosis',fd.diagnosis);s('ref_reasonReferral',fd.reasonReferral);
+    s('ref_dateReceived',fd.dateReceived);
+    chk('ref_accepted',fd.accepted);chk('ref_notAccepted',fd.notAccepted);
+    s('ref_nurseAssigned',fd.nurseAssigned);s('ref_additionalComments',fd.additionalComments);
+    s('ref_receiptPrintedName',fd.receiptPrintedName);
+    s('ref_crmNameRnd',fd.crmNameRnd);s('ref_crmEmailRnd',fd.crmEmailRnd);
+    s('ref_crmPhoneRnd',fd.crmPhoneRnd);s('ref_crmFaxRnd',fd.crmFaxRnd);
+    s('ref_rndName',fd.rndName);s('ref_rndProviderOne',fd.rndProviderOne);
+    s('ref_rndEmail',fd.rndEmail);s('ref_rndPhone',fd.rndPhone);s('ref_rndFax',fd.rndFax);
+    s('ref_clientNameRnd',fd.clientNameRnd);s('ref_assessmentDate',fd.assessmentDate);
+    chk('ref_delegationStartedYes',fd.delegationStarted?.yes);
+    chk('ref_delegationStartedNo',fd.delegationStarted?.no);
+    s('ref_tasksDetail',fd.tasksDetail);
+    chk('ref_notImplemented',fd.notImplemented);s('ref_notImplementedDetail',fd.notImplementedDetail);
+    chk('ref_otherOptions',fd.otherOptions);s('ref_otherOptionsDetail',fd.otherOptionsDetail);
+    s('ref_rndComments',fd.rndComments);
+    const btn=document.getElementById('ref_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate01212();}
+  },250);
+}
+
+function edit13893Draft(d,fd){
+  window._editingDraftId_13893=d.id;
+  open13893Modal();
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+    const cs=document.getElementById('rau_client');
+    if(cs&&d.client_id)cs.value=d.client_id;
+    s('rau_rndName',fd.rndName);s('rau_rndPhone',fd.rndPhone);s('rau_rndEmail',fd.rndEmail);
+    s('rau_acesId',fd.acesId);s('rau_dob',fd.dob);
+    s('rau_cmName',fd.cmName);s('rau_cmPhone',fd.cmPhone);s('rau_cmEmail',fd.cmEmail);
+    s('rau_unitsNeeded',fd.unitsNeeded);s('rau_month',fd.month);
+    s('rau_monthTotal',fd.monthTotal);s('rau_monthTotal2',fd.monthTotal2);
+    s('rau_comments',fd.comments);s('rau_dateRequested',fd.dateRequested);
+    s('rau_unitsApproved',fd.unitsApproved);s('rau_dateApproved',fd.dateApproved);
+    const att=fd.attachments||{};
+    chk('rau_attach14484',att.form14484);chk('rau_attach13678',att.form13678);
+    chk('rau_attach10217',att.form10217);chk('rau_attachBilling',att.billing);
+    chk('rau_attachOther',att.other);
+    const btn=document.getElementById('rau_submitBtn');
+    if(btn){btn.textContent='Save Changes';btn.onclick=()=>submitGenerate13893();}
+  },250);
 }
 
 async function saveEditedDraft(){
@@ -9214,9 +9638,9 @@ async function submitGenerate13678b(){
   const btn=document.getElementById('asmp_submitBtn');
   btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const draft={
-    id: Date.now().toString(), user_id: currentUser?.id,
-    form_id: 'form-13678b',
+  const existingDraftId=window._editingDraftId_13678b||null;window._editingDraftId_13678b=null;
+  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+    form_id:'form-13678b',
     form_name: '13-678B, Nurse Delegation: Assumption of Delegation',
     client_id: clientId,
     client_name: cl?`${cl.first} ${cl.last}`:'—',
@@ -9233,6 +9657,10 @@ async function submitGenerate13678b(){
   window.formDrafts=window.formDrafts||[];
   window.formDrafts.unshift(draft);
   btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  initSupa();
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678bModal');
   clearModalDraft('generate13678bModal');
   showPage('documents');
@@ -9390,8 +9818,9 @@ async function submitGenerate10217(){
   const btn=document.getElementById('ctv_submitBtn');
   btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
+  const existingDraftId=window._editingDraftId_10217||null;window._editingDraftId_10217=null;
   const draft={
-    id: Date.now().toString(), user_id: currentUser?.id,
+    id: existingDraftId||Date.now().toString(), user_id: currentUser?.id,
     form_id: 'form-10-217',
     form_name: '10-217, Nurse Delegation: Credentials and Training Verification',
     client_id: null, client_name: '—',
@@ -9404,10 +9833,9 @@ async function submitGenerate10217(){
     created_at: now, updated_at: now
   };
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate10217Modal');
   clearModalDraft('generate10217Modal');
   showPage('documents');
@@ -9615,13 +10043,14 @@ async function submitGenerate13678Consent(){
   };
   const btn=document.getElementById('con_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13678-consent',form_name:'13-678, Consent for Delegation Process',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  const existingDraftId=window._editingDraftId_13678con||null;window._editingDraftId_13678con=null;
+  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13678-consent',form_name:'13-678, Consent for Delegation Process',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13678-consent',formData});
   updateAlertsBadge();
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678ConsentModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
@@ -9707,13 +10136,15 @@ async function submitGenerate13680(){
   };
   const btn=document.getElementById('rsc_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13680',form_name:'13-680, Nurse Delegation: Rescinding Delegation',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  const existingDraftId=window._editingDraftId_13680||null;window._editingDraftId_13680=null;
+  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+    form_id:'form-13680',form_name:'13-680, Nurse Delegation: Rescinding Delegation',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13680',formData});
   updateAlertsBadge();
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13680Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
@@ -9812,13 +10243,14 @@ async function submitGenerate13681(){
   };
   const btn=document.getElementById('chg_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const draft={id:Date.now().toString(),user_id:currentUser?.id,form_id:'form-13681',form_name:'13-681, Nurse Delegation: Change in Medical / Treatment Orders',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  const existingDraftId=window._editingDraftId_13681||null;window._editingDraftId_13681=null;
+  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13681',form_name:'13-681, Nurse Delegation: Change in Medical / Treatment Orders',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13681',formData});
   updateAlertsBadge();
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13681Modal');
   showPage('documents');
   setTimeout(()=>{ docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
@@ -11192,8 +11624,9 @@ async function submitGenerate01212(){
   };
   const btn=document.getElementById('ref_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
+  const existingDraftId=window._editingDraftId_01212||null;window._editingDraftId_01212=null;
   const draft={
-    id:Date.now().toString(),user_id:currentUser?.id,
+    id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-01-212',
     form_name:'01-212, Nurse Delegation: Referral and Communication',
     client_id:clientId,
@@ -11207,10 +11640,10 @@ async function submitGenerate01212(){
     created_at:now,updated_at:now
   };
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   updateAlertsBadge();
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate01212Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
@@ -11583,8 +12016,9 @@ async function submitGenerate13893(){
   };
   const btn=document.getElementById('rau_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
+  const existingDraftId=window._editingDraftId_13893||null;window._editingDraftId_13893=null;
   const draft={
-    id:Date.now().toString(),user_id:currentUser?.id,
+    id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-13-893',
     form_name:'13-893, Nurse Delegation: Request For Additional Unit',
     client_id:clientId,
@@ -11598,10 +12032,10 @@ async function submitGenerate13893(){
     created_at:now,updated_at:now
   };
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   updateAlertsBadge();
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13893Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
