@@ -2148,6 +2148,24 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 
+<!-- Sign Document Modal -->
+<div class="overlay" id="signDocModal">
+  <div class="modal" style="width:min(640px,96vw)">
+    <div class="modal-header">
+      <div>
+        <h4 id="signDocTitle">Sign Document</h4>
+        <p style="font-size:11px;color:var(--text3);margin-top:2px">Draw each signature below. It is fixed onto the exact DSHS form field when you print.</p>
+      </div>
+      <button onclick="closeModal('signDocModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body" id="signDocBody"></div>
+    <div class="modal-footer">
+      <button onclick="closeModal('signDocModal')" class="btn btn-ghost btn-sm">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveDocSignatures()">Save Signatures</button>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
@@ -8598,8 +8616,9 @@ function renderDraftsTable(list){
       <td style="font-size:12.5px">${d.caregiver_name}</td>
       <td style="font-size:12px;color:var(--text3)">${d.facility_name}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
-      <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Awaiting Signature</span></td>
+      <td>${(d.form_data&&d.form_data._signatures&&Object.keys(d.form_data._signatures).length)?`<span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed (${Object.keys(d.form_data._signatures).length})</span>`:`<span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Awaiting Signature</span>`}</td>
       <td style="display:flex;gap:6px;flex-wrap:nowrap">
+        ${d.form_id!=='form-06-200'?`<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:var(--blue-dim)" onclick="openSignModal('${d.id}')">✍ Sign</button>`:''}
         <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:#2dba7a30" onclick="goUploadSigned('${d.id}')">↑ Upload Signed</button>
         <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
@@ -8608,32 +8627,27 @@ function renderDraftsTable(list){
     </tr>`).join(''));
 }
 
+function _buildDraftPrintHtml(d){
+  const fd=d.form_data||{};
+  if(d.form_id==='form-13678-consent') return build13678ConsentPrintHtml(fd,d);
+  if(d.form_id==='form-13678a')        return build13678aPrintHtml(fd,d);
+  if(d.form_id==='form-14484')         return build14484PrintHtml(fd,d);
+  if(d.form_id==='form-13680')         return build13680PrintHtml(fd,d);
+  if(d.form_id==='form-13681')         return build13681PrintHtml(fd,d);
+  if(d.form_id==='form-13678b')        return build13678bPrintHtml(fd,d);
+  if(d.form_id==='form-01-212')        return build01212PrintHtml(fd,d);
+  if(d.form_id==='form-13-893')        return build13893PrintHtml(fd,d);
+  if(d.form_id==='form-10-217')        return build10217PrintHtml(fd,d);
+  return build13678PrintHtml(fd,d);
+}
+
 function printDraft(id){
   const d=(window.formDrafts||[]).find(x=>x.id===id);
   if(!d){alert('Draft not found.');return;}
-  const fd=d.form_data||{};
   const printWin=window.open('','_blank','width=850,height=1100');
-  if(d.form_id==='form-13678-consent'){
-    printWin.document.write(build13678ConsentPrintHtml(fd,d));
-  } else if(d.form_id==='form-13678a'){
-    printWin.document.write(build13678aPrintHtml(fd,d));
-  } else if(d.form_id==='form-14484'){
-    printWin.document.write(build14484PrintHtml(fd,d));
-  } else if(d.form_id==='form-13680'){
-    printWin.document.write(build13680PrintHtml(fd,d));
-  } else if(d.form_id==='form-13681'){
-    printWin.document.write(build13681PrintHtml(fd,d));
-  } else if(d.form_id==='form-13678b'){
-    printWin.document.write(build13678bPrintHtml(fd,d));
-  } else if(d.form_id==='form-01-212'){
-    printWin.document.write(build01212PrintHtml(fd,d));
-  } else if(d.form_id==='form-13-893'){
-    printWin.document.write(build13893PrintHtml(fd,d));
-  } else if(d.form_id==='form-10-217'){
-    printWin.document.write(build10217PrintHtml(fd,d));
-  } else {
-    printWin.document.write(build13678PrintHtml(fd,d));
-  }
+  let html=_buildDraftPrintHtml(d);
+  html=injectSignatures(html,d);
+  printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
   setTimeout(()=>printWin.print(),600);
@@ -12167,6 +12181,190 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+</script>
+<script>
+// ══════════════════════════════════════════════════
+// DIGITAL SIGNATURE MODULE
+// Captures drawn signatures and fixes them onto the exact
+// DSHS form signature field (matched by the field's label).
+// ══════════════════════════════════════════════════
+let _signingDraftId=null;
+let _signPads={};
+
+// Detect every signature field in a draft's print HTML (unique labels)
+function _detectSignatureFields(d){
+  if(d.form_id==='form-06-200') return [];
+  let html;
+  try{ html=_buildDraftPrintHtml(d); }catch(e){ return []; }
+  let doc;
+  try{ doc=new DOMParser().parseFromString(html,'text/html'); }catch(e){ return []; }
+  const seen=new Set(), fields=[];
+  doc.querySelectorAll('.sig-line').forEach(line=>{
+    const lbl=line.previousElementSibling;
+    if(!lbl||!lbl.classList||!lbl.classList.contains('fl')) return;
+    const text=(lbl.textContent||'').replace(/\s+/g,' ').trim();
+    if(!/signature/i.test(text)) return;
+    if(seen.has(text)) return;
+    seen.add(text);
+    fields.push({key:text,label:text});
+  });
+  return fields;
+}
+
+function _guessSignerRole(label){
+  const l=label.toLowerCase();
+  if(l.includes('client')||l.includes('authorized representative')) return 'Client / Authorized Representative';
+  if(l.includes('case')||l.includes('resource manager')) return 'Case / Resource Manager';
+  if(l.includes('program manager')) return 'ND Program Manager';
+  return 'Registered Nurse';
+}
+
+function openSignModal(draftId){
+  const d=(window.formDrafts||[]).find(x=>x.id===draftId);
+  if(!d){alert('Draft not found.');return;}
+  _signingDraftId=draftId;
+  _signPads={};
+  const fields=_detectSignatureFields(d);
+  const body=document.getElementById('signDocBody');
+  document.getElementById('signDocTitle').textContent='Sign — '+d.form_name;
+  if(!fields.length){
+    body.innerHTML='<div style="font-size:13px;color:var(--text3);padding:14px 0">This form has no signature fields to capture.</div>';
+    openModal('signDocModal');
+    return;
+  }
+  const existing=(d.form_data&&d.form_data._signatures)||{};
+  body.innerHTML=fields.map((f,i)=>{
+    const role=_guessSignerRole(f.label);
+    const sig=existing[f.key];
+    const presetName=(role==='Registered Nurse')?(currentProfile?.full_name||''):'';
+    const last=i===fields.length-1;
+    return `
+    <div style="margin-bottom:${last?'4px':'20px'};padding-bottom:${last?'0':'20px'};${last?'':'border-bottom:1px solid var(--border)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(f.label)}</div>
+          <div style="font-size:11px;color:var(--text3)">${role}</div>
+        </div>
+        ${sig?'<span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed</span>':''}
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Signed by (print name)</label>
+        <input class="form-input" id="signName_${i}" value="${esc(sig?.signedBy||presetName)}" placeholder="Full name of signer">
+      </div>
+      <div style="position:relative;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:var(--bg1)">
+        <canvas id="signPad_${i}" data-key="${esc(f.key)}" style="width:100%;height:150px;display:block;touch-action:none;border-radius:var(--radius-sm);cursor:crosshair"></canvas>
+        <div style="position:absolute;left:16px;right:16px;bottom:36px;border-bottom:1px solid var(--border3);pointer-events:none"></div>
+        <button class="btn btn-ghost btn-sm" style="position:absolute;top:8px;right:8px;font-size:11px" onclick="clearSignPad(${i})">Clear</button>
+      </div>
+    </div>`;
+  }).join('');
+  openModal('signDocModal');
+  setTimeout(()=>fields.forEach((f,i)=>initSignPad(i,existing[f.key]?.dataUrl)),80);
+}
+
+function initSignPad(i,existingDataUrl){
+  const canvas=document.getElementById('signPad_'+i);
+  if(!canvas) return;
+  const rect=canvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.max(1,rect.width*dpr);
+  canvas.height=Math.max(1,rect.height*dpr);
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0d2d4a';
+  _signPads[i]={canvas,ctx,hasInk:false};
+  let drawing=false,last=null;
+  const pos=e=>{const r=canvas.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};};
+  const start=e=>{e.preventDefault();drawing=true;last=pos(e);};
+  const move=e=>{if(!drawing)return;e.preventDefault();const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;_signPads[i].hasInk=true;};
+  const end=()=>{drawing=false;};
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',end);
+  if(existingDataUrl){
+    const img=new Image();
+    img.onload=()=>{try{ctx.drawImage(img,8,8);}catch(e){}_signPads[i].hasInk=true;};
+    img.src=existingDataUrl;
+  }
+}
+
+function clearSignPad(i){
+  const p=_signPads[i];if(!p)return;
+  p.ctx.clearRect(0,0,p.canvas.width,p.canvas.height);
+  p.hasInk=false;
+}
+
+// Crop transparent margins so the signature sits neatly on the form line
+function _trimSignature(canvas){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  let data;
+  try{ data=ctx.getImageData(0,0,w,h).data; }catch(e){ return canvas.toDataURL('image/png'); }
+  let top=h,left=w,right=0,bottom=0,found=false;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    if(data[(y*w+x)*4+3]>10){found=true;if(x<left)left=x;if(x>right)right=x;if(y<top)top=y;if(y>bottom)bottom=y;}
+  }
+  if(!found) return canvas.toDataURL('image/png');
+  const pad=8;
+  left=Math.max(0,left-pad);top=Math.max(0,top-pad);
+  right=Math.min(w,right+pad);bottom=Math.min(h,bottom+pad);
+  const tw=right-left,th=bottom-top;
+  const out=document.createElement('canvas');
+  out.width=tw;out.height=th;
+  out.getContext('2d').drawImage(canvas,left,top,tw,th,0,0,tw,th);
+  return out.toDataURL('image/png');
+}
+
+async function saveDocSignatures(){
+  const d=(window.formDrafts||[]).find(x=>x.id===_signingDraftId);
+  if(!d){closeModal('signDocModal');return;}
+  d.form_data=d.form_data||{};
+  d.form_data._signatures=d.form_data._signatures||{};
+  let any=false;
+  Object.entries(_signPads).forEach(([i,pad])=>{
+    const key=pad.canvas.getAttribute('data-key');
+    const name=(document.getElementById('signName_'+i)?.value||'').trim();
+    if(pad.hasInk){
+      d.form_data._signatures[key]={dataUrl:_trimSignature(pad.canvas),signedBy:name,signedAt:new Date().toISOString()};
+      any=true;
+    }
+  });
+  if(!any){alert('Please draw at least one signature before saving.');return;}
+  d.updated_at=new Date().toISOString();
+  d.status='Signed (digital) — ready to print & file';
+  initSupa();
+  if(supa&&currentUser){
+    try{ await supa.from('form_drafts').update({form_data:d.form_data,status:d.status,updated_at:d.updated_at}).eq('id',d.id); }catch(e){console.warn(e);}
+  }
+  closeModal('signDocModal');
+  if(typeof renderDraftsTable==='function') renderDraftsTable(window.formDrafts);
+  if(typeof updateAlertsBadge==='function') updateAlertsBadge();
+  alert('✅ Signature(s) saved and fixed onto the form fields.\n\nClick Print to view or print the signed document.');
+}
+
+// Fix saved signatures onto the matching sig-line of the print HTML
+function injectSignatures(html,draft){
+  const sigs=(draft.form_data&&draft.form_data._signatures)||{};
+  if(!sigs||!Object.keys(sigs).length) return html;
+  let doc;
+  try{ doc=new DOMParser().parseFromString(html,'text/html'); }catch(e){ return html; }
+  doc.querySelectorAll('.sig-line').forEach(line=>{
+    const lbl=line.previousElementSibling;
+    if(!lbl||!lbl.classList||!lbl.classList.contains('fl')) return;
+    const key=(lbl.textContent||'').replace(/\s+/g,' ').trim();
+    const sig=sigs[key];
+    if(!sig||!sig.dataUrl) return;
+    line.innerHTML='';
+    const img=doc.createElement('img');
+    img.src=sig.dataUrl;
+    img.setAttribute('style','max-height:24px;max-width:230px;display:inline-block;vertical-align:bottom;margin-bottom:1px');
+    line.appendChild(img);
+  });
+  return '<!DOCTYPE html>'+doc.documentElement.outerHTML;
+}
 </script>
 <div class="sidebar-drawer-overlay" id="sidebarOverlay"></div>
 <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Open navigation">
