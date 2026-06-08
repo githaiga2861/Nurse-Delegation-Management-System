@@ -3940,23 +3940,11 @@ pageRenderers.documents = () => {
       <p style="font-size:13px"><strong style="color:var(--text2)">Drag and drop signed documents here</strong> or click to upload</p>
       <p style="font-size:12px;margin-top:4px;color:var(--text3)">PDF, JPG, PNG · Max 25MB · Match to a draft to track status</p>
     </div>
-    <div class="card">
-      <div class="card-header">
-        <span style="font-size:13px;font-weight:600">Signed Documents</span>
-        <span class="chip" id="signedCountChip">0 signed</span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Form Name</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Signed / Uploaded</th><th>Status</th><th></th></tr></thead>
-          <tbody id="signedTableBody">
-            <tr id="signedEmptyRow"><td colspan="7"><div class="empty-state" style="padding:48px">
-              <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 17l4-4 3 3 7-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-              <h4>No signed documents uploaded</h4>
-              <p>After printing and signing a draft, upload the signed copy here.</p>
-            </div></td></tr>
-          </tbody>
-        </table>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:12px">
+      <span class="chip" id="signedCountChip">0 signed</span>
+    </div>
+    <div id="signedCategorised">
+      <div style="color:var(--text3);font-size:13px;padding:20px 0">Loading signed documents…</div>
     </div>
   </div>
 </div>`;
@@ -4675,21 +4663,30 @@ function renderArchivePage(filter, typeFilter){
     </table></div>`:`<div class="empty-state" style="padding:40px"><h4 style="color:var(--green)">No visits logged</h4><p>All supervision visits from every delegation case appear here.</p></div>`}
   </div>`:''}
 
-  ${(!type||type==='Signed Documents')?`
-  <div class="card">
-    <div class="card-header"><span style="font-size:13px;font-weight:600">Signed Documents</span><span class="chip">${signedRows.length}</span></div>
-    ${signedRows.length?`<div class="table-wrap"><table>
-      <thead><tr><th>Form</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Uploaded</th><th></th></tr></thead>
-      <tbody>${signedRows.map(d=>`<tr>
+  ${(!type||type==='Signed Documents')?(()=>{
+    const eRows=signedRows.filter(d=>d.signed_method==='electronic');
+    const mRows=signedRows.filter(d=>d.signed_method!=='electronic');
+    const tbl=(items,uploadedLabel)=>items.length?`<div class="table-wrap"><table>
+      <thead><tr><th>Form</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>${uploadedLabel}</th><th></th></tr></thead>
+      <tbody>${items.map(d=>`<tr>
         <td style="font-weight:600;color:var(--text);font-size:12px">${d.form_name}</td>
         <td style="font-size:12px">${d.client_name||'—'}</td>
         <td style="font-size:12px">${d.caregiver_name||'—'}</td>
         <td style="font-size:12px;color:var(--text3)">${d.facility_name||'—'}</td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${new Date(d.created_at).toLocaleDateString('en-US')}</td>
-        <td>${d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm">View</a>`:''}</td>
+        <td>${d.signed_method==='electronic'?`<button class="btn btn-ghost btn-sm" onclick="viewElectronicSigned('${d.id}')">View</button>`:(d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm">View</a>`:'')}</td>
       </tr>`).join('')}</tbody>
-    </table></div>`:`<div class="empty-state" style="padding:40px"><h4>No signed documents</h4><p>Uploaded signed forms appear here.</p></div>`}
-  </div>`:''}`;
+    </table></div>`:`<div class="empty-state" style="padding:40px"><h4>None</h4><p>No records in this category.</p></div>`;
+    return `
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Electronically Signed Forms</span><span class="chip">${eRows.length}</span></div>
+      ${tbl(eRows,'Signed')}
+    </div>
+    <div class="card">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">Manually Signed Documents</span><span class="chip">${mRows.length}</span></div>
+      ${tbl(mRows,'Uploaded')}
+    </div>`;
+  })():''}`;
 }
 
 function filterArchive(q){ renderArchivePage(q, document.querySelector('#page-archive select')?.value||''); }
@@ -7949,6 +7946,7 @@ async function submitMatchDraft(){
       facility_name:draft?.facility_name||'—',
       file_url:e.target.result,
       file_name:file.name,
+      signed_method:'manual',
       status:'Signed & Filed',
       draft_id:draftId||null,
       created_at:now,
@@ -7956,7 +7954,7 @@ async function submitMatchDraft(){
     };
     initSupa();
     if(supa&&currentUser){
-      try{await supa.from('signed_documents').insert({...signedDoc,file_url:null,file_name:file.name});}catch(err){}
+      try{await supa.from('signed_documents').insert({...signedDoc,file_url:null,file_name:file.name,signed_method:'manual'});}catch(err){}
     }
     window.signedDocs=window.signedDocs||[];
     window.signedDocs.unshift(signedDoc);
@@ -7975,25 +7973,64 @@ async function submitMatchDraft(){
 
 async function loadSignedList(){
   initSupa();
-  if(!supa||!currentUser)return;
-  const {data}=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
-  window.signedDocs=data||[];
-  const tbody=document.getElementById('signedTableBody');if(!tbody)return;
-  const empty=document.getElementById('signedEmptyRow');
-  tbody.querySelectorAll('tr:not(#signedEmptyRow)').forEach(r=>r.remove());
-  const chip=document.getElementById('signedCountChip');if(chip)chip.textContent=(data||[]).length+' signed';
-  if(!(data||[]).length){if(empty)empty.style.display='';return;}
-  if(empty)empty.style.display='none';
-  tbody.insertAdjacentHTML('afterbegin',(data||[]).map(d=>`
-    <tr>
-      <td style="font-weight:600;color:var(--text);font-size:12.5px">${d.form_name}</td>
+  let data=[];
+  if(supa&&currentUser){
+    const res=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    data=res.data||[];
+  }
+  // Merge any in-memory electronic records not yet returned from the DB
+  const merged=[...data];
+  (window.signedDocs||[]).forEach(local=>{
+    if(!merged.find(x=>x.id===local.id)) merged.push(local);
+  });
+  merged.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  window.signedDocs=merged;
+
+  // Records with no signed_method are legacy uploads → treat as manual
+  const electronic=merged.filter(d=>d.signed_method==='electronic');
+  const manual=merged.filter(d=>d.signed_method!=='electronic');
+
+  const chip=document.getElementById('signedCountChip');
+  if(chip)chip.textContent=merged.length+' signed';
+
+  const rowHtml=d=>{
+    const isE=d.signed_method==='electronic';
+    const action=isE
+      ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="viewElectronicSigned('${d.id}')">View</button>`
+      : (d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px">View</a>`:'');
+    const who=isE&&(d.signers||[]).length?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${(d.signers||[]).join(', ')}</div>`:'';
+    return `<tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${d.form_name}${who}</td>
       <td style="font-size:12.5px">${d.client_name||'—'}</td>
       <td style="font-size:12.5px">${d.caregiver_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${d.facility_name||'—'}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
-      <td><span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed & Filed</span></td>
-      <td>${d.file_url?`<a href="${d.file_url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px">View</a>`:''}</td>
-    </tr>`).join(''));
+      <td><span class="status ${isE?'status-reassess':'status-active'}" style="font-size:10px"><span class="status-dot"></span>${isE?'Electronically Signed':'Signed & Filed'}</span></td>
+      <td>${action}</td>
+    </tr>`;
+  };
+
+  const head=`<thead><tr><th>Form Name</th><th>Client</th><th>Caregiver</th><th>Facility</th><th>Signed / Uploaded</th><th>Status</th><th></th></tr></thead>`;
+  const block=(title,subtitle,accent,items)=>`
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div>
+          <span style="font-size:13px;font-weight:600">${title}</span>
+          <p style="font-size:11px;color:var(--text3);margin-top:2px">${subtitle}</p>
+        </div>
+        <span class="chip" style="background:${accent}22;color:${accent};border-color:${accent}40">${items.length}</span>
+      </div>
+      ${items.length
+        ? `<div class="table-wrap"><table>${head}<tbody>${items.map(rowHtml).join('')}</tbody></table></div>`
+        : `<div class="empty-state" style="padding:40px"><h4>None yet</h4><p>${subtitle}</p></div>`}
+    </div>`;
+
+  const wrap=document.getElementById('signedCategorised');
+  if(wrap){
+    wrap.innerHTML =
+      block('Electronically Signed Forms','Signed in-app with the ✍ Sign tool — signatures fixed onto the form fields.','var(--purple)',electronic) +
+      block('Manually Signed Documents','Printed, hand-signed, then uploaded as a scanned copy.','var(--green)',manual);
+  }
 }
 
 function editDraft(id){
@@ -12334,15 +12371,69 @@ async function saveDocSignatures(){
   });
   if(!any){alert('Please draw at least one signature before saving.');return;}
   d.updated_at=new Date().toISOString();
-  d.status='Signed (digital) — ready to print & file';
+  d.status='Signed (electronic) — ready to print & file';
   initSupa();
   if(supa&&currentUser){
     try{ await supa.from('form_drafts').update({form_data:d.form_data,status:d.status,updated_at:d.updated_at}).eq('id',d.id); }catch(e){console.warn(e);}
   }
+
+  // Create / update an electronically-signed document record
+  const now=d.updated_at;
+  const signers=Object.values(d.form_data._signatures).map(s=>s.signedBy).filter(Boolean);
+  const signedHtml=injectSignatures(_buildDraftPrintHtml(d),d);
+  window.signedDocs=window.signedDocs||[];
+  let rec=window.signedDocs.find(x=>x.draft_id===d.id&&x.signed_method==='electronic');
+  if(rec){
+    rec.signed_html=signedHtml; rec.signers=signers; rec.updated_at=now;
+  } else {
+    rec={
+      id:'esig-'+d.id,
+      user_id:currentUser?.id,
+      form_id:d.form_id, form_name:d.form_name,
+      client_id:d.client_id, client_name:d.client_name,
+      caregiver_id:d.caregiver_id, caregiver_name:d.caregiver_name,
+      facility_id:d.facility_id, facility_name:d.facility_name,
+      draft_id:d.id,
+      signed_method:'electronic',
+      signers, signed_html:signedHtml,
+      file_url:null,
+      status:'Electronically Signed',
+      created_at:now, updated_at:now
+    };
+    window.signedDocs.unshift(rec);
+  }
+  if(supa&&currentUser){
+    try{
+      await supa.from('signed_documents').upsert({
+        id:rec.id,user_id:rec.user_id,form_id:rec.form_id,form_name:rec.form_name,
+        client_id:rec.client_id,client_name:rec.client_name,
+        caregiver_id:rec.caregiver_id,caregiver_name:rec.caregiver_name,
+        facility_id:rec.facility_id,facility_name:rec.facility_name,
+        draft_id:rec.draft_id,signed_method:'electronic',
+        status:rec.status,file_url:null,created_at:rec.created_at,updated_at:rec.updated_at
+      });
+    }catch(e){console.warn('signed_documents upsert (electronic):',e.message);}
+  }
+
   closeModal('signDocModal');
   if(typeof renderDraftsTable==='function') renderDraftsTable(window.formDrafts);
+  if(typeof loadSignedList==='function') loadSignedList();
   if(typeof updateAlertsBadge==='function') updateAlertsBadge();
-  alert('✅ Signature(s) saved and fixed onto the form fields.\n\nClick Print to view or print the signed document.');
+  alert('✅ Signature(s) saved and fixed onto the form fields.\n\nThis form now appears under Signed Documents → Electronically Signed Forms.\n\nClick Print to view or print the signed document.');
+}
+
+// View an electronically-signed document in a print window
+function viewElectronicSigned(recId){
+  const rec=(window.signedDocs||[]).find(x=>x.id===recId);
+  if(!rec){alert('Record not found.');return;}
+  let html=rec.signed_html;
+  if(!html){
+    const d=(window.formDrafts||[]).find(x=>x.id===rec.draft_id);
+    if(d) html=injectSignatures(_buildDraftPrintHtml(d),d);
+  }
+  if(!html){alert('Signed copy not available to preview.');return;}
+  const w=window.open('','_blank','width=850,height=1100');
+  w.document.write(html); w.document.close(); w.focus();
 }
 
 // Fix saved signatures onto the matching sig-line of the print HTML
