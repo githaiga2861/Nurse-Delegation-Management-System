@@ -4696,38 +4696,62 @@ function updateAlertsBadge(){
   const badge = document.getElementById('alertsBadge');
   if(!badge) return;
   const today = waToday();
+  const in30  = new Date(today); in30.setDate(today.getDate()+30);
   const in90  = new Date(today); in90.setDate(today.getDate()+90);
   let count = 0;
-  // Maintenance alert
+
+  // 0. Maintenance alert — one alert when active (matches page)
   const maint = getMaintenanceAlert();
   if(maint && maint.active) count++;
-  // Expired / expiring credentials
+
+  // 1. Credential & CPR — one alert per credential and per CPR that is
+  //    expired or expiring within 90 days (matches page's single-bucket logic)
   (window.caregivers||[]).forEach(cg=>{
-    const ce=cg.certExpiry?new Date(cg.certExpiry):null;
-    const pe=cg.cprExpiry?new Date(cg.cprExpiry):null;
-    if(ce&&ce<=in90) count++;
-    if(pe&&pe<=in90) count++;
+    const ce = cg.certExpiry ? new Date(cg.certExpiry) : null;
+    const pe = cg.cprExpiry  ? new Date(cg.cprExpiry)  : null;
+    if(ce && ce <= in90) count++;
+    if(pe && pe <= in90) count++;
   });
-  // Overdue / due reassessments
+
+  // 2. Reassessments — page only alerts when OVERDUE or due within 30 days
+  //    (not the full 90-day window), plus each uncompleted overdue schedule entry
   (window.delegationCases||[]).filter(c=>c.status==='Active').forEach(c=>{
-    const rd=c.reassessDate?new Date(c.reassessDate):null;
-    if(rd&&rd<=in90) count++;
-    (c.reassessSchedule||[]).filter(r=>!r.completed&&r.date&&new Date(r.date)<today).forEach(()=>count++);
+    const rd = c.reassessDate ? new Date(c.reassessDate) : null;
+    if(rd && (rd < today || (rd >= today && rd <= in30))) count++;
+    (c.reassessSchedule||[]).filter(r=>!r.completed && r.date && new Date(r.date) < today).forEach(()=>count++);
   });
-  // Missing consent
+
+  // 3. Missing consent — one alert per active / pending-consent case with a gap
   (window.delegationCases||[]).filter(c=>c.status==='Active'||c.status==='Pending Consent').forEach(c=>{
     if((c.consentClient&&!c.consentClientSigned)||(c.consentGuardian&&!c.consentGuardianSigned)||(c.consentCaregiver&&!c.consentCaregiverSigned)) count++;
   });
-  // Pending drafts
-  count += (window.formDrafts||[]).filter(d=>d.status&&d.status.includes('Awaiting')).length;
-  // Unassigned clients
-  count += (window.clients||[]).filter(c=>c.status==='Active'&&!c.caregiverId).length;
+
+  // 4. Pending draft signatures — SINGLE aggregated alert (page groups them)
+  if((window.formDrafts||[]).some(d=>d.status&&d.status.includes('Awaiting'))) count++;
+
+  // 4b. 2FA not enabled — single alert; uses cached MFA state (refreshed below)
+  if(window._alert2faMissing) count++;
+
+  // 5. Unassigned active clients — SINGLE aggregated alert (page groups them)
+  if((window.clients||[]).some(c=>c.status==='Active'&&!c.caregiverId)) count++;
 
   if(count>0){
     badge.textContent = count > 99 ? '99+' : count;
     badge.style.display = 'inline-block';
   } else {
     badge.style.display = 'none';
+  }
+
+  // Refresh the 2FA cache once per session, then re-run if the state differs
+  if(window._alert2faChecked === undefined && supa && currentUser){
+    window._alert2faChecked = true;
+    supa.auth.mfa.listFactors().then(({data})=>{
+      const has2fa = (data?.totp||[]).some(f=>f.status==='verified');
+      if((!has2fa) !== window._alert2faMissing){
+        window._alert2faMissing = !has2fa;
+        updateAlertsBadge();
+      }
+    }).catch(()=>{});
   }
 }
 // ── DASHBOARD REFRESH ─────────────────────────────
@@ -11056,91 +11080,9 @@ async function renderSessionsPage(){
             <span style="font-size:14px;font-weight:600">Active sessions</span>
             <p style="font-size:11px;color:var(--text3);margin-top:2px">One entry per unique device fingerprint. Refreshing does not create a new session.</p>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="renderSessionsPage()">↻</button>
+          <button class="btn btn-ghost btn-sm" onclick="refreshSessionsList()">↻</button>
         </div>
-        <div id="sessionsListEl">
-          ${sessions.length===0
-            ?`<div class="empty-state" style="padding:40px"><h4>No sessions recorded</h4></div>`
-            :sessions.map(s=>{
-              const {browser,os,device}=_parseUA(s.ua);
-              const isCurrent=s.fp===currentFp;
-              const lastSeenLabel  = _timeAgo(s.last_seen);
-              const firstSeenFmt = s.first_seen ? waDateTimeMed(s.first_seen) : '—';
-              const lastSeenFmt  = s.last_seen  ? waDateTimeMed(s.last_seen)  : '—';
-              // Build location string
-              const locationParts=[s.city,s.region,s.country].filter(Boolean);
-              const locationStr=locationParts.length?locationParts.join(', '):'Location unknown';
-              // Device detail badges
-              const badges=[];
-              if(s.cores)  badges.push(`${s.cores}-core CPU`);
-              if(s.memory) badges.push(`${s.memory}GB RAM`);
-              if(s.touch>0)badges.push('Touch screen');
-              return `
-              <div style="border-bottom:1px solid var(--border);${isCurrent?'background:color-mix(in srgb,var(--green) 5%,transparent)':''}">
-                <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 24px">
-
-                  <!-- Device icon -->
-                  <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${isCurrent?'var(--green-dim)':'var(--bg3)'};border:1px solid ${isCurrent?'#2dba7a30':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                      ${device==='mobile'
-                        ?`<rect x="6" y="2" width="10" height="18" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M9 17h4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`
-                        :`<rect x="2" y="4" width="18" height="13" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M7 20h8M11 17v3" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`}
-                    </svg>
-                  </div>
-
-                  <!-- Session info -->
-                  <div style="flex:1;min-width:0">
-
-                    <!-- Row 1: browser + badges -->
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
-                      <span style="font-size:13px;font-weight:700;color:var(--text)">${browser} on ${os}</span>
-                      ${isCurrent?`<span style="font-size:10px;font-weight:700;padding:2px 9px;background:var(--green-dim);color:var(--green);border-radius:99px;border:1px solid #2dba7a30">● This device</span>`:''}
-                      ${!isCurrent&&s.count>1?`<span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:99px;border:1px solid var(--border)">${s.count} visits</span>`:''}
-                    </div>
-
-                    <!-- Row 2: IP + location + ISP -->
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="var(--text3)" stroke-width="1.2"/><path d="M6 1.5v9M1.5 6h9M2.5 3.5C3.5 4.5 5 5 6 5s2.5-.5 3.5-1.5M2.5 8.5C3.5 7.5 5 7 6 7s2.5.5 3.5 1.5" stroke="var(--text3)" stroke-width="1"/></svg>
-                      <span style="font-size:11.5px;font-family:var(--mono);color:${isCurrent?'var(--blue)':'var(--text2)'};font-weight:600">${s.ip||'—'}</span>
-                      <span style="font-size:11px;color:var(--text3)">·</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C4 1 2.5 2.6 2.5 4.5c0 2.8 3.5 6.5 3.5 6.5s3.5-3.7 3.5-6.5C9.5 2.6 8 1 6 1z" stroke="var(--text3)" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1.2" stroke="var(--text3)" stroke-width="1"/></svg>
-                      <span style="font-size:11.5px;color:var(--text2)">${s.flag?s.flag+' ':''}${locationStr}</span>
-                      ${s.isp?`<span style="font-size:11px;color:var(--text3)">·</span><span style="font-size:11px;color:var(--text3)">${s.isp}</span>`:''}
-                    </div>
-
-                    <!-- Row 3: timezone + screen -->
-                    <div style="font-size:11.5px;color:var(--text3);margin-bottom:5px">
-                      ${s.tz||'Unknown timezone'} · ${s.screen||'—'}
-                      ${badges.length?'· '+badges.join(' · '):''}
-                    </div>
-
-                    <!-- Row 4: timestamps -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:4px">
-                      <div style="display:flex;align-items:center;gap:5px">
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="var(--green)" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="var(--green)" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        <span style="font-size:10.5px;color:var(--text3)">First seen</span>
-                        <span style="font-size:10.5px;color:var(--text2);font-weight:600">${firstSeenFmt}</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:5px">
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        <span style="font-size:10.5px;color:var(--text3)">Last seen</span>
-                        <span style="font-size:10.5px;color:${isCurrent?'var(--green)':'var(--text2)'};font-weight:600">${isCurrent?'Active now':lastSeenFmt}</span>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  <!-- Action button -->
-                  <div style="flex-shrink:0;padding-top:2px">
-                    ${isCurrent
-                      ?`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="if(confirm('Sign out of this session?'))signOut()">Sign out</button>`
-                      :`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="removeStoredSession2('${s.fp}')">Remove</button>`}
-                  </div>
-
-                </div>
-              </div>`;
-            }).join('')}
-        </div>
+        <div id="sessionsListEl">${_buildSessionRowsHtml(sessions,currentFp)}</div>
         <div style="padding:12px 24px;font-size:11.5px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);background:var(--bg3)">
           Sessions are identified by a unique device fingerprint combining browser, OS, GPU, screen, CPU cores, and RAM. Two devices on the same WiFi network always appear as separate entries. IP addresses and locations are fetched on first visit and refreshed periodically.
         </div>
@@ -11344,6 +11286,88 @@ async function renderSessionsPage(){
 }
 
 function removeStoredSession(idx){ removeStoredSession2(idx); }
+
+// Builds the session-row HTML used by both the full page render and the
+// card-scoped refresh. Single source of truth for the session list markup.
+function _buildSessionRowsHtml(sessions,currentFp){
+  if(!sessions||!sessions.length)
+    return `<div class="empty-state" style="padding:40px"><h4>No sessions recorded</h4></div>`;
+  return sessions.map(s=>{
+    const {browser,os,device}=_parseUA(s.ua);
+    const isCurrent=s.fp===currentFp;
+    const firstSeenFmt = s.first_seen ? waDateTimeMed(s.first_seen) : '—';
+    const lastSeenFmt  = s.last_seen  ? waDateTimeMed(s.last_seen)  : '—';
+    const locationParts=[s.city,s.region,s.country].filter(Boolean);
+    const locationStr=locationParts.length?locationParts.join(', '):'Location unknown';
+    const badges=[];
+    if(s.cores)  badges.push(`${s.cores}-core CPU`);
+    if(s.memory) badges.push(`${s.memory}GB RAM`);
+    if(s.touch>0)badges.push('Touch screen');
+    return `
+    <div style="border-bottom:1px solid var(--border);${isCurrent?'background:color-mix(in srgb,var(--green) 5%,transparent)':''}">
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 24px">
+        <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:${isCurrent?'var(--green-dim)':'var(--bg3)'};border:1px solid ${isCurrent?'#2dba7a30':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            ${device==='mobile'
+              ?`<rect x="6" y="2" width="10" height="18" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M9 17h4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`
+              :`<rect x="2" y="4" width="18" height="13" rx="2" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4"/><path d="M7 20h8M11 17v3" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.4" stroke-linecap="round"/>`}
+          </svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${browser} on ${os}</span>
+            ${isCurrent?`<span style="font-size:10px;font-weight:700;padding:2px 9px;background:var(--green-dim);color:var(--green);border-radius:99px;border:1px solid #2dba7a30">● This device</span>`:''}
+            ${!isCurrent&&s.count>1?`<span style="font-size:10px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:99px;border:1px solid var(--border)">${s.count} visits</span>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="var(--text3)" stroke-width="1.2"/><path d="M6 1.5v9M1.5 6h9M2.5 3.5C3.5 4.5 5 5 6 5s2.5-.5 3.5-1.5M2.5 8.5C3.5 7.5 5 7 6 7s2.5.5 3.5 1.5" stroke="var(--text3)" stroke-width="1"/></svg>
+            <span style="font-size:11.5px;font-family:var(--mono);color:${isCurrent?'var(--blue)':'var(--text2)'};font-weight:600">${s.ip||'—'}</span>
+            <span style="font-size:11px;color:var(--text3)">·</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C4 1 2.5 2.6 2.5 4.5c0 2.8 3.5 6.5 3.5 6.5s3.5-3.7 3.5-6.5C9.5 2.6 8 1 6 1z" stroke="var(--text3)" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1.2" stroke="var(--text3)" stroke-width="1"/></svg>
+            <span style="font-size:11.5px;color:var(--text2)">${s.flag?s.flag+' ':''}${locationStr}</span>
+            ${s.isp?`<span style="font-size:11px;color:var(--text3)">·</span><span style="font-size:11px;color:var(--text3)">${s.isp}</span>`:''}
+          </div>
+          <div style="font-size:11.5px;color:var(--text3);margin-bottom:5px">
+            ${s.tz||'Unknown timezone'} · ${s.screen||'—'}
+            ${badges.length?'· '+badges.join(' · '):''}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:4px">
+            <div style="display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="var(--green)" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="var(--green)" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <span style="font-size:10.5px;color:var(--text3)">First seen</span>
+              <span style="font-size:10.5px;color:var(--text2);font-weight:600">${firstSeenFmt}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2"/><path d="M5.5 3v2.5l1.5 1.5" stroke="${isCurrent?'var(--green)':'var(--text3)'}" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <span style="font-size:10.5px;color:var(--text3)">Last seen</span>
+              <span style="font-size:10.5px;color:${isCurrent?'var(--green)':'var(--text2)'};font-weight:600">${isCurrent?'Active now':lastSeenFmt}</span>
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;padding-top:2px">
+          ${isCurrent
+            ?`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="if(confirm('Sign out of this session?'))signOut()">Sign out</button>`
+            :`<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--text3)" onclick="removeStoredSession2('${s.fp}')">Remove</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Card-scoped refresh: re-records the session and rebuilds ONLY the
+// session list, leaving the 2FA wizard, account card, and stats untouched.
+async function refreshSessionsList(){
+  const el=document.getElementById('sessionsListEl');
+  if(!el){ renderSessionsPage(); return; }   // list not on screen → fall back to full render
+  el.style.opacity='0.5';
+  el.style.pointerEvents='none';
+  try{
+    const sessions=await _recordSession();
+    const currentFp=_buildFingerprint();
+    el.innerHTML=_buildSessionRowsHtml(sessions,currentFp);
+  }catch(e){ console.warn('Session list refresh failed:',e); }
+  finally{ el.style.opacity='1'; el.style.pointerEvents=''; }
+}
 
 function open2FASetupPanel(){
   const p=document.getElementById('twofaPanel');
