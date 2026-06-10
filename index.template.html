@@ -8664,6 +8664,51 @@ async function loadDraftsList(){
 }
 
 function renderDraftsTable(list){
+  // Auto-forward any draft whose status contains "Signed" to the
+  // Signed Documents tab so the user never has to do it manually.
+  (list||[]).forEach(d=>{
+    if(!d.status||!d.status.toLowerCase().includes('signed')) return;
+    const already=(window.signedDocs||[]).find(x=>x.draft_id===d.id);
+    if(already) return;
+    const isElectronic=d.status.toLowerCase().includes('electronic');
+    const now=d.updated_at||d.created_at||new Date().toISOString();
+    const rec={
+      id:(isElectronic?'esig-':'msig-')+d.id,
+      user_id:d.user_id,
+      form_id:d.form_id, form_name:d.form_name,
+      client_id:d.client_id, client_name:d.client_name,
+      caregiver_id:d.caregiver_id, caregiver_name:d.caregiver_name,
+      facility_id:d.facility_id, facility_name:d.facility_name,
+      draft_id:d.id,
+      signed_method:isElectronic?'electronic':'manual',
+      signers:isElectronic?Object.values((d.form_data||{})._signatures||{}).map(s=>s.signedBy).filter(Boolean):[],
+      signed_html:isElectronic?(()=>{try{return injectSignatures(_buildDraftPrintHtml(d),d);}catch(e){return null;}})():null,
+      file_url:d.file_url||null,
+      status:isElectronic?'Electronically Signed':'Signed & Filed',
+      created_at:now, updated_at:now
+    };
+    window.signedDocs=window.signedDocs||[];
+    window.signedDocs.unshift(rec);
+    // Persist to Supabase non-blockingly
+    if(supa&&currentUser){
+      supa.from('signed_documents').upsert({
+        id:rec.id, user_id:rec.user_id,
+        form_id:rec.form_id, form_name:rec.form_name,
+        client_id:rec.client_id, client_name:rec.client_name,
+        caregiver_id:rec.caregiver_id, caregiver_name:rec.caregiver_name,
+        facility_id:rec.facility_id, facility_name:rec.facility_name,
+        draft_id:rec.draft_id, signed_method:rec.signed_method,
+        status:rec.status, file_url:rec.file_url,
+        created_at:rec.created_at, updated_at:rec.updated_at
+      }).then(({error})=>{
+        if(error)console.warn('Auto-forward signed doc:',error.message);
+      });
+    }
+    // Refresh the Signed Documents tab if it is currently visible
+    const signedWrap=document.getElementById('signedCategorised');
+    if(signedWrap) loadSignedList();
+  });
+
   const tbody=document.getElementById('draftsTableBody');if(!tbody)return;
   const empty=document.getElementById('draftsEmptyRow');
   tbody.querySelectorAll('tr:not(#draftsEmptyRow)').forEach(r=>r.remove());
@@ -8688,6 +8733,23 @@ function renderDraftsTable(list){
     </tr>`).join(''));
 }
 
+// Formats any YYYY-MM-DD string (or Date) as M/D/YYYY for printed DSHS forms
+function _fmtPrintDate(val){
+  if(!val) return '';
+  const s=String(val).trim();
+  // Already in M/D/YYYY or MM/DD/YYYY — pass through
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return s;
+  // YYYY-MM-DD  → M/D/YYYY
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${parseInt(m[2])}/${parseInt(m[3])}/${m[1]}`;
+  // ISO timestamp  → M/D/YYYY
+  try{
+    const d=new Date(val);
+    if(!isNaN(d.getTime())) return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+  }catch(e){}
+  return s;
+}
+
 function _buildDraftPrintHtml(d){
   const fd=d.form_data||{};
   if(d.form_id==='form-13678-consent') return build13678ConsentPrintHtml(fd,d);
@@ -8702,12 +8764,24 @@ function _buildDraftPrintHtml(d){
   return build13678PrintHtml(fd,d);
 }
 
+// Converts all remaining YYYY-MM-DD strings inside rendered print HTML
+// to M/D/YYYY (American format) after the builder has run.
+function _convertDatesInHtml(html){
+  // Only convert values that appear as cell content (between > and <),
+  // not inside src/href attributes.
+  return html.replace(/>([^<]*\b(\d{4})-(\d{2})-(\d{2})\b[^<]*)</g,(match,inner)=>{
+    const converted=inner.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g,(_,y,m,d)=>`${parseInt(m)}/${parseInt(d)}/${y}`);
+    return '>'+converted+'<';
+  });
+}
+
 function printDraft(id){
   const d=(window.formDrafts||[]).find(x=>x.id===id);
   if(!d){alert('Draft not found.');return;}
   const printWin=window.open('','_blank','width=850,height=1100');
   let html=_buildDraftPrintHtml(d);
   html=injectSignatures(html,d);
+  html=_convertDatesInHtml(html);
   printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
@@ -8720,35 +8794,35 @@ function build14484PrintHtml(fd,draft){
   const LOGO='assets/logo.png';
 
   const sharedCSS=`
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}
-@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000;background:#fff}
+@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}
 @media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}
 section{padding:0;width:100%}
-.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}
 .page-header-logo{width:88px;flex-shrink:0}
 .page-header-logo img{width:88px}
 .page-header-title{flex:1;text-align:center}
-.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}
-.form-subtitle{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}
-.form-number{font-size:7.5pt;color:#333;margin-top:2px}
-.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:7pt;color:#555}
-table{width:100%;border-collapse:collapse;margin-bottom:3px}
-td,th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word}
-th{background:#d9d9d9;font-weight:bold;font-size:7.5pt;text-align:center;text-transform:uppercase}
-.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em;line-height:1.3}
-.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word;white-space:pre-wrap}
-.fv-inline{font-size:8.5pt;word-wrap:break-word}
-.sig-row td{height:36px;vertical-align:bottom}
-.sig-line{border-bottom:1px solid #000;display:block;height:22px;width:100%}
-.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px;letter-spacing:0.03em}
-.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}
-.instructions ol{margin-left:14px;margin-top:3px}
+.form-title{font-size:13pt;font-weight:bold;line-height:1.2;margin-bottom:2px}
+.form-subtitle{font-size:9.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}
+.form-number{font-size:8.5pt;color:#333;margin-top:2px}
+.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:8pt;color:#555}
+table{width:100%;border-collapse:collapse;margin-bottom:4px}
+td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word;overflow-wrap:break-word}
+th{background:#d9d9d9;font-weight:bold;font-size:9pt;text-align:center;text-transform:uppercase}
+.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.08em;line-height:1.3}
+.fv{font-size:10pt;min-height:14px;display:block;word-wrap:break-word;white-space:pre-wrap}
+.fv-inline{font-size:10pt;word-wrap:break-word}
+.sig-row td{height:42px;vertical-align:bottom}
+.sig-line{border-bottom:1px solid #000;display:block;height:26px;width:100%}
+.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9.5pt;padding:3px 6px;letter-spacing:0.03em}
+.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}
+.instructions ol{margin-left:15px;margin-top:3px}
 .instructions li{margin-bottom:2px}
-.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}
-.ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px 6px;font-size:7.5pt;padding:2px 4px;line-height:1.8}
+.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}
+.ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 6px;font-size:8.5pt;padding:3px 5px;line-height:1.9}
 .ros-item{display:flex;align-items:center;gap:3px;white-space:nowrap}
-.check-row{font-size:8pt;line-height:1.9;padding:3px 5px}
+.check-row{font-size:9.5pt;line-height:2;padding:3px 5px}
 .check-row span{margin-right:10px}
 .two-col td{width:50%}
 .three-col td{width:33.33%}`;
@@ -8796,7 +8870,7 @@ ${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','
   <tr>
     <td style="width:30%"><span class="fl">1. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
     <td style="width:18%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
-    <td style="width:16%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
+    <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(_fmtPrintDate(fd.dob))}</span></td>
     <td style="width:36%"><span class="fl">4. Setting</span>
       <span class="fv" style="font-size:7.5pt">
         ${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}
@@ -8848,8 +8922,8 @@ ${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','
   <tr><td colspan="3" style="font-size:7pt;padding:3px 5px;font-style:italic">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given the information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.</td></tr>
   <tr class="sig-row">
     <td style="width:50%"><span class="fl">12. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
-    <td style="width:20%"><span class="fl">13. Date</span><span class="fv sig-line">${esc(fd.visitDate)}</span></td>
-    <td style="width:30%"><span class="fl">14. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate)}</span></td>
+    <td style="width:20%"><span class="fl">13. Date</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.visitDate))}</span></td>
+    <td style="width:30%"><span class="fl">14. Return Visit On or Before</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.returnDate))}</span></td>
   </tr>
 </table>
 
@@ -8886,8 +8960,8 @@ ${pageHeader('Nurse Delegation: Nursing Visit — Page 2','','DSHS 14-484 (REV. 
   <tr><td colspan="3" style="font-size:7pt;font-style:italic;padding:3px 5px">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated.</td></tr>
   <tr class="sig-row">
     <td style="width:50%"><span class="fl">20. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig2)}</span></td>
-    <td style="width:20%"><span class="fl">21. Date</span><span class="fv sig-line">${esc(fd.visitDate2)}</span></td>
-    <td style="width:30%"><span class="fl">22. Return Visit On or Before</span><span class="fv sig-line">${esc(fd.returnDate2)}</span></td>
+    <td style="width:20%"><span class="fl">21. Date</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.visitDate2))}</span></td>
+    <td style="width:30%"><span class="fl">22. Return Visit On or Before</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.returnDate2))}</span></td>
   </tr>
 </table>
 <div class="footer">
@@ -8970,7 +9044,7 @@ function build13678PrintHtml(fd, draft){
     <td style="width:18%"><span class="fl">2. ACES Client ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
     <td style="width:16%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
     <td style="width:20%"><span class="fl">4. ID / Setting (Optional)</span><span class="fv">${esc(fd.idSetting)}</span></td>
-    <td style="width:20%"><span class="fl">5. Date Task Delegated</span><span class="fv">${esc(fd.dateDelegated)}</span></td>
+    <td style="width:20%"><span class="fl">5. Date Task Delegated</span><span class="fv">${esc(_fmtPrintDate(fd.dateDelegated))}</span></td>
   </tr>
   <tr><td colspan="5"><span class="fl">6. Delegated Task and Expected Outcome</span><span class="fv" style="min-height:20px">${esc(fd.delegatedTask)}${fd.expectedOutcome?'\nExpected Outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
   <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-style:italic;padding:2px 5px"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
@@ -9018,7 +9092,7 @@ function build13678PrintHtml(fd, draft){
 function build13680PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;font-size:8pt;padding:3px 4px;line-height:1.8}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9pt;padding:3px 5px;line-height:1.9}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
   const reasons=fd.reasons||[];
   const cgs=fd.caregivers||[];
   const rows=Array.from({length:10},(_,i)=>cgs[i]||{num:i+1,name:'',med:'',notes:''});
@@ -9088,7 +9162,7 @@ function build13681PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
   const oc=fd.orderChanges||{};
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-681 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
@@ -9164,7 +9238,7 @@ function build13681PrintHtml(fd,draft){
 function build13678ConsentPrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 7px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9.5pt;padding:3px 7px}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
   const settings=['DSHS Certified Community Residential Program for Developmentally Disabled','Licensed Adult Family Home','Licensed Assisted Living Facilities','Private Home'];
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678 Consent — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
@@ -12456,6 +12530,7 @@ function viewElectronicSigned(recId){
     if(d) html=injectSignatures(_buildDraftPrintHtml(d),d);
   }
   if(!html){alert('Signed copy not available to preview.');return;}
+  html=_convertDatesInHtml(html);
   const w=window.open('','_blank','width=850,height=1100');
   w.document.write(html); w.document.close(); w.focus();
 }
