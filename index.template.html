@@ -2166,6 +2166,43 @@ if('serviceWorker' in navigator){
   </div>
 </div>
 
+<!-- PWA Install Modal -->
+<div class="overlay" id="pwaInstallModal">
+  <div class="modal" style="width:min(420px,92vw);border-radius:var(--radius-xl)">
+    <div class="modal-body" style="padding:32px 28px 24px;text-align:center">
+      <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;font-weight:700;color:#fff">GY</div>
+      <h3 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-0.01em">Install Golden Years RN</h3>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px">Get the full app experience — works offline, loads instantly, and sits on your home screen or taskbar.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;text-align:left;padding:14px 16px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Works without internet</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Instant launch from home screen</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>No App Store required</div>
+      </div>
+      <div id="pwaInstallBtn" style="display:none">
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:14px;margin-bottom:10px" onclick="triggerPwaInstall()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-right:6px"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Install App
+        </button>
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="dismissPwaModal()">Not now</button>
+      </div>
+      <div id="pwaIosInstructions" style="display:none">
+        <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--blue);text-align:left;margin-bottom:10px;line-height:1.7">
+          <strong>On Safari:</strong> tap the <strong>Share</strong> button (↑) at the bottom of the screen, then tap <strong>"Add to Home Screen"</strong>.
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="dismissPwaModal()">Got it</button>
+      </div>
+      <div id="pwaAlreadyInstalled" style="display:none">
+        <p style="font-size:13px;color:var(--green);margin-bottom:12px">✓ App is already installed on this device.</p>
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="dismissPwaModal()">Continue</button>
+      </div>
+      <div id="pwaUnsupported" style="display:none">
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Your browser does not support direct install. Open this page in Chrome or Safari to install the app.</p>
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="dismissPwaModal()">Continue in browser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Sign In Modal -->
 <div class="overlay" id="signInModal">
   <div class="modal" style="width:min(440px,92vw)">
@@ -3284,6 +3321,8 @@ async function loadAllDataThenShow(){
 
   showPage(savedPage);
   refreshDashboard();
+  // Show PWA install prompt after a short delay so the dashboard renders first
+  setTimeout(()=>showPwaModalIfNeeded(), 1200);
 }
 
 async function submitSignIn(){
@@ -11657,6 +11696,81 @@ function restoreModalDraft(modalId){
 }
 function clearModalDraft(modalId){try{localStorage.removeItem(_draftKey(modalId));}catch(e){}}
 function clearModalDraftAndReset(modalId){clearModalDraft(modalId);const el=document.getElementById(modalId);if(el){const badge=el.querySelector('.draft-restore-badge');if(badge)badge.remove();};}
+// ── PWA INSTALL MODULE ────────────────────────────
+// Shows once per device after login. Detects platform and offers
+// the native install prompt (Chrome/Edge) or iOS share instructions.
+let _pwaPrompt = null;
+
+// Capture the browser's beforeinstallprompt event as early as possible
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+});
+
+function _pwaInstallKey(){ return 'gy_pwa_dismissed_'+(currentUser?.id||'anon'); }
+
+function showPwaModalIfNeeded(){
+  // Only show once per user per device — respect "Not now" across sessions
+  try{
+    const dismissed = localStorage.getItem(_pwaInstallKey());
+    if(dismissed === 'permanent') return;
+    // Respect a 7-day snooze if user tapped "Not now"
+    if(dismissed){
+      const snoozeUntil = parseInt(dismissed, 10);
+      if(!isNaN(snoozeUntil) && Date.now() < snoozeUntil) return;
+    }
+  }catch(e){}
+
+  // Already running as installed PWA — skip
+  if(window.matchMedia('(display-mode: standalone)').matches ||
+     window.navigator.standalone === true) return;
+
+  const modal = document.getElementById('pwaInstallModal');
+  if(!modal) return;
+
+  // Show the right action panel based on platform
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  document.getElementById('pwaInstallBtn').style.display       = 'none';
+  document.getElementById('pwaIosInstructions').style.display  = 'none';
+  document.getElementById('pwaAlreadyInstalled').style.display = 'none';
+  document.getElementById('pwaUnsupported').style.display      = 'none';
+
+  if(_pwaPrompt){
+    // Chrome / Edge on desktop or Android — native one-tap install
+    document.getElementById('pwaInstallBtn').style.display = 'block';
+  } else if(isIos && isSafari){
+    // iOS Safari — must use Add to Home Screen manually
+    document.getElementById('pwaIosInstructions').style.display = 'block';
+  } else {
+    // Unsupported browser
+    document.getElementById('pwaUnsupported').style.display = 'block';
+  }
+
+  openModal('pwaInstallModal');
+}
+
+async function triggerPwaInstall(){
+  if(!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  const { outcome } = await _pwaPrompt.userChoice;
+  _pwaPrompt = null;
+  closeModal('pwaInstallModal');
+  if(outcome === 'accepted'){
+    try{ localStorage.setItem(_pwaInstallKey(), 'permanent'); }catch(e){}
+  } else {
+    // Snooze for 7 days
+    try{ localStorage.setItem(_pwaInstallKey(), String(Date.now() + 7*24*60*60*1000)); }catch(e){}
+  }
+}
+
+function dismissPwaModal(){
+  closeModal('pwaInstallModal');
+  // Snooze for 7 days
+  try{ localStorage.setItem(_pwaInstallKey(), String(Date.now() + 7*24*60*60*1000)); }catch(e){}
+}
+
 function attachModalDraftListeners(){
   PERSISTENT_MODALS.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
