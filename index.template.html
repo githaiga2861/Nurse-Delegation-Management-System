@@ -3335,7 +3335,7 @@ async function loadAllDataThenShow(){
   window.addEventListener('load', ()=>{
     setTimeout(()=>{
       if(currentUser) showPwaModalIfNeeded();
-    }, 2500);
+    }, 4500);
   });
 
 async function submitSignIn(){
@@ -4761,8 +4761,10 @@ function updateAlertsBadge(){
   (window.caregivers||[]).forEach(cg=>{
     const ce = cg.certExpiry ? new Date(cg.certExpiry) : null;
     const pe = cg.cprExpiry  ? new Date(cg.cprExpiry)  : null;
-    if(ce && ce <= in90) count++;
-    if(pe && pe <= in90) count++;
+    if(ce && ce < today) count++;
+    else if(ce && ce <= in90) count++;
+    if(pe && pe < today) count++;
+    else if(pe && pe <= in90) count++;
   });
 
   // 2. Reassessments — page only alerts when OVERDUE or due within 30 days
@@ -5111,7 +5113,8 @@ async function saveCase(){
     if(existing){caseObj.tasks=existing.tasks;caseObj.visits=existing.visits;caseObj.timeline=existing.timeline;caseObj.timeline.push({date:now,action:'Case updated',by:currentProfile?.full_name||'RN'});caseObj.consentClientSigned=existing.consentClientSigned;caseObj.consentGuardianSigned=existing.consentGuardianSigned;caseObj.consentCaregiverSigned=existing.consentCaregiverSigned;}
     window.delegationCases=window.delegationCases.filter(x=>x.id!==editId);
   }
-  if(tasks.length) caseObj.tasks=[...(editId?(window.delegationCases.find(x=>x.id===editId)?.tasks||[]):[]),...tasks.filter(t=>!(window.delegationCases.find(x=>x.id===editId)?.tasks||[]).find(e=>e.name===t.name))];
+  const existingTasks=editId?(window.delegationCases.find(x=>x.id===editId)?.tasks||[]):[];
+  if(tasks.length) caseObj.tasks=[...existingTasks,...tasks.filter(t=>!existingTasks.find(e=>e.name.toLowerCase()===t.name.toLowerCase()))];
   if(supa&&currentUser){
     const row={id:caseObj.id,user_id:caseObj.user_id,client_id:caseObj.clientId,client_name:caseObj.clientName,caregiver_id:caseObj.caregiverId,caregiver_name:caseObj.caregiverName,facility_id:caseObj.facilityId,facility_name:caseObj.facilityName,rn_name:caseObj.rnName,start_date:caseObj.startDate,reassess_date:caseObj.reassessDate,status:caseObj.status,supervision:caseObj.supervision,notes:caseObj.notes,instructions:caseObj.instructions,precautions:caseObj.precautions,escalation:caseObj.escalation,consent_client:caseObj.consentClient,consent_guardian:caseObj.consentGuardian,consent_caregiver:caseObj.consentCaregiver,consent_client_signed:caseObj.consentClientSigned,consent_guardian_signed:caseObj.consentGuardianSigned,consent_caregiver_signed:caseObj.consentCaregiverSigned,tasks:JSON.stringify(caseObj.tasks),visits:JSON.stringify(caseObj.visits),timeline:JSON.stringify(caseObj.timeline),created_at:caseObj.created_at,updated_at:caseObj.updated_at};
     await supa.from('delegation_cases').upsert(row);
@@ -8055,6 +8058,8 @@ async function deleteSignedDoc(id, draftId){
     try{ await supa.from('signed_documents').delete().eq('id',id); }catch(e){ console.warn(e); }
   }
   // Remove from in-memory store
+  const toDelete=(window.signedDocs||[]).find(x=>x.id===id);
+  if(toDelete) toDelete._deleted=true;
   window.signedDocs=(window.signedDocs||[]).filter(x=>x.id!==id);
   // If it was an electronic signature, also clear the signatures from the linked draft
   // so the draft goes back to "Awaiting Signature" status
@@ -8092,6 +8097,7 @@ async function loadSignedList(){
   // Merge any in-memory electronic records not yet returned from the DB
   const merged=[...data];
   (window.signedDocs||[]).forEach(local=>{
+    if(local._deleted) return;
     if(!merged.find(x=>x.id===local.id)) merged.push(local);
   });
   merged.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
@@ -8579,11 +8585,17 @@ async function saveEditedDraft(){
 }
 
 async function deleteDraft(id){
-  if(!confirm('Permanently delete this draft?'))return;
+  if(!confirm('Permanently delete this draft and any linked signed document?'))return;
   initSupa();
-  if(supa&&currentUser)await supa.from('form_drafts').delete().eq('id',id);
+  if(supa&&currentUser){
+    await supa.from('form_drafts').delete().eq('id',id);
+    // Also remove any electronically signed document linked to this draft
+    await supa.from('signed_documents').delete().eq('draft_id',id).catch(()=>{});
+  }
   window.formDrafts=(window.formDrafts||[]).filter(x=>x.id!==id);
+  window.signedDocs=(window.signedDocs||[]).filter(x=>x.draft_id!==id);
   renderDraftsTable(window.formDrafts);
+  loadSignedList();
   updateAlertsBadge();
   refreshDashboard();
 }
@@ -8755,7 +8767,7 @@ function renderDraftsTable(list){
   // Signed Documents tab so the user never has to do it manually.
   (list||[]).forEach(d=>{
     if(!d.status||!d.status.toLowerCase().includes('signed')) return;
-    const already=(window.signedDocs||[]).find(x=>x.draft_id===d.id);
+    const already=(window.signedDocs||[]).find(x=>x.draft_id===d.id&&x.signed_method===(isElectronic?'electronic':'manual'));
     if(already) return;
     const isElectronic=d.status.toLowerCase().includes('electronic');
     const now=d.updated_at||d.created_at||new Date().toISOString();
@@ -10707,7 +10719,12 @@ function add06200Row(){
 }
 
 function b06DeleteRow(ri){
-  if(window._b06Rows.length<=1){alert('At least one row is required.');return;}
+  if(window._b06Rows.length<=1){
+    // Clear the row instead of deleting it
+    window._b06Rows[0]={clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')};
+    render06200Sheet();
+    return;
+  }
   window._b06Rows.splice(ri,1);
   render06200Sheet();
 }
@@ -11521,15 +11538,20 @@ function _buildSessionRowsHtml(sessions,currentFp){
 // session list, leaving the 2FA wizard, account card, and stats untouched.
 async function refreshSessionsList(){
   const el=document.getElementById('sessionsListEl');
-  if(!el){ renderSessionsPage(); return; }   // list not on screen → fall back to full render
+  if(!el){ renderSessionsPage(); return; }
   el.style.opacity='0.5';
   el.style.pointerEvents='none';
   try{
-    const sessions=await _recordSession();
     const currentFp=_buildFingerprint();
+    const sessions=await _recordSession();
     el.innerHTML=_buildSessionRowsHtml(sessions,currentFp);
-  }catch(e){ console.warn('Session list refresh failed:',e); }
-  finally{ el.style.opacity='1'; el.style.pointerEvents=''; }
+  }catch(e){
+    console.warn('Session list refresh failed:',e);
+    el.innerHTML='<div style="padding:20px 24px;font-size:13px;color:var(--text3)">Refresh failed — please try again.</div>';
+  }finally{
+    el.style.opacity='1';
+    el.style.pointerEvents='';
+  }
 }
 
 function open2FASetupPanel(){
@@ -11839,9 +11861,13 @@ async function signOut(){
   try{ await AuditLog.log('auth.signout',{}); }catch(e){}
   IdleGuard.stop();
   invalidateAllCache();
+  window._alert2faChecked=undefined;
+  window._alert2faMissing=false;
   if(supa) await supa.auth.signOut();
   currentUser = null; currentProfile = null;
-  window.facilities = []; window.caregivers = []; window.clients = [];
+  window.facilities=[]; window.caregivers=[]; window.clients=[];
+  window.delegationCases=[]; window.formDrafts=[]; window.signedDocs=[];
+  window._b06Rows=[];
   document.getElementById('app').style.display = 'none';
   document.getElementById('landing').style.display = 'flex';
   document.getElementById('sidebarUserName').textContent = 'Registered Nurse';
