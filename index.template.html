@@ -3337,7 +3337,6 @@ async function loadAllDataThenShow(){
       if(currentUser) showPwaModalIfNeeded();
     }, 2500);
   });
-}
 
 async function submitSignIn(){
   initSupa();
@@ -12520,6 +12519,10 @@ function openSignModal(draftId){
         <label class="form-label">Signed by (print name)</label>
         <input class="form-input" id="signName_${i}" value="${esc(sig?.signedBy||presetName)}" placeholder="Full name of signer">
       </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Date signed</label>
+        <input class="form-input" type="date" id="signDate_${i}" value="${sig?.signedDate||new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ})}">
+      </div>
       <div style="position:relative;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:var(--bg1)">
         <canvas id="signPad_${i}" data-key="${esc(f.key)}" style="width:100%;height:150px;display:block;touch-action:none;border-radius:var(--radius-sm);cursor:crosshair"></canvas>
         <div style="position:absolute;left:16px;right:16px;bottom:36px;border-bottom:1px solid var(--border3);pointer-events:none"></div>
@@ -12597,7 +12600,8 @@ async function saveDocSignatures(){
     const key=pad.canvas.getAttribute('data-key');
     const name=(document.getElementById('signName_'+i)?.value||'').trim();
     if(pad.hasInk){
-      d.form_data._signatures[key]={dataUrl:_trimSignature(pad.canvas),signedBy:name,signedAt:new Date().toISOString()};
+      const signedDate=document.getElementById('signDate_'+i)?.value||new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
+      d.form_data._signatures[key]={dataUrl:_trimSignature(pad.canvas),signedBy:name,signedDate,signedAt:new Date().toISOString()};
       any=true;
     }
   });
@@ -12686,6 +12690,12 @@ function injectSignatures(html,draft){
     img.src=sig.dataUrl;
     img.setAttribute('style','max-height:24px;max-width:230px;display:inline-block;vertical-align:bottom;margin-bottom:1px');
     line.appendChild(img);
+    if(sig.signedDate){
+      const dateSpan=doc.createElement('span');
+      dateSpan.setAttribute('style','font-size:8pt;margin-left:10px;vertical-align:bottom;display:inline-block');
+      dateSpan.textContent=_fmtPrintDate(sig.signedDate);
+      line.appendChild(dateSpan);
+    }
   });
   return '<!DOCTYPE html>'+doc.documentElement.outerHTML;
 }
