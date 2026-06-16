@@ -8047,6 +8047,41 @@ async function submitMatchDraft(){
   reader.readAsDataURL(file);
 }
 
+async function deleteSignedDoc(id, draftId){
+  if(!confirm('Permanently delete this signed document? This cannot be undone.')) return;
+  initSupa();
+  // Remove from Supabase
+  if(supa&&currentUser){
+    try{ await supa.from('signed_documents').delete().eq('id',id); }catch(e){ console.warn(e); }
+  }
+  // Remove from in-memory store
+  window.signedDocs=(window.signedDocs||[]).filter(x=>x.id!==id);
+  // If it was an electronic signature, also clear the signatures from the linked draft
+  // so the draft goes back to "Awaiting Signature" status
+  if(draftId){
+    const draft=(window.formDrafts||[]).find(x=>x.id===draftId);
+    if(draft){
+      draft.form_data=draft.form_data||{};
+      delete draft.form_data._signatures;
+      draft.status='Draft — Printed, Awaiting Signature';
+      draft.updated_at=new Date().toISOString();
+      if(supa&&currentUser){
+        try{
+          await supa.from('form_drafts').update({
+            form_data:draft.form_data,
+            status:draft.status,
+            updated_at:draft.updated_at
+          }).eq('id',draftId);
+        }catch(e){ console.warn(e); }
+      }
+    }
+  }
+  // Refresh both tabs
+  loadSignedList();
+  if(typeof renderDraftsTable==='function') renderDraftsTable(window.formDrafts);
+  updateAlertsBadge();
+}
+
 async function loadSignedList(){
   initSupa();
   let data=[];
@@ -8082,7 +8117,7 @@ async function loadSignedList(){
       <td style="font-size:12px;color:var(--text3)">${d.facility_name||'—'}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
       <td><span class="status ${isE?'status-reassess':'status-active'}" style="font-size:10px"><span class="status-dot"></span>${isE?'Electronically Signed':'Signed & Filed'}</span></td>
-      <td>${action}</td>
+      <td style="display:flex;gap:6px;align-items:center">${action}<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="deleteSignedDoc('${d.id}','${d.draft_id||''}')">Delete</button></td>
     </tr>`;
   };
 
