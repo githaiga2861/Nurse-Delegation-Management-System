@@ -3331,13 +3331,12 @@ async function loadAllDataThenShow(){
 }
 
 // Also show on page load when the user is already logged in (session auto-restored)
-// This catches the case where login details are saved and the app opens directly
-window.addEventListener('load', ()=>{
-  setTimeout(()=>{
-    // Only fire if a user is already signed in at page load time
-    // (i.e. session was restored without going through submitSignIn)
-    if(currentUser) showPwaModalIfNeeded();
-  }, 2500);
+  // This catches the case where login details are saved and the app opens directly
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      if(currentUser) showPwaModalIfNeeded();
+    }, 2500);
+  });
 }
 
 async function submitSignIn(){
