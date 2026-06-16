@@ -11260,7 +11260,7 @@ async function renderSessionsPage(){
             <span style="font-size:14px;font-weight:600">Active sessions</span>
             <p style="font-size:11px;color:var(--text3);margin-top:2px">One entry per unique device fingerprint. Refreshing does not create a new session.</p>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="refreshSessionsList()">↻</button>
+          <button class="btn btn-ghost btn-sm" onclick="refreshSessionsList(this)">↻</button>
         </div>
         <div id="sessionsListEl">${_buildSessionRowsHtml(sessions,currentFp)}</div>
         <div style="padding:12px 24px;font-size:11.5px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);background:var(--bg3)">
@@ -11536,9 +11536,11 @@ function _buildSessionRowsHtml(sessions,currentFp){
 
 // Card-scoped refresh: re-records the session and rebuilds ONLY the
 // session list, leaving the 2FA wizard, account card, and stats untouched.
-async function refreshSessionsList(){
+async function refreshSessionsList(btn){
   const el=document.getElementById('sessionsListEl');
   if(!el){ renderSessionsPage(); return; }
+  // Animate the button
+  if(btn){ btn.textContent='…'; btn.disabled=true; }
   el.style.opacity='0.5';
   el.style.pointerEvents='none';
   try{
@@ -11551,6 +11553,7 @@ async function refreshSessionsList(){
   }finally{
     el.style.opacity='1';
     el.style.pointerEvents='';
+    if(btn){ btn.textContent='↻'; btn.disabled=false; }
   }
 }
 
