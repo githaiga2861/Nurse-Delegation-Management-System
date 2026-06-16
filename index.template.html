@@ -164,7 +164,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:ce
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 table th{padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;border-bottom:1px solid var(--border);white-space:nowrap}
-table td{padding:15px 20px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border)}
+table td{padding:15px 20px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle}
 table tr:last-child td{border-bottom:none}
 table tr:hover td{background:#1e253540}
 
@@ -8777,12 +8777,14 @@ function renderDraftsTable(list){
       <td style="font-size:12px;color:var(--text3)">${d.facility_name}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${waDateShort(d.created_at)}</td>
       <td>${(d.form_data&&d.form_data._signatures&&Object.keys(d.form_data._signatures).length)?`<span class="status status-active" style="font-size:10px"><span class="status-dot"></span>Signed (${Object.keys(d.form_data._signatures).length})</span>`:`<span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>Awaiting Signature</span>`}</td>
-      <td style="display:flex;gap:6px;flex-wrap:nowrap">
-        ${d.form_id!=='form-06-200'?`<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:var(--blue-dim)" onclick="openSignModal('${d.id}')">✍ Sign</button>`:''}
-        <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:#2dba7a30" onclick="goUploadSigned('${d.id}')">↑ Upload Signed</button>
-        <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteDraft('${d.id}')" style="color:var(--red)">Delete</button>
+      <td style="vertical-align:middle;white-space:nowrap">
+        <div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;justify-content:flex-start">
+          ${d.form_id!=='form-06-200'?`<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:var(--blue-dim)" onclick="openSignModal('${d.id}')">✍ Sign</button>`:''}
+          <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:#2dba7a30" onclick="goUploadSigned('${d.id}')">↑ Upload Signed</button>
+          <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteDraft('${d.id}')" style="color:var(--red)">Delete</button>
+        </div>
       </td>
     </tr>`).join(''));
 }
