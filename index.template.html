@@ -780,6 +780,10 @@ if('serviceWorker' in navigator){
           <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="8" r="1.5" fill="currentColor"/><path d="M8 8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           Sessions & 2FA
         </div>
+        <div class="nav-item" onclick="showPage('privacy')">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4v4c0 3.5 2.5 5.5 6 6 3.5-.5 6-2.5 6-6V4L8 1.5z" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Privacy & HIPAA
+        </div>
       </div>
       <div class="sidebar-bottom">
         <div class="avatar-pill">
@@ -805,6 +809,7 @@ if('serviceWorker' in navigator){
       <div id="page-alerts"     style="display:none"></div>
       <div id="page-archive"     style="display:none"></div>
       <div id="page-sessions"    style="display:none"></div>
+      <div id="page-privacy"     style="display:none"></div>
     </div>
 
   </div>
@@ -2237,6 +2242,7 @@ if('serviceWorker' in navigator){
     <div class="modal-footer" style="padding:16px 28px 24px;flex-direction:column;gap:0">
       <button id="siBtnSubmit" class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;justify-content:center;transition:opacity 0.15s" onclick="submitSignIn()">Sign In</button>
       <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:16px">Access is restricted to authorised Golden Years RNs only.<br>Contact your system administrator if you need access.</p>
+      <p style="font-size:10px;color:var(--text3);text-align:center;margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm);line-height:1.6">⚠ This system contains Protected Health Information (PHI).<br>Unauthorised access is a violation of HIPAA and federal law.<br>All access attempts are monitored and logged.</p>
     </div>
   </div>
 </div>
@@ -2733,6 +2739,29 @@ if('serviceWorker' in navigator){
 ═══════════════════════════════════════════════ -->
 <script>
 
+/*
+  ══════════════════════════════════════════════════════════
+  HIPAA AUDIT LOG — Required Supabase table
+  ══════════════════════════════════════════════════════════
+  Run once in Supabase SQL editor if not already present:
+
+  create table if not exists public.audit_log (
+    id            bigserial primary key,
+    user_id       uuid references auth.users(id),
+    event         text not null,
+    details       jsonb,
+    user_agent    text,
+    created_at    timestamptz default now()
+  );
+  alter table public.audit_log enable row level security;
+  -- Append-only: users can insert their own logs but never read/update/delete
+  create policy "audit_insert_own" on public.audit_log
+    for insert with check (auth.uid() = user_id);
+  -- Only service role can read audit logs (engineer access restriction)
+  -- No select policy for anon/authenticated — logs unreadable by app users
+  ══════════════════════════════════════════════════════════
+*/
+
 // ── WASHINGTON STATE TIMEZONE ─────────────────────
 // All dates and times displayed in the app use Pacific Time
 // (America/Los_Angeles) regardless of where the user's device is.
@@ -3017,9 +3046,24 @@ const Sanitizer = (() => {
   return { escapeHtml, stripDangerous, field, payload, fromInput, sanitizeModal };
 })();
 
-// Make escapeHtml globally available (replaces the esc() helper used in templates)
-// This upgrades every existing esc() call to use the secure sanitizer
 function esc(s){ return Sanitizer.escapeHtml(s); }
+
+// HIPAA-safe console logger — strips potential PHI from error objects
+// before they reach browser dev tools in production
+const SecureLog = (() => {
+  const _isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  function _sanitize(obj){
+    if(!obj) return obj;
+    if(obj instanceof Error) return {message: obj.message, name: obj.name};
+    if(typeof obj === 'string') return obj.replace(/("(first|last|name|dob|diagnosis|allergies|medications|address|aces_id|dshs_id|care_plan|medications)":\s*")[^"]+"/gi,'$1[REDACTED]"');
+    return '[object]';
+  }
+  return {
+    warn: (...args) => { if(_isDev) console.warn(...args); },
+    error: (...args) => { if(_isDev) console.error(...args); else console.error(_sanitize(args[0])); },
+    info: (...args) => { if(_isDev) console.log(...args); }
+  };
+})();
 
 // ── 3. IN-MEMORY CACHE ────────────────────────────
 // TTL-based cache to avoid repeated DB reads.
@@ -3132,7 +3176,10 @@ const IdleGuard = (() => {
     warnTimer = setTimeout(()=>_showWarning(), IDLE_MS - 2*60*1000);
     timer = setTimeout(()=>{
       _hideWarning();
-      if(currentUser) signOut();
+      if(currentUser){
+        AuditLog.log('auth.idle_timeout',{reason:'Automatic sign-out after 30 minutes of inactivity'});
+        signOut();
+      }
     }, IDLE_MS);
   }
 
@@ -4638,6 +4685,38 @@ async function renderAlertsPage() {
     sectionHtml('ℹ️ Informational', 'var(--blue)', low, (idx += medium.length, idx));
 }
 
+pageRenderers.privacy = () => `
+<div class="topbar">
+  <div class="topbar-title">Privacy & HIPAA Notice</div>
+</div>
+<div class="page-content">
+  <div style="max-width:780px;margin:0 auto">
+    <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius);padding:20px 24px;margin-bottom:28px">
+      <div style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:6px">Notice of Privacy Practices</div>
+      <div style="font-size:12px;color:var(--text2)">Golden Years Home Health Supported Living LLC · Effective June 2026 · Washington State DSHS Nurse Delegation</div>
+    </div>
+    ${[
+      ['What Information We Collect','This system collects and processes client demographic information (name, date of birth, address, ACES ID), clinical information (diagnoses, allergies, medications, care plans), delegation records and nursing visit documentation, caregiver credential information, and DSHS-required forms and signed documents.'],
+      ['How We Protect Your Information','All data is transmitted over encrypted HTTPS/TLS connections. Access requires authenticated credentials with optional two-factor authentication. All records are isolated per authorized user via database-level row security — no user can access another user\'s records. Sessions automatically terminate after 30 minutes of inactivity.'],
+      ['Access Controls','Access is restricted to authorized Registered Nurses only. Login attempts are rate-limited and monitored. Repeated failed attempts trigger temporary lockouts. Multi-factor authentication via TOTP authenticator app is available and strongly encouraged.'],
+      ['Audit Logging','Sign-in, sign-out, record creation, record updates, record deletion, document generation, document printing, and document viewing events are recorded in a secure audit log including timestamp, user, action, and device information.'],
+      ['Document Security','Generated DSHS forms containing protected health information are printed directly to your local printer and auto-closed after printing to prevent PHI from persisting in browser history. Electronically signed documents are stored securely in the database scoped to your account only.'],
+      ['Data Retention','Health information is retained as required by Washington State law and HIPAA regulations (minimum 6 years from date of service). Records are not automatically deleted. Contact your system administrator to request record deletion when care has concluded.'],
+      ['Your Rights','You have the right to request access to health information about you maintained in this system, request corrections to inaccurate information, and request an accounting of disclosures. Contact Golden Years Home Health Supported Living LLC to exercise these rights.'],
+      ['Business Associates','This system uses Supabase for secure cloud database storage. All business associate relationships are governed by appropriate agreements as required by HIPAA §164.308(b).'],
+      ['Security Incidents','Suspected unauthorized access, data breaches, or security incidents must be reported immediately to Golden Years Home Health Supported Living LLC. All security incidents are documented and investigated per our incident response procedures.'],
+      ['Contact & Questions','For questions about this privacy notice or our privacy practices, contact Golden Years Home Health Supported Living LLC directly through your primary point of contact with the organization.'],
+    ].map(([title,body])=>`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span style="font-size:13px;font-weight:600">${title}</span></div>
+      <div class="card-body"><p style="font-size:13px;line-height:1.8;color:var(--text2)">${body}</p></div>
+    </div>`).join('')}
+    <div style="text-align:center;padding:20px 0;font-size:11px;color:var(--text3);border-top:1px solid var(--border);margin-top:8px">
+      This notice reflects controls implemented in the current system. Last reviewed June 2026.
+    </div>
+  </div>
+</div>`;
+
 pageRenderers.archive = () => {
   setTimeout(()=>renderArchivePage(), 0);
   return `
@@ -5070,6 +5149,8 @@ function addNcTaskRow(){
 async function saveCase(){
   initSupa();
   const clientId=document.getElementById('ncClient').value;
+  const isEdit=!!document.getElementById('ncEditId')?.value;
+  AuditLog.log(isEdit?'delegation_case.updated':'delegation_case.created',{client_id:clientId});
   const caregiverId=document.getElementById('ncCaregiver').value;
   const facilityId=document.getElementById('ncFacility').value;
   const startDate=document.getElementById('ncStartDate').value;
@@ -5188,8 +5269,9 @@ function filterCasesByStatus(s){
 }
 
 async function deleteCase(id){
-  if(!confirm('Permanently delete this delegation case and all its tasks, visits, and history?'))return;
+  if(!confirm('Permanently delete this delegation case and all its tasks, visits, and history? This action is logged.'))return;
   initSupa();
+  AuditLog.log('delegation_case.deleted',{case_id:id});
   if(supa&&currentUser)await supa.from('delegation_cases').delete().eq('id',id);
   window.delegationCases=window.delegationCases.filter(c=>c.id!==id);
   updateCaseStats();
@@ -5200,6 +5282,7 @@ async function deleteCase(id){
 function openCaseDetail(id){
   const c=window.delegationCases.find(x=>x.id===id);
   if(!c)return;
+  AuditLog.log('delegation_case.viewed',{case_id:id,client_name:c.clientName});
   document.getElementById('casesListView').style.display='none';
   const detail=document.getElementById('caseDetailView');
   detail.style.display='block';
@@ -6543,6 +6626,8 @@ function populateFacility(f){
 async function saveFacility(){
   initSupa();
   Sanitizer.sanitizeModal('facilityModal');
+  const isEdit=!!document.getElementById('facilityEditId')?.value;
+  AuditLog.log(isEdit?'facility.updated':'facility.created',{});
 
   const nameRes = Sanitizer.fromInput('facilityName',{required:true,label:'Facility name',max:200});
   if(!nameRes.ok){alert(nameRes.error);return;}
@@ -6881,6 +6966,8 @@ function openCaregiverModal(editId){
 async function saveCaregiver(){
   initSupa();
   Sanitizer.sanitizeModal('caregiverModal');
+  const isEdit=!!document.getElementById('cgEditId')?.value;
+  AuditLog.log(isEdit?'caregiver.updated':'caregiver.created',{action:isEdit?'Updated caregiver record':'Created new caregiver record'});
 
   const firstRes = Sanitizer.fromInput('cgFirst',{type:'name',required:true,label:'First name'});
   if(!firstRes.ok){alert(firstRes.error);return;}
@@ -7211,8 +7298,9 @@ function switchCgProfileTab(el,tab){
   const d=document.getElementById('cgProfTab'+tab);if(d)d.style.display='block';
 }
 async function deleteCaregiver(id){
-  if(!confirm('Remove this caregiver?'))return;
+  if(!confirm('Remove this caregiver? This action is permanent and will be logged.'))return;
   initSupa();
+  AuditLog.log('caregiver.deleted',{caregiver_id:id});
   if(supa) await supa.from('caregivers').delete().eq('id', id);
   window.caregivers=window.caregivers.filter(c=>c.id!==id);
   renderCaregiverTable(window.caregivers);
@@ -7324,6 +7412,8 @@ function openClientModal(editId){
 async function saveClient(){
   initSupa();
   Sanitizer.sanitizeModal('clientModal');
+  const isEdit=!!document.getElementById('clEditId')?.value;
+  AuditLog.log(isEdit?'client.updated':'client.created',{action:isEdit?'Updated client record':'Created new client record'});
 
   const firstRes = Sanitizer.fromInput('clFirst',{type:'name',required:true,label:'First name'});
   if(!firstRes.ok){alert(firstRes.error);return;}
@@ -7529,8 +7619,9 @@ function renderClientTable(list){
     </tr>`).join(''));
 }
 async function deleteClient(id){
-  if(!confirm('Remove this client?'))return;
+  if(!confirm('Remove this client? This action is permanent and will be logged.'))return;
   initSupa();
+  AuditLog.log('client.deleted',{client_id:id});
   if(supa) await supa.from('clients').delete().eq('id', id);
   window.clients=window.clients.filter(c=>c.id!==id);
   renderClientTable(window.clients);
@@ -7545,6 +7636,7 @@ function filterClientsByFacility(id){renderClientTable(id?window.clients.filter(
 function refreshClientFilters(){const sel=document.getElementById('clientFacilityFilter');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">All Facilities</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));sel.value=cur;}
 function openClientProfile(id){
   const c=window.clients.find(x=>x.id===id);if(!c)return;
+  AuditLog.log('client.viewed',{client_id:id,client_name:`${c.first} ${c.last}`});
   // Hide list view elements, show profile
   document.getElementById('clTabList').style.display='none';
   document.getElementById('clTabLinks').style.display='none';
@@ -8012,6 +8104,7 @@ async function submitMatchDraft(){
   // Store as base64 locally (no Supabase storage bucket required)
   const reader=new FileReader();
   reader.onload=async e=>{
+    AuditLog.log('document.uploaded',{file_name:file.name,draft_id:draftId||null,form_name:draft?.form_name||'standalone'});
     const signedDoc={
       id:Date.now().toString(),
       user_id:currentUser?.id,
@@ -8051,8 +8144,10 @@ async function submitMatchDraft(){
 }
 
 async function deleteSignedDoc(id, draftId){
-  if(!confirm('Permanently delete this signed document? This cannot be undone.')) return;
+  if(!confirm('Permanently delete this signed document? This cannot be undone and will be logged.')) return;
   initSupa();
+  const rec=(window.signedDocs||[]).find(x=>x.id===id);
+  AuditLog.log('signed_document.deleted',{signed_doc_id:id,form_name:rec?.form_name,client_name:rec?.client_name});
   // Remove from Supabase
   if(supa&&currentUser){
     try{ await supa.from('signed_documents').delete().eq('id',id); }catch(e){ console.warn(e); }
@@ -8585,8 +8680,10 @@ async function saveEditedDraft(){
 }
 
 async function deleteDraft(id){
-  if(!confirm('Permanently delete this draft and any linked signed document?'))return;
+  if(!confirm('Permanently delete this draft and any linked signed document? This action is logged.'))return;
   initSupa();
+  const d=(window.formDrafts||[]).find(x=>x.id===id);
+  AuditLog.log('draft.deleted',{draft_id:id,form_name:d?.form_name,client_name:d?.client_name});
   if(supa&&currentUser){
     await supa.from('form_drafts').delete().eq('id',id);
     // Also remove any electronically signed document linked to this draft
@@ -8664,6 +8761,7 @@ async function submitGenerate(){
   const clientId=document.getElementById('genClient').value;
   const caregiverId=document.getElementById('genCaregiver').value;
   if(!clientId){alert('Please select a client.');return;}
+  AuditLog.log('form.generated',{form_id:generateFormId,form_name:generateFormName,client_id:clientId});
 
   const cl=window.clients.find(x=>x.id===clientId);
   const cg=window.caregivers.find(x=>x.id===caregiverId);
@@ -8883,10 +8981,13 @@ function printDraft(id){
   let html=_buildDraftPrintHtml(d);
   html=injectSignatures(html,d);
   html=_convertDatesInHtml(html);
+  // Auto-close after printing to prevent PHI lingering in browser history
+  html=html.replace('</body>','<script>window.onafterprint=function(){window.close();}<\/script></body>');
   printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
   setTimeout(()=>printWin.print(),600);
+  AuditLog.log('document.printed',{draft_id:id,form_name:d.form_name,client_name:d.client_name});
 }
 
 function build14484PrintHtml(fd,draft){
@@ -11727,7 +11828,10 @@ async function submitPasswordChange(){
   const confirm=document.getElementById('newPwConfirm')?.value||'';
   const errEl=document.getElementById('pwChangeError');
   if(errEl)errEl.textContent='';
-  if(newPw.length<8){if(errEl)errEl.textContent='Password must be at least 8 characters.';return;}
+  if(newPw.length<12){if(errEl)errEl.textContent='Password must be at least 12 characters.';return;}
+  if(!/[A-Z]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one uppercase letter.';return;}
+  if(!/[0-9]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one number.';return;}
+  if(!/[^A-Za-z0-9]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one special character.';return;}
   if(newPw!==confirm){if(errEl)errEl.textContent='Passwords do not match.';return;}
   initSupa();
   if(!supa){alert('Not connected.');return;}
@@ -11879,7 +11983,23 @@ async function signOut(){
   // Only clear the active page pointer for this user on sign-out.
   // Modal drafts are intentionally kept in localStorage so the same
   // user finds their unsaved work when they sign back in.
-  try{localStorage.removeItem(_pageKey());}catch(e){}
+  // Clear all PHI-containing localStorage entries on sign-out
+  try{
+    localStorage.removeItem(_pageKey());
+    // Clear all modal drafts (contain PHI: client names, DOBs, diagnoses, medications)
+    PERSISTENT_MODALS.forEach(id=>clearModalDraft(id));
+    // Clear medication images (clinical photographs — PHI)
+    Object.keys(localStorage).forEach(k=>{
+      if(k.startsWith('gy_med_images_')||k.startsWith('gy_draft_')||k.startsWith('gy_sess')) {
+        localStorage.removeItem(k);
+      }
+    });
+    // Clear billing form state
+    window._b06Rows=[];
+    // Clear session geo cache (contains IP and location)
+    sessionStorage.removeItem('gy_geo_v2');
+    sessionStorage.removeItem(_GEO_CACHE_KEY);
+  }catch(e){}
   document.querySelectorAll('[id^="page-"]').forEach(p => { p.innerHTML=''; p.style.display='none'; });
   document.getElementById('page-dashboard').style.display='block';
 }
@@ -12733,8 +12853,10 @@ function viewElectronicSigned(recId){
   }
   if(!html){alert('Signed copy not available to preview.');return;}
   html=_convertDatesInHtml(html);
+  html=html.replace('</body>','<script>window.onafterprint=function(){window.close();}<\/script></body>');
   const w=window.open('','_blank','width=850,height=1100');
   w.document.write(html); w.document.close(); w.focus();
+  AuditLog.log('document.viewed',{signed_doc_id:recId,form_name:rec.form_name,client_name:rec.client_name});
 }
 
 // Fix saved signatures onto the matching sig-line of the print HTML
