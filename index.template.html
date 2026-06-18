@@ -8951,6 +8951,7 @@ function _fmtPrintDate(val){
 
 function _buildDraftPrintHtml(d){
   const fd=d.form_data||{};
+  if(d.form_id==='form-06-200')        return build06200PrintHtml(fd,d);
   if(d.form_id==='form-13678-consent') return build13678ConsentPrintHtml(fd,d);
   if(d.form_id==='form-13678a')        return build13678aPrintHtml(fd,d);
   if(d.form_id==='form-14484')         return build14484PrintHtml(fd,d);
@@ -9226,6 +9227,133 @@ ${orders.map((o,i)=>orderBlock(o,i)).join('')}
 </section>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678A — ${esc(draft.client_name)}</title><style>${sharedCSS}</style></head><body>${body}</body></html>`;
+}
+
+function build06200PrintHtml(fd, draft){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const rows=fd.rows||[];
+  const month=fd.billingMonth||'';
+  const npi=fd.npi||'';
+  const rn=fd.rnName||'';
+  const taxonomy=fd.taxonomy||'';
+  const daysInMonth=fd.daysInMonth||31;
+  const days=Array.from({length:daysInMonth},(_,i)=>i+1);
+  const css=`
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:7pt;color:#000;background:#fff}
+    @page{size:letter landscape;margin:0.35in 0.35in 0.3in 0.35in}
+    @media print{body{margin:0}}
+    .page{width:100%}
+    .form-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;border-bottom:2px solid #000;padding-bottom:4px}
+    .form-title{font-size:12pt;font-weight:bold;line-height:1.3}
+    .form-meta{font-size:7.5pt;text-align:right;line-height:1.8}
+    .form-sub{font-size:7pt;margin-top:2px;color:#333}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px}
+    th,td{border:1px solid #000;padding:1px 2px;text-align:center;vertical-align:middle;font-size:6pt;line-height:1.3}
+    .th-day{background:#e0e0e0;font-weight:bold;font-size:5.5pt;width:16px;min-width:14px}
+    .th-label{background:#e0e0e0;font-weight:bold;text-align:left;padding:2px 4px}
+    .th-total{background:#c8c8c8;font-weight:bold;width:32px}
+    .client-header td{background:#d8e4f0;font-weight:bold;text-align:left;padding:2px 5px;font-size:7pt;border-bottom:1px solid #000}
+    .row-label{text-align:left;padding:1px 4px;font-size:6pt;background:#f5f5f5;white-space:nowrap;font-weight:bold}
+    .row-value{font-size:6.5pt}
+    .row-total{font-weight:bold;background:#efefef;font-size:6.5pt}
+    .client-spacer td{height:5px;background:#fff;border-left:none;border-right:none}
+    .footer{display:flex;justify-content:space-between;margin-top:6px;font-size:7pt;border-top:1px solid #000;padding-top:3px}
+  `;
+  const dayHeaders=days.map(d=>`<th class="th-day">${d}</th>`).join('');
+  const pageSize=4;
+  const pages=[];
+  for(let i=0;i<rows.length;i+=pageSize) pages.push(rows.slice(i,i+pageSize));
+  if(pages.length===0) pages.push([]);
+  const buildPage=(pageRows,pageNum)=>{
+    let tableBody='';
+    pageRows.forEach((r,ri)=>{
+      const total=days.reduce((s,_,di)=>s+(parseInt((r.days&&r.days[di])||0)||0),0);
+      tableBody+=`
+        <tr class="client-header">
+          <td style="width:110px">CLIENT'S NAME: ${esc(r.clientName||'')}</td>
+          <td colspan="${daysInMonth}" style="text-align:left">
+            DATE OF BIRTH: ${esc(r.dob||'')}
+            &nbsp;&nbsp;&nbsp;
+            ICD-10 CODE: ${esc(r.icd10||'')}
+            ${r.acesId?`&nbsp;&nbsp;&nbsp; ACES ID: ${esc(r.acesId)}`:''}
+          </td>
+          <td style="width:32px;background:#d8e4f0"></td>
+        </tr>
+        <tr>
+          <td class="row-label">ASSESSMENT / TRAINING</td>
+          ${days.map((_,di)=>`<td class="row-value">${(r.days&&r.days[di])||''}</td>`).join('')}
+          <td class="row-total">${total>0?total:''}</td>
+        </tr>
+        <tr>
+          <td class="row-label">COLLATERAL CONTACT</td>
+          ${days.map(()=>`<td></td>`).join('')}
+          <td class="row-total"></td>
+        </tr>
+        <tr>
+          <td class="row-label">TRAVEL TIME</td>
+          ${days.map(()=>`<td></td>`).join('')}
+          <td class="row-total"></td>
+        </tr>
+        <tr>
+          <td class="row-label">DOCUMENTATION</td>
+          ${days.map(()=>`<td></td>`).join('')}
+          <td class="row-total"></td>
+        </tr>
+        <tr>
+          <td class="row-label">BILLING</td>
+          ${days.map(()=>`<td></td>`).join('')}
+          <td class="row-total"></td>
+        </tr>`;
+      if(ri<pageRows.length-1) tableBody+=`<tr class="client-spacer"><td colspan="${daysInMonth+2}"></td></tr>`;
+    });
+    for(let i=pageRows.length;i<pageSize;i++){
+      tableBody+=`
+        <tr class="client-header">
+          <td>CLIENT'S NAME:</td>
+          <td colspan="${daysInMonth}" style="text-align:left">DATE OF BIRTH: &nbsp;&nbsp;&nbsp; ICD-10 CODE:</td>
+          <td style="background:#d8e4f0"></td>
+        </tr>`;
+      ['ASSESSMENT / TRAINING','COLLATERAL CONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'].forEach(label=>{
+        tableBody+=`<tr><td class="row-label">${label}</td>${days.map(()=>`<td></td>`).join('')}<td class="row-total"></td></tr>`;
+      });
+      if(i<pageSize-1) tableBody+=`<tr class="client-spacer"><td colspan="${daysInMonth+2}"></td></tr>`;
+    }
+    const pb=pageNum>0?'style="page-break-before:always"':'';
+    return `
+      <div class="page" ${pb}>
+        <div class="form-header">
+          <div>
+            <div class="form-title">Registered Nurse (RN) Delegation Billing</div>
+            <div class="form-sub">Taxonomy: ${esc(taxonomy)} &nbsp;&nbsp;&nbsp; Service Code: H2014 &nbsp;&nbsp;&nbsp; 1 Unit = 15 minutes</div>
+          </div>
+          <div class="form-meta">
+            <div><strong>NPI NUMBER:</strong> ${esc(npi)}</div>
+            <div><strong>BILLING MONTH:</strong> ${esc(month)}</div>
+            <div><strong>RN:</strong> ${esc(rn)}</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th class="th-label" style="width:110px"></th>
+              ${dayHeaders}
+              <th class="th-total">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>${tableBody}</tbody>
+        </table>
+        <div class="footer">
+          <span>DSHS 06-200 (05/2023)</span>
+          <span>Page ${pageNum+1} of ${pages.length}</span>
+        </div>
+      </div>`;
+  };
+  const allPages=pages.map((pageRows,pi)=>buildPage(pageRows,pi)).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>DSHS 06-200 Billing</title><style>${css}</style></head><body>
+    ${allPages}
+    <script>window.onafterprint=function(){window.close();}<\/script>
+  </body></html>`;
 }
 
 function build13678PrintHtml(fd, draft){
