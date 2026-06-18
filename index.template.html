@@ -9231,8 +9231,31 @@ ${orders.map((o,i)=>orderBlock(o,i)).join('')}
 
 function build06200PrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const rows=fd.rows||[];
-  const month=fd.billingMonth||'';
+  // ── Migrate old draft format → new 5-category format ─────────────
+  // Old drafts stored a single `days[]` array per row (total units only,
+  // no category breakdown). New format has assess/collateral/travel/doc/billing.
+  // When an old draft is detected, its `days[]` values are placed into the
+  // BILLING row (the most likely intended category) so the data is not lost.
+  const rawRows=fd.rows||[];
+  const rows=rawRows.map(r=>{
+    const isOldFormat = !r.assess && !r.collateral && !r.travel && !r.doc && !r.billing;
+    if(isOldFormat && r.days && r.days.length){
+      // Place old flat values into billing row — closest semantic match
+      return {
+        clientName: r.clientName||'',
+        dob:        r.dob||'',
+        icd10:      r.icd10||'',
+        acesId:     r.acesId||'',
+        assess:     Array(31).fill(''),
+        collateral: Array(31).fill(''),
+        travel:     Array(31).fill(''),
+        doc:        Array(31).fill(''),
+        billing:    [...r.days],
+      };
+    }
+    return r;
+  });
+  const month=fd.billingMonth||fd.month||'';
   const npi=fd.npi||'';
   const rn=fd.rnName||'';
   const taxonomy=fd.taxonomy||'';
