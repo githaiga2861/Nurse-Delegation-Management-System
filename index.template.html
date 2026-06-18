@@ -8250,27 +8250,16 @@ function editDraft(id){
   const fd=d.form_data||{};
 
   // Route to the correct modal based on form type
-  if(d.form_id==='form-14484'){
-    edit14484Draft(d,fd); return;
-  }
-  if(d.form_id==='form-13678a'){
-    edit13678aDraft(d,fd); return;
-  }
-  if(d.form_id==='form-13680'){
-    edit13680Draft(d,fd); return;
-  }
-  if(d.form_id==='form-13681'){
-    edit13681Draft(d,fd); return;
-  }
-  if(d.form_id==='form-13678-consent'){
-    edit13678ConsentDraft(d,fd); return;
-  }
-  if(d.form_id==='form-13678b'){
-    edit13678bDraft(d,fd); return;
-  }
-  if(d.form_id==='form-10-217'){
-    edit10217Draft(d,fd); return;
-  }
+  if(d.form_id==='form-06-200'){  edit06200Draft(d,fd); return; }
+  if(d.form_id==='form-13678a'){ edit13678aDraft(d,fd); return; }
+  if(d.form_id==='form-01-212'){ edit01212Draft(d,fd); return; }
+  if(d.form_id==='form-13-893'){ edit13893Draft(d,fd); return; }
+  if(d.form_id==='form-14484'){ edit14484Draft(d,fd); return; }
+  if(d.form_id==='form-13680'){ edit13680Draft(d,fd); return; }
+  if(d.form_id==='form-13681'){ edit13681Draft(d,fd); return; }
+  if(d.form_id==='form-13678-consent'){ edit13678ConsentDraft(d,fd); return; }
+  if(d.form_id==='form-13678b'){ edit13678bDraft(d,fd); return; }
+  if(d.form_id==='form-10-217'){ edit10217Draft(d,fd); return; }
   if(d.form_id==='form-01-212'){
     edit01212Draft(d,fd); return;
   }
@@ -8451,6 +8440,102 @@ async function saveEdited14484Draft(){
 // ── STUB EDIT FUNCTIONS FOR OTHER FORM TYPES ──────
 // These reopen the correct generation modal pre-populated.
 // Pattern identical to edit14484Draft above.
+
+function edit06200Draft(d,fd){
+  // Restore the saved rows back into window._b06Rows
+  window._b06Rows = (fd.rows||[]).map(r=>{
+    // Handle both old format (days[]) and new format (5 category arrays)
+    const isOld = !r.assess && !r.collateral && !r.travel && !r.doc && !r.billing;
+    if(isOld && r.days && r.days.length){
+      return {
+        clientName:  r.clientName||'',
+        dob:         r.dob||'',
+        icd10:       r.icd10||'',
+        acesId:      r.acesId||'',
+        assess:      Array(31).fill(''),
+        collateral:  Array(31).fill(''),
+        travel:      Array(31).fill(''),
+        doc:         Array(31).fill(''),
+        billing:     [...r.days, ...Array(31).fill('')].slice(0,31),
+      };
+    }
+    return {
+      clientName:  r.clientName||'',
+      dob:         r.dob||'',
+      icd10:       r.icd10||'',
+      acesId:      r.acesId||'',
+      assess:      [...(r.assess||[]),...Array(31).fill('')].slice(0,31),
+      collateral:  [...(r.collateral||[]),...Array(31).fill('')].slice(0,31),
+      travel:      [...(r.travel||[]),...Array(31).fill('')].slice(0,31),
+      doc:         [...(r.doc||[]),...Array(31).fill('')].slice(0,31),
+      billing:     [...(r.billing||[]),...Array(31).fill('')].slice(0,31),
+    };
+  });
+
+  // Ensure at least 4 rows
+  while(window._b06Rows.length < 4) window._b06Rows.push(_makeBlank06Row());
+
+  // Open the billing modal
+  open06200Modal._skipSeed = true; // flag to skip auto-seeding from clients
+  openModal('generate06200Modal');
+
+  // Restore header fields
+  setTimeout(()=>{
+    const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v||'';};
+    // Parse billingMonth like "June 2026" → month + year
+    const parts=(fd.billingMonth||'').split(' ');
+    if(parts.length===2){
+      s('b06_month', parts[0]);
+      s('b06_year',  parts[1]);
+    }
+    s('b06_npi',      fd.npi||'');
+    s('b06_taxonomy', fd.taxonomy||'');
+    s('b06_rnName',   fd.rnName||currentProfile?.full_name||'');
+
+    // Re-render the sheet with the restored data
+    render06200Sheet();
+
+    // Update submit button to say "Save Changes"
+    const btn=document.getElementById('b06_submitBtn');
+    if(btn){
+      btn.textContent='⬇ Save Changes & Download';
+      btn.onclick=async()=>{
+        await save06200ToDrafts();
+        // Update the existing draft instead of creating new one
+        const existing=(window.formDrafts||[]).find(x=>x.id===d.id);
+        if(existing && supa && currentUser){
+          const month=document.getElementById('b06_month')?.value||'';
+          const year=document.getElementById('b06_year')?.value||'';
+          const daysInMonth=_b06DaysInMonth();
+          const formData={
+            billingMonth:`${month} ${year}`,
+            npi:document.getElementById('b06_npi')?.value||'',
+            taxonomy:document.getElementById('b06_taxonomy')?.value||'',
+            rnName:document.getElementById('b06_rnName')?.value||currentProfile?.full_name||'',
+            rows:window._b06Rows.map(r=>({
+              clientName:r.clientName||'',
+              dob:r.dob||'',
+              icd10:r.icd10||'',
+              acesId:r.acesId||'',
+              assess:(r.assess||[]).slice(0,daysInMonth),
+              collateral:(r.collateral||[]).slice(0,daysInMonth),
+              travel:(r.travel||[]).slice(0,daysInMonth),
+              doc:(r.doc||[]).slice(0,daysInMonth),
+              billing:(r.billing||[]).slice(0,daysInMonth),
+            })),
+            daysInMonth,
+          };
+          existing.form_data=formData;
+          existing.updated_at=new Date().toISOString();
+          await supa.from('form_drafts').update({form_data:formData,updated_at:existing.updated_at}).eq('id',d.id);
+          renderDraftsTable(window.formDrafts);
+          alert('✅ Billing form updated.');
+        }
+        download06200Excel();
+      };
+    }
+  }, 200);
+}
 
 function edit13678aDraft(d,fd){
   open13678aModal();
@@ -10815,8 +10900,8 @@ function open06200Modal(){
   const npiEl=document.getElementById('b06_npi');
   if(npiEl && currentProfile?.npi && !npiEl.value) npiEl.value = currentProfile.npi;
 
-  // Seed rows from active clients if sheet is empty
-  if(!window._b06Rows.length){
+  // Seed rows from active clients only if sheet is empty AND not being restored from a draft edit
+  if(!window._b06Rows.length && !open06200Modal._skipSeed){
     const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
     window._b06Rows = activeClients.map(c=>_makeBlank06Row({
       clientName:`${c.first} ${c.last}`,
@@ -10826,6 +10911,7 @@ function open06200Modal(){
     }));
     while(window._b06Rows.length < 4) window._b06Rows.push(_makeBlank06Row());
   }
+  open06200Modal._skipSeed = false; // reset flag
 
   openModal('generate06200Modal');
   render06200Sheet();
