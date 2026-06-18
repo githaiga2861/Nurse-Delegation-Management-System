@@ -9238,121 +9238,151 @@ function build06200PrintHtml(fd, draft){
   const taxonomy=fd.taxonomy||'';
   const daysInMonth=fd.daysInMonth||31;
   const days=Array.from({length:daysInMonth},(_,i)=>i+1);
+  const DSHS_LOGO='https://www.dshs.wa.gov/themes/custom/omega_dshs/images/logo-header.png';
+
   const css=`
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,Helvetica,sans-serif;font-size:7pt;color:#000;background:#fff}
-    @page{size:letter landscape;margin:0.35in 0.35in 0.3in 0.35in}
+    @page{size:letter landscape;margin:0.3in 0.3in 0.28in 0.3in}
     @media print{body{margin:0}}
-    .page{width:100%}
-    .form-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;border-bottom:2px solid #000;padding-bottom:4px}
-    .form-title{font-size:12pt;font-weight:bold;line-height:1.3}
-    .form-meta{font-size:7.5pt;text-align:right;line-height:1.8}
-    .form-sub{font-size:7pt;margin-top:2px;color:#333}
-    table{width:100%;border-collapse:collapse;margin-bottom:8px}
-    th,td{border:1px solid #000;padding:1px 2px;text-align:center;vertical-align:middle;font-size:6pt;line-height:1.3}
-    .th-day{background:#e0e0e0;font-weight:bold;font-size:5.5pt;width:16px;min-width:14px}
-    .th-label{background:#e0e0e0;font-weight:bold;text-align:left;padding:2px 4px}
-    .th-total{background:#c8c8c8;font-weight:bold;width:32px}
-    .client-header td{background:#d8e4f0;font-weight:bold;text-align:left;padding:2px 5px;font-size:7pt;border-bottom:1px solid #000}
-    .row-label{text-align:left;padding:1px 4px;font-size:6pt;background:#f5f5f5;white-space:nowrap;font-weight:bold}
-    .row-value{font-size:6.5pt}
-    .row-total{font-weight:bold;background:#efefef;font-size:6.5pt}
-    .client-spacer td{height:5px;background:#fff;border-left:none;border-right:none}
-    .footer{display:flex;justify-content:space-between;margin-top:6px;font-size:7pt;border-top:1px solid #000;padding-top:3px}
-  `;
-  const dayHeaders=days.map(d=>`<th class="th-day">${d}</th>`).join('');
+    .page{width:100%;margin-bottom:0}
+    .form-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #000}
+    .logo-area{display:flex;align-items:center;gap:8px;width:160px;flex-shrink:0}
+    .logo-area img{height:40px;max-width:140px}
+    .logo-area .logo-fallback{font-size:9pt;font-weight:700;color:#1a3d6b;line-height:1.3}
+    .title-area{flex:1;text-align:center;padding:0 10px}
+    .form-title{font-size:12pt;font-weight:bold;color:#1a3d6b;line-height:1.25}
+    .form-sub{font-size:7pt;color:#333;margin-top:3px}
+    .meta-area{width:180px;flex-shrink:0;text-align:right}
+    .meta-area table{width:100%;border:none}
+    .meta-area td{border:none;padding:1px 3px;font-size:7pt;text-align:left}
+    .meta-area .meta-lbl{font-weight:700;text-align:right;white-space:nowrap;padding-right:4px}
+    .meta-area .meta-val{border-bottom:1px solid #000;min-width:80px}
+    table.billing{width:100%;border-collapse:collapse}
+    table.billing th,table.billing td{border:1px solid #000;padding:1px 2px;vertical-align:middle;font-size:6pt}
+    table.billing th{background:#d0d8e8;font-weight:700;text-align:center;font-size:5.5pt;text-transform:uppercase;letter-spacing:0.02em}
+    table.billing th.day-hdr{background:#c0ccdd;min-width:15px;width:15px;font-size:5pt}
+    table.billing th.tot-hdr{background:#a8b8cc;min-width:28px;font-size:6pt}
+    table.billing td.cat-lbl{background:#e8edf5;font-weight:700;font-size:5.8pt;text-transform:uppercase;letter-spacing:0.03em;padding:2px 4px;white-space:nowrap;width:110px;min-width:110px}
+    table.billing td.day-cell{text-align:center;padding:1px;width:15px;min-width:15px;font-size:6pt}
+    table.billing td.day-cell.has-val{background:#f5f9ff;font-weight:600}
+    table.billing td.tot-cell{text-align:center;font-weight:700;background:#e0ead0;font-size:6.5pt;padding:1px 3px}
+    table.billing td.tot-empty{text-align:center;background:#f5f5f5;color:#aaa;font-size:6pt}
+    table.billing tr.client-hdr td{background:#c8ddf0;font-weight:700;font-size:6.5pt;padding:2px 4px;border-bottom:1.5px solid #2355a0}
+    table.billing tr.spacer td{height:4px;background:#f0f4f8;border:none}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:6.5pt;border-top:1.5px solid #000;padding-top:3px}
+    .page-break{page-break-before:always}`;
+
+  const dayHdrs=days.map(d=>`<th class="day-hdr">${d}</th>`).join('');
+
+  const buildPage=(pageRows,pageNum,totalPages)=>{
+    let tbody='';
+    pageRows.forEach((r,ri)=>{
+      // Client header
+      tbody+=`<tr class="client-hdr">
+        <td colspan="2" style="font-size:6.5pt">
+          CLIENT'S NAME: <strong>${esc(r.clientName||'')}</strong>
+        </td>
+        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:6pt">
+          DATE OF BIRTH: ${esc(r.dob||'')}
+        </td>
+        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:6pt">
+          ICD-10 CODE: ${esc(r.icd10||'')}
+          ${r.acesId?` &nbsp; ACES ID: ${esc(r.acesId)}`:''}
+        </td>
+        <td class="tot-cell" style="background:#c8ddf0"></td>
+      </tr>`;
+
+      // 5 category rows
+      const catKeys=['assess','collateral','travel','doc','billing'];
+      const catLabels=['ASSESSMENT /\nTRAINING','COLLATERAL\nCONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'];
+      catKeys.forEach((cat,ci)=>{
+        const catData=r[cat]||[];
+        const total=days.reduce((s,_,di)=>s+(parseInt(catData[di])||0),0);
+        tbody+=`<tr>
+          <td class="cat-lbl" colspan="2">${catLabels[ci].replace('\n','<br>')}</td>
+          ${days.map((_,di)=>{
+            const v=catData[di]||'';
+            const hasV=parseInt(v)>0;
+            return `<td class="day-cell${hasV?' has-val':''}">${hasV?v:''}</td>`;
+          }).join('')}
+          <td class="${total>0?'tot-cell':'tot-empty'}">${total>0?total:''}</td>
+        </tr>`;
+      });
+
+      if(ri<pageRows.length-1) tbody+=`<tr class="spacer"><td colspan="${daysInMonth+3}"></td></tr>`;
+    });
+
+    // Pad to 4 clients
+    for(let i=pageRows.length;i<4;i++){
+      tbody+=`<tr class="client-hdr">
+        <td colspan="2" style="font-size:6.5pt">CLIENT'S NAME:</td>
+        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:6pt">DATE OF BIRTH:</td>
+        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:6pt">ICD-10 CODE:</td>
+        <td class="tot-cell" style="background:#c8ddf0"></td>
+      </tr>`;
+      ['ASSESSMENT /\nTRAINING','COLLATERAL\nCONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'].forEach(label=>{
+        tbody+=`<tr>
+          <td class="cat-lbl" colspan="2">${label.replace('\n','<br>')}</td>
+          ${days.map(()=>`<td class="day-cell"></td>`).join('')}
+          <td class="tot-empty"></td>
+        </tr>`;
+      });
+      if(i<3) tbody+=`<tr class="spacer"><td colspan="${daysInMonth+3}"></td></tr>`;
+    }
+
+    const pb=pageNum>0?'class="page-break"':'';
+    return `
+    <div ${pb}>
+      <div class="form-header">
+        <div class="logo-area">
+          <img src="${DSHS_LOGO}" alt="WA DSHS"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <div class="logo-fallback" style="display:none">Washington State<br>DSHS</div>
+        </div>
+        <div class="title-area">
+          <div class="form-title">Registered Nurse (RN) Delegation Billing</div>
+          <div class="form-sub">Taxonomy: ${esc(taxonomy)} &nbsp;&nbsp; Service Code: H2014 &nbsp;&nbsp; 1 Unit = 15 minutes</div>
+        </div>
+        <div class="meta-area">
+          <table><tbody>
+            <tr><td class="meta-lbl">NPI NUMBER:</td><td class="meta-val">${esc(npi)}</td></tr>
+            <tr><td class="meta-lbl">BILLING MONTH:</td><td class="meta-val">${esc(month)}</td></tr>
+            <tr><td class="meta-lbl">RN NAME:</td><td class="meta-val">${esc(rn)}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <table class="billing">
+        <thead>
+          <tr>
+            <th colspan="2" style="text-align:left;padding:2px 5px;width:110px;min-width:110px"></th>
+            ${dayHdrs}
+            <th class="tot-hdr">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>${tbody}</tbody>
+      </table>
+
+      <div class="footer">
+        <span>DSHS 06-200 (05/2023)</span>
+        <span style="font-size:6pt;color:#555">DISTRIBUTION: Copy in client chart and in RND file</span>
+        <span>Page ${pageNum+1} of ${totalPages}</span>
+      </div>
+    </div>`;
+  };
+
   const pageSize=4;
   const pages=[];
-  for(let i=0;i<rows.length;i+=pageSize) pages.push(rows.slice(i,i+pageSize));
-  if(pages.length===0) pages.push([]);
-  const buildPage=(pageRows,pageNum)=>{
-    let tableBody='';
-    pageRows.forEach((r,ri)=>{
-      const total=days.reduce((s,_,di)=>s+(parseInt((r.days&&r.days[di])||0)||0),0);
-      tableBody+=`
-        <tr class="client-header">
-          <td style="width:110px">CLIENT'S NAME: ${esc(r.clientName||'')}</td>
-          <td colspan="${daysInMonth}" style="text-align:left">
-            DATE OF BIRTH: ${esc(r.dob||'')}
-            &nbsp;&nbsp;&nbsp;
-            ICD-10 CODE: ${esc(r.icd10||'')}
-            ${r.acesId?`&nbsp;&nbsp;&nbsp; ACES ID: ${esc(r.acesId)}`:''}
-          </td>
-          <td style="width:32px;background:#d8e4f0"></td>
-        </tr>
-        <tr>
-          <td class="row-label">ASSESSMENT / TRAINING</td>
-          ${days.map((_,di)=>`<td class="row-value">${(r.days&&r.days[di])||''}</td>`).join('')}
-          <td class="row-total">${total>0?total:''}</td>
-        </tr>
-        <tr>
-          <td class="row-label">COLLATERAL CONTACT</td>
-          ${days.map(()=>`<td></td>`).join('')}
-          <td class="row-total"></td>
-        </tr>
-        <tr>
-          <td class="row-label">TRAVEL TIME</td>
-          ${days.map(()=>`<td></td>`).join('')}
-          <td class="row-total"></td>
-        </tr>
-        <tr>
-          <td class="row-label">DOCUMENTATION</td>
-          ${days.map(()=>`<td></td>`).join('')}
-          <td class="row-total"></td>
-        </tr>
-        <tr>
-          <td class="row-label">BILLING</td>
-          ${days.map(()=>`<td></td>`).join('')}
-          <td class="row-total"></td>
-        </tr>`;
-      if(ri<pageRows.length-1) tableBody+=`<tr class="client-spacer"><td colspan="${daysInMonth+2}"></td></tr>`;
-    });
-    for(let i=pageRows.length;i<pageSize;i++){
-      tableBody+=`
-        <tr class="client-header">
-          <td>CLIENT'S NAME:</td>
-          <td colspan="${daysInMonth}" style="text-align:left">DATE OF BIRTH: &nbsp;&nbsp;&nbsp; ICD-10 CODE:</td>
-          <td style="background:#d8e4f0"></td>
-        </tr>`;
-      ['ASSESSMENT / TRAINING','COLLATERAL CONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'].forEach(label=>{
-        tableBody+=`<tr><td class="row-label">${label}</td>${days.map(()=>`<td></td>`).join('')}<td class="row-total"></td></tr>`;
-      });
-      if(i<pageSize-1) tableBody+=`<tr class="client-spacer"><td colspan="${daysInMonth+2}"></td></tr>`;
-    }
-    const pb=pageNum>0?'style="page-break-before:always"':'';
-    return `
-      <div class="page" ${pb}>
-        <div class="form-header">
-          <div>
-            <div class="form-title">Registered Nurse (RN) Delegation Billing</div>
-            <div class="form-sub">Taxonomy: ${esc(taxonomy)} &nbsp;&nbsp;&nbsp; Service Code: H2014 &nbsp;&nbsp;&nbsp; 1 Unit = 15 minutes</div>
-          </div>
-          <div class="form-meta">
-            <div><strong>NPI NUMBER:</strong> ${esc(npi)}</div>
-            <div><strong>BILLING MONTH:</strong> ${esc(month)}</div>
-            <div><strong>RN:</strong> ${esc(rn)}</div>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th class="th-label" style="width:110px"></th>
-              ${dayHeaders}
-              <th class="th-total">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>${tableBody}</tbody>
-        </table>
-        <div class="footer">
-          <span>DSHS 06-200 (05/2023)</span>
-          <span>Page ${pageNum+1} of ${pages.length}</span>
-        </div>
-      </div>`;
-  };
-  const allPages=pages.map((pageRows,pi)=>buildPage(pageRows,pi)).join('');
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>DSHS 06-200 Billing</title><style>${css}</style></head><body>
-    ${allPages}
-    <script>window.onafterprint=function(){window.close();}<\/script>
+  for(let i=0;i<Math.max(rows.length,1);i+=pageSize) pages.push(rows.slice(i,i+pageSize));
+  if(!pages.length) pages.push([]);
+
+  const allPages=pages.map((pr,pi)=>buildPage(pr,pi,pages.length)).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>DSHS 06-200 — ${esc(month)}</title>
+  <style>${css}</style></head><body>
+  ${allPages}
+  <script>window.onafterprint=function(){window.close();}<\/script>
   </body></html>`;
 }
 
@@ -10739,13 +10769,20 @@ async function submitGenerate13681(){
 // ── 06-200 BILLING FORM — IN-SYSTEM SPREADSHEET ──
 // State: array of row objects {clientName, dob, icd10, acesId, serviceType, days:[31 values]}
 window._b06Rows = [];
-const B06_SERVICE_TYPES = [
-  'Assessment / Training',
-  'Collateral Contact',
-  'Travel Time',
-  'Documentation',
-  'Billing',
-];
+const B06_CATS = ['assess','collateral','travel','doc','billing'];
+const B06_CAT_LABELS = ['ASSESSMENT / TRAINING','COLLATERAL CONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'];
+
+function _makeBlank06Row(overrides={}){
+  return {
+    clientName:'', dob:'', icd10:'', acesId:'',
+    assess:   Array(31).fill(''),
+    collateral:Array(31).fill(''),
+    travel:   Array(31).fill(''),
+    doc:      Array(31).fill(''),
+    billing:  Array(31).fill(''),
+    ...overrides
+  };
+}
 
 function open06200Modal(){
   const yearEl=document.getElementById('b06_year');
@@ -10758,17 +10795,13 @@ function open06200Modal(){
   // Seed rows from active clients if sheet is empty
   if(!window._b06Rows.length){
     const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
-    window._b06Rows = activeClients.map(c=>({
+    window._b06Rows = activeClients.map(c=>_makeBlank06Row({
       clientName:`${c.first} ${c.last}`,
       dob: c.dob||'',
       icd10: c.diagnosis||'',
       acesId: c.acesId||c.dshsId||'',
-      days: Array(31).fill(''),
     }));
-    // Ensure at least 4 rows
-    while(window._b06Rows.length < 4){
-      window._b06Rows.push({clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')});
-    }
+    while(window._b06Rows.length < 4) window._b06Rows.push(_makeBlank06Row());
   }
 
   openModal('generate06200Modal');
@@ -10788,169 +10821,191 @@ function render06200Sheet(){
   if(!wrap) return;
   const month=document.getElementById('b06_month')?.value||'';
   const year=document.getElementById('b06_year')?.value||'';
-  if(!month||!year){ wrap.innerHTML='<div style="padding:32px;text-align:center;color:#888;font-size:13px">Select a billing month and year above to load the sheet.</div>'; return; }
-
+  if(!month||!year){
+    wrap.innerHTML='<div style="padding:32px;text-align:center;color:#888;font-size:13px">Select a billing month and year above to load the sheet.</div>';
+    return;
+  }
   const daysInMonth=_b06DaysInMonth();
   const dayNums=Array.from({length:daysInMonth},(_,i)=>i+1);
+  const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
 
-  // CSS for the spreadsheet table
-  const tableCSS=`
-  <style>
-  #b06_table { border-collapse:collapse; font-family:Arial,sans-serif; font-size:11px; color:#111; width:100%; }
-  #b06_table th, #b06_table td { border:1px solid #ccc; padding:0; white-space:nowrap; }
-  #b06_table th { background:#1a3a5e; color:#fff; font-weight:700; font-size:10px; text-transform:uppercase; text-align:center; padding:4px 3px; letter-spacing:0.04em; }
-  #b06_table th.hdr-day { background:#1a4a72; font-size:9px; padding:3px 1px; min-width:22px; }
-  #b06_table th.hdr-total { background:#0d2d4a; }
-  #b06_table td.cell-label { background:#e8f0f8; font-weight:700; font-size:10px; padding:4px 6px; min-width:170px; color:#1a3a5e; text-transform:uppercase; letter-spacing:0.04em; border-right:2px solid #aac; }
-  #b06_table td.cell-client-hdr { background:#d0e4f7; font-weight:700; font-size:10px; color:#0d2d4a; padding:3px 5px; border-bottom:2px solid #aac; }
-  #b06_table td.cell-client-input { background:#fff; padding:1px; }
-  #b06_table td.cell-client-input input { width:100%; border:none; padding:4px 5px; font-size:11px; font-family:Arial,sans-serif; color:#111; background:transparent; outline:none; }
-  #b06_table td.cell-client-input input:focus { background:#fffde7; }
-  #b06_table td.cell-day { background:#fff; padding:1px; min-width:22px; }
-  #b06_table td.cell-day input { width:100%; border:none; padding:3px 1px; font-size:11px; text-align:center; font-family:Arial,sans-serif; color:#111; background:transparent; outline:none; }
-  #b06_table td.cell-day input:focus { background:#fffde7; }
-  #b06_table td.cell-total { background:#e8f5e8; font-weight:700; text-align:center; padding:3px 5px; color:#1a5e1a; font-size:11px; min-width:36px; }
-  #b06_table td.cell-total-zero { background:#f5f5f5; color:#aaa; }
-  #b06_table .row-svc td.cell-label { background:#f0f4f8; font-weight:600; font-size:10px; color:#2a4a6e; text-transform:none; letter-spacing:0; }
-  #b06_table .row-client-block { background:#d0e4f7; }
-  #b06_table td.cell-del { background:#fff8f8; padding:1px; text-align:center; width:24px; }
-  #b06_table td.cell-del button { background:none; border:none; cursor:pointer; color:#c55; font-size:13px; padding:2px 4px; }
-  #b06_table td.cell-del button:hover { color:#e00; }
-  #b06_table .row-title td { background:#1a3a5e; color:#fff; font-size:11px; font-weight:700; padding:5px 8px; }
-  #b06_table .row-subtitle td { background:#2a5a8e; color:#e8f0f8; font-size:10px; padding:3px 8px; }
+  const css=`<style>
+  #b06t{border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;width:100%;min-width:${200+daysInMonth*26}px}
+  #b06t th,#b06t td{border:1px solid #bbb;padding:0;white-space:nowrap}
+  #b06t th{background:#1a3d6b;color:#fff;font-weight:700;font-size:9px;text-align:center;padding:3px 2px;letter-spacing:0.03em}
+  #b06t th.hday{background:#2355a0;min-width:24px;width:24px;font-size:8px;padding:2px 1px}
+  #b06t th.htot{background:#0d2545;min-width:36px}
+  #b06t td.clhdr{background:#dbeaf8;font-weight:700;font-size:10px;color:#0d2545;padding:3px 6px;border-bottom:2px solid #2355a0}
+  #b06t td.lbl{background:#eaf1f8;font-weight:600;font-size:9px;color:#1a3d6b;text-transform:uppercase;padding:2px 5px;letter-spacing:0.03em;min-width:160px;max-width:160px;width:160px}
+  #b06t td.dcell{background:#fff;padding:0;width:24px;min-width:24px}
+  #b06t td.dcell input{width:100%;height:100%;border:none;padding:2px 1px;font-size:10px;text-align:center;font-family:Arial,sans-serif;background:transparent;outline:none;min-height:22px;box-sizing:border-box}
+  #b06t td.dcell input:focus{background:#fffbe6}
+  #b06t td.tot{background:#e8f5e8;font-weight:700;text-align:center;font-size:10px;color:#1a5e1a;padding:2px 4px}
+  #b06t td.tot0{background:#f5f5f5;color:#bbb;text-align:center;font-size:10px;padding:2px 4px}
+  #b06t td.del{background:#fff8f8;text-align:center;width:22px;padding:0}
+  #b06t td.del button{background:none;border:none;cursor:pointer;color:#c55;font-size:12px;padding:2px 3px;line-height:1}
+  #b06t td.cinput{background:#fff;padding:0}
+  #b06t td.cinput input{width:100%;border:none;padding:3px 5px;font-size:10px;font-family:Arial,sans-serif;background:transparent;outline:none;min-height:26px;box-sizing:border-box}
+  #b06t td.cinput input:focus{background:#fffbe6}
+  #b06t .spcrow td{height:6px;background:#f0f4f8;border-left:none;border-right:none}
+  #b06t .gtrow td{background:#c8e6c8;font-weight:700;font-size:10px}
+  #b06t .titrow td{background:#0d2545;color:#fff;font-size:11px;font-weight:700;padding:5px 8px}
+  #b06t .subrow td{background:#1a3d6b;color:#c8daf5;font-size:9px;padding:2px 8px}
   </style>`;
 
-  // Build header row
-  const dayHeaders=dayNums.map(d=>`<th class="hdr-day">${d}</th>`).join('');
+  const dayHdrs=dayNums.map(d=>`<th class="hday">${d}</th>`).join('');
 
-  // Build client blocks
-  let clientRowsHtml='';
+  let clientBlocks='';
   window._b06Rows.forEach((row,ri)=>{
-    // Total = sum of all day inputs for this row
-    const total=row.days.slice(0,daysInMonth).reduce((s,v)=>s+(parseInt(v)||0),0);
-    const dayInputs=dayNums.map((d,di)=>`
-      <td class="cell-day">
-        <input type="number" min="0" max="96" value="${row.days[di]||''}"
-          data-row="${ri}" data-day="${di}"
-          oninput="b06UpdateCell(this)"
-          placeholder="">
-      </td>`).join('');
-    clientRowsHtml+=`
-    <tr class="row-client-block" data-rowblock="${ri}">
-      <td class="cell-client-hdr" colspan="2">Client ${ri+1}</td>
-      <td class="cell-client-input" colspan="2">
-        <input list="b06_clientList" value="${Sanitizer.escapeHtml(row.clientName)}"
-          data-row="${ri}" data-field="clientName"
-          oninput="b06UpdateMeta(this)"
-          placeholder="Client name…" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+    // Client header row — name, dob, icd10, acesId inputs
+    clientBlocks+=`
+    <tr>
+      <td class="clhdr" colspan="2">CLIENT ${ri+1}</td>
+      <td class="cinput" colspan="2">
+        <input list="b06clist" value="${Sanitizer.escapeHtml(row.clientName||'')}"
+          data-ri="${ri}" data-field="clientName" oninput="b06Meta(this)"
+          placeholder="Client name…" style="min-width:180px">
       </td>
-      <td class="cell-client-input">
-        <input type="text" value="${Sanitizer.escapeHtml(row.dob)}"
-          data-row="${ri}" data-field="dob"
-          oninput="b06UpdateMeta(this)"
-          placeholder="DOB" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      <td class="cinput">
+        <input type="text" value="${Sanitizer.escapeHtml(row.dob||'')}"
+          data-ri="${ri}" data-field="dob" oninput="b06Meta(this)" placeholder="DOB">
       </td>
-      <td class="cell-client-input" colspan="2">
-        <input type="text" value="${Sanitizer.escapeHtml(row.icd10)}"
-          data-row="${ri}" data-field="icd10"
-          oninput="b06UpdateMeta(this)"
-          placeholder="ICD-10 / Diagnosis" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      <td class="cinput" colspan="2">
+        <input type="text" value="${Sanitizer.escapeHtml(row.icd10||'')}"
+          data-ri="${ri}" data-field="icd10" oninput="b06Meta(this)" placeholder="ICD-10 / Diagnosis" style="min-width:160px">
       </td>
-      <td class="cell-client-input">
-        <input type="text" value="${Sanitizer.escapeHtml(row.acesId)}"
-          data-row="${ri}" data-field="acesId"
-          oninput="b06UpdateMeta(this)"
-          placeholder="ACES ID" style="width:100%;padding:4px 5px;border:none;font-size:11px;font-family:Arial,sans-serif;background:transparent;outline:none">
+      <td class="cinput">
+        <input type="text" value="${Sanitizer.escapeHtml(row.acesId||'')}"
+          data-ri="${ri}" data-field="acesId" oninput="b06Meta(this)" placeholder="ACES ID">
       </td>
-      ${Array(daysInMonth).fill('').map((_,di)=>`<td class="cell-day"><input type="number" min="0" max="96" value="${row.days[di]||''}" data-row="${ri}" data-day="${di}" oninput="b06UpdateCell(this)" placeholder=""></td>`).join('')}
-      <td class="${total>0?'cell-total':'cell-total cell-total-zero'}" id="b06_total_${ri}">${total||'0'}</td>
-      <td class="cell-del"><button onclick="b06DeleteRow(${ri})" title="Remove row">✕</button></td>
+      ${dayNums.map(()=>`<td class="clhdr" style="background:#dbeaf8"></td>`).join('')}
+      <td class="clhdr" style="background:#dbeaf8"></td>
+      <td class="del"><button onclick="b06DeleteRow(${ri})" title="Remove">✕</button></td>
     </tr>`;
+
+    // 5 category rows per client
+    B06_CATS.forEach((cat,ci)=>{
+      const catData=row[cat]||Array(31).fill('');
+      const total=dayNums.reduce((s,_,di)=>s+(parseInt(catData[di])||0),0);
+      const tid=`b06_tot_${ri}_${cat}`;
+      clientBlocks+=`
+      <tr>
+        <td class="lbl" colspan="2">${B06_CAT_LABELS[ci]}</td>
+        <td class="lbl" colspan="6" style="background:#f5f9fc;font-weight:400;font-size:9px;color:#555"></td>
+        ${dayNums.map((d,di)=>`<td class="dcell"><input type="number" min="0" max="96"
+          value="${catData[di]||''}"
+          data-ri="${ri}" data-cat="${cat}" data-di="${di}"
+          oninput="b06Cell(this)"
+          placeholder=""></td>`).join('')}
+        <td class="${total>0?'tot':'tot0'}" id="${tid}">${total||''}</td>
+        <td class="del"></td>
+      </tr>`;
+    });
+
+    // Spacer between clients
+    if(ri<window._b06Rows.length-1){
+      clientBlocks+=`<tr class="spcrow"><td colspan="${8+daysInMonth+2}"></td></tr>`;
+    }
   });
 
-  // Datalist for client name autocomplete
-  const activeClients=(window.clients||[]).filter(c=>c.status==='Active');
-  const datalist=`<datalist id="b06_clientList">${activeClients.map(c=>`<option value="${Sanitizer.escapeHtml(c.first+' '+c.last)}">`).join('')}</datalist>`;
+  // Grand total row
+  const gtCells=dayNums.map((_,di)=>{
+    const colTotal=window._b06Rows.reduce((s,r)=>
+      B06_CATS.reduce((cs,cat)=>cs+(parseInt((r[cat]&&r[cat][di])||0)||0),s),0);
+    return `<td class="tot" id="b06_gt_${di}" style="background:#a8d5a8;color:#0d4a0d">${colTotal||''}</td>`;
+  }).join('');
+  const grandTotal=window._b06Rows.reduce((s,r)=>
+    B06_CATS.reduce((cs,cat)=>cs+(r[cat]||[]).slice(0,daysInMonth).reduce((ts,v)=>ts+(parseInt(v)||0),0),s),0);
 
-  wrap.innerHTML=tableCSS+datalist+`
-  <table id="b06_table" style="margin:0">
-    <!-- Title rows -->
-    <tr class="row-title">
-      <td colspan="${daysInMonth+4}" style="font-size:13px">DSHS 06-200 — Nurse Delegation Billing Form &nbsp;|&nbsp; Service Code: H2014 &nbsp;|&nbsp; 1 Unit = 15 Minutes</td>
-      <td colspan="2" style="font-size:10px;text-align:right">Month: <strong>${month} ${year}</strong></td>
+  const datalist=`<datalist id="b06clist">${activeClients.map(c=>`<option value="${Sanitizer.escapeHtml(c.first+' '+c.last)}">`).join('')}</datalist>`;
+
+  wrap.innerHTML=css+datalist+`
+  <table id="b06t">
+    <tr class="titrow">
+      <td colspan="${8+daysInMonth+2}">
+        DSHS 06-200 — Registered Nurse (RN) Delegation Billing &nbsp;|&nbsp;
+        Billing Month: <strong>${month} ${year}</strong> &nbsp;|&nbsp;
+        Service Code: H2014 &nbsp;|&nbsp; 1 Unit = 15 Minutes
+      </td>
     </tr>
-    <tr class="row-subtitle">
-      <td colspan="${daysInMonth+6}">RN: ${Sanitizer.escapeHtml(document.getElementById('b06_rnName')?.value||'—')} &nbsp;|&nbsp; NPI: ${Sanitizer.escapeHtml(document.getElementById('b06_npi')?.value||'—')} &nbsp;|&nbsp; Taxonomy: ${Sanitizer.escapeHtml(document.getElementById('b06_taxonomy')?.value||'—')}</td>
+    <tr class="subrow">
+      <td colspan="${8+daysInMonth+2}">
+        RN: ${Sanitizer.escapeHtml(document.getElementById('b06_rnName')?.value||'—')} &nbsp;|&nbsp;
+        NPI: ${Sanitizer.escapeHtml(document.getElementById('b06_npi')?.value||'—')} &nbsp;|&nbsp;
+        Taxonomy: ${Sanitizer.escapeHtml(document.getElementById('b06_taxonomy')?.value||'—')}
+      </td>
     </tr>
-    <!-- Column headers -->
     <tr>
-      <th style="min-width:120px;text-align:left;padding:4px 6px">Client Name</th>
-      <th style="min-width:80px">DOB</th>
-      <th style="min-width:140px">ICD-10 / Diagnosis</th>
-      <th style="min-width:80px">ACES ID</th>
-      ${dayHeaders}
-      <th class="hdr-total" style="min-width:36px">TOTAL</th>
-      <th style="background:#1a3a5e;width:24px"></th>
+      <th colspan="2" class="th-label" style="text-align:left;padding:4px 6px;min-width:160px">Category</th>
+      <th colspan="2" style="text-align:left;padding:3px 5px;min-width:160px">Client Name</th>
+      <th style="min-width:70px">Date of Birth</th>
+      <th colspan="2" style="min-width:120px">ICD-10 / Diagnosis</th>
+      <th style="min-width:70px">ACES ID</th>
+      ${dayHdrs}
+      <th class="htot">TOTAL</th>
+      <th style="background:#0d2545;width:22px"></th>
     </tr>
-    <!-- Client rows -->
-    ${clientRowsHtml}
-    <!-- Grand total row -->
-    <tr style="background:#d0e8d0">
-      <td class="cell-label" colspan="4" style="text-align:right;font-size:11px;color:#1a5e1a;font-weight:700">GRAND TOTAL (all clients)</td>
-      ${dayNums.map((_,di)=>`<td class="cell-total" id="b06_gtotal_${di}" style="font-size:10px">0</td>`).join('')}
-      <td class="cell-total" id="b06_gtotal_all" style="background:#c0e8c0;font-size:12px">0</td>
-      <td style="background:#d0e8d0"></td>
+    ${clientBlocks}
+    <tr class="gtrow">
+      <td colspan="8" style="text-align:right;padding:3px 8px;color:#0d4a0d">GRAND TOTAL (all clients, all categories)</td>
+      ${gtCells}
+      <td class="tot" style="background:#90c890;color:#0d4a0d;font-size:11px">${grandTotal||''}</td>
+      <td style="background:#c8e6c8"></td>
     </tr>
-    <!-- Footer -->
-    <tr style="background:#f0f4f8">
-      <td colspan="${daysInMonth+6}" style="font-size:9px;color:#555;padding:4px 8px">DSHS 06-200 (05/2023) &nbsp;|&nbsp; Distribution: Copy in client chart and in RND file &nbsp;|&nbsp; To register concerns: 1-800-562-6078</td>
-    </tr>
+    <tr><td colspan="${8+daysInMonth+2}" style="font-size:8px;color:#888;padding:4px 8px;background:#f9f9f9">
+      DSHS 06-200 (05/2023) &nbsp;|&nbsp; Enter units per day per category. 1 unit = 15 minutes. &nbsp;|&nbsp; To register concerns: 1-800-562-6078
+    </td></tr>
   </table>`;
+}
 
-  b06RecalcTotals();
+function b06Cell(input){
+  const ri=parseInt(input.dataset.ri);
+  const cat=input.dataset.cat;
+  const di=parseInt(input.dataset.di);
+  if(!window._b06Rows[ri]) return;
+  if(!window._b06Rows[ri][cat]) window._b06Rows[ri][cat]=Array(31).fill('');
+  window._b06Rows[ri][cat][di]=input.value;
+  // Update row total
+  const daysInMonth=_b06DaysInMonth();
+  const rowTotal=window._b06Rows[ri][cat].slice(0,daysInMonth).reduce((s,v)=>s+(parseInt(v)||0),0);
+  const totEl=document.getElementById(`b06_tot_${ri}_${cat}`);
+  if(totEl){totEl.textContent=rowTotal||'';totEl.className=rowTotal>0?'tot':'tot0';}
+  // Update column grand totals
+  const colTotal=window._b06Rows.reduce((s,r)=>
+    B06_CATS.reduce((cs,c)=>cs+(parseInt((r[c]&&r[c][di])||0)||0),s),0);
+  const gtEl=document.getElementById(`b06_gt_${di}`);
+  if(gtEl) gtEl.textContent=colTotal||'';
+}
+
+function b06Meta(input){
+  const ri=parseInt(input.dataset.ri);
+  const field=input.dataset.field;
+  if(window._b06Rows[ri]) window._b06Rows[ri][field]=input.value;
 }
 
 function b06UpdateCell(input){
-  const ri=parseInt(input.dataset.row);
-  const di=parseInt(input.dataset.day);
-  if(!window._b06Rows[ri]) return;
-  window._b06Rows[ri].days[di]=input.value;
-  b06RecalcTotals();
+  // legacy alias — new handler is b06Cell
+  b06Cell(input);
 }
 
 function b06UpdateMeta(input){
-  const ri=parseInt(input.dataset.row);
-  const field=input.dataset.field;
-  if(!window._b06Rows[ri]) return;
-  window._b06Rows[ri][field]=input.value;
+  // legacy alias — new handler is b06Meta
+  b06Meta(input);
 }
 
 function b06RecalcTotals(){
-  const daysInMonth=_b06DaysInMonth();
-  const colTotals=Array(daysInMonth).fill(0);
-  let grandTotal=0;
-  window._b06Rows.forEach((row,ri)=>{
-    const rowTotal=row.days.slice(0,daysInMonth).reduce((s,v)=>s+(parseInt(v)||0),0);
-    grandTotal+=rowTotal;
-    row.days.slice(0,daysInMonth).forEach((v,di)=>colTotals[di]+=(parseInt(v)||0));
-    const el=document.getElementById('b06_total_'+ri);
-    if(el){ el.textContent=rowTotal||'0'; el.className=rowTotal>0?'cell-total':'cell-total cell-total-zero'; }
-  });
-  colTotals.forEach((v,di)=>{const el=document.getElementById('b06_gtotal_'+di);if(el)el.textContent=v||'0';});
-  const gtEl=document.getElementById('b06_gtotal_all');if(gtEl)gtEl.textContent=grandTotal||'0';
+  // legacy — new sheet self-recalcs inline via b06Cell
 }
 
 function add06200Row(){
-  window._b06Rows.push({clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')});
+  window._b06Rows.push(_makeBlank06Row());
   render06200Sheet();
-  // Scroll to bottom
   setTimeout(()=>{const w=document.getElementById('b06_sheetWrap');if(w)w.scrollTop=w.scrollHeight;},50);
 }
 
 function b06DeleteRow(ri){
   if(window._b06Rows.length<=1){
-    // Clear the row instead of deleting it
-    window._b06Rows[0]={clientName:'',dob:'',icd10:'',acesId:'',days:Array(31).fill('')};
+    window._b06Rows[0]=_makeBlank06Row();
     render06200Sheet();
     return;
   }
@@ -10960,7 +11015,9 @@ function b06DeleteRow(ri){
 
 function clear06200Sheet(){
   if(!confirm('Clear all entries in the billing sheet?')) return;
-  window._b06Rows=window._b06Rows.map(r=>({...r,days:Array(31).fill('')}));
+  window._b06Rows=window._b06Rows.map(r=>_makeBlank06Row({
+    clientName:r.clientName, dob:r.dob, icd10:r.icd10, acesId:r.acesId
+  }));
   render06200Sheet();
 }
 
@@ -10975,7 +11032,17 @@ async function save06200ToDrafts(){
     billingMonth, npi:document.getElementById('b06_npi')?.value||'',
     taxonomy:document.getElementById('b06_taxonomy')?.value||'',
     rnName:document.getElementById('b06_rnName')?.value||currentProfile?.full_name||'',
-    rows:window._b06Rows.map(r=>({...r,days:r.days.slice(0,daysInMonth)})),
+    rows:window._b06Rows.map(r=>({
+      clientName:r.clientName||'',
+      dob:r.dob||'',
+      icd10:r.icd10||'',
+      acesId:r.acesId||'',
+      assess:   (r.assess||[]).slice(0,daysInMonth),
+      collateral:(r.collateral||[]).slice(0,daysInMonth),
+      travel:   (r.travel||[]).slice(0,daysInMonth),
+      doc:      (r.doc||[]).slice(0,daysInMonth),
+      billing:  (r.billing||[]).slice(0,daysInMonth),
+    })),
     daysInMonth,
   };
   const draft={
