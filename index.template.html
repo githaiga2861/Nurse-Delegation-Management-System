@@ -5032,7 +5032,7 @@ function buildRndModal(){
     <path d="M90 126 Q92 150 90 170 Q89 185 90 200 Q92 210 94 219 Q90 220 88 215 L86 210 Q80 218 76 214 Q76 210 80 207 L84 204 L86 198 Q88 194 88 200" fill="#fff"/>
   </svg>`;
 
-  const sec7 = `
+const sec7 = `
     ${secHdr('Skin / Integumentary','#8b4500')}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
       <div><div class="label" style="margin-bottom:6px">Appearance of Skin</div>
@@ -5066,23 +5066,7 @@ function buildRndModal(){
       </div>
       <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px;font-style:italic">Paint directly on the figure. Marks are saved with the form and printed on page 6.</div>
     </div>
-      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Body Diagram — Reference for marking skin issues on printed form</div>
-      <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:11px;font-weight:700;display:flex;justify-content:space-between;width:120px;margin-bottom:3px"><span>Right</span><span>Left</span></div>
-          ${bodySvgA}
-          <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:4px">Anterior</div>
-        </div>
-        <div>
-          <div style="height:18px"></div>
-          ${bodySvgP}
-          <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:4px">Posterior</div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic">Mark locations on the printed form. Describe below.</div>
-    </div>
     ${ta('skinComments','Skin Issues Noted (describe and note location)','Describe skin issues and their locations…',3)}`;
-
   // ── TAB 8: MEDICATIONS ───────────────────────────────────────
   const sec8 = `
     ${secHdr('Therapies & Treatments','#2a5a8a')}
