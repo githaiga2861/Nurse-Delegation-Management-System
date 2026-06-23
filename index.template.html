@@ -4149,6 +4149,11 @@ function showPage(id){
 
 // ── OPEN MODAL ────────────────────────────────────────────────
 function openRndAssessmentModal(editDraftId) {
+  // Close any other open overlays first
+  document.querySelectorAll('.overlay').forEach(el => {
+    el.style.display = 'none';
+    el.classList.remove('open');
+  });
   window._rndDraftId = editDraftId || null;
   if (editDraftId) {
     const d = (window.formDrafts || []).find(x => x.id === editDraftId);
