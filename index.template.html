@@ -1063,12 +1063,12 @@ if('serviceWorker' in navigator){
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Client Name *</label><input class="form-input" id="rnd_clientName" placeholder="Last, First"></div>
-          <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-input" type="date" id="rnd_dob"></div>
+          <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-input" type="text" id="rnd_dob" placeholder="MM-DD-YYYY"></div>
           <div class="form-group"><label class="form-label">Age</label><input class="form-input" id="rnd_age" placeholder="e.g. 74"></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Gender</label><select class="form-input form-select" id="rnd_gender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
-          <div class="form-group"><label class="form-label">Today's Date</label><input class="form-input" type="date" id="rnd_todayDate"></div>
+          <div class="form-group"><label class="form-label">Today's Date</label><input class="form-input" type="text" id="rnd_todayDate" placeholder="MM-DD-YYYY"></div>
           <div class="form-group"><label class="form-label">Type of Assessment</label><input class="form-input" id="rnd_typeOfAssessment" placeholder="e.g. Initial, Annual, Follow-up"></div>
         </div>
         <div class="form-row">
@@ -1549,7 +1549,7 @@ if('serviceWorker' in navigator){
 
         <div class="form-row">
           <div class="form-group"><label class="form-label">Printed Name</label><input class="form-input" id="rnd_sigPrintedName" placeholder="RN full name"></div>
-          <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="rnd_sigDate"></div>
+          <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="text" id="rnd_sigDate" placeholder="MM-DD-YYYY"></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Contact Phone</label><input class="form-input" type="tel" id="rnd_sigPhone" placeholder="Phone number"></div>
@@ -4170,7 +4170,8 @@ function openRndAssessmentModal(editDraftId) {
       _rndSet('rnd_pharmacyPhone', c.pharmacyPhone || '');
       _rndSet('rnd_medications', c.medications || '');
     }
-    _rndSet('rnd_todayDate', new Date().toLocaleDateString('en-US', { timeZone: WA_TZ }));
+    const _today = new Date().toLocaleDateString('en-US', { timeZone: WA_TZ, month:'2-digit', day:'2-digit', year:'numeric' }).replace(/\//g,'-');
+  _rndSet('rnd_todayDate', _today);
   }
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
@@ -10601,9 +10602,9 @@ function renderDraftsTable(list){
   // Signed Documents tab so the user never has to do it manually.
   (list||[]).forEach(d=>{
     if(!d.status||!d.status.toLowerCase().includes('signed')) return;
+    const isElectronic=d.status.toLowerCase().includes('electronic');
     const already=(window.signedDocs||[]).find(x=>x.draft_id===d.id&&x.signed_method===(isElectronic?'electronic':'manual'));
     if(already) return;
-    const isElectronic=d.status.toLowerCase().includes('electronic');
     const now=d.updated_at||d.created_at||new Date().toISOString();
     const rec={
       id:(isElectronic?'esig-':'msig-')+d.id,
