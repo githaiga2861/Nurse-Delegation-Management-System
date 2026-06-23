@@ -4757,18 +4757,23 @@ function buildRndAssessmentPrintHtml(fd, draft) {
 
   <table class="sig-table" style="margin-top:6px">
     <tr>
-      <td style="width:45%">
-        Printed Name: <div class="other-line">${v('sigPrintedName')}</div>
-        Signature: <div class="other-line">${v('sigSignature')}</div>
+      <td style="width:45%;padding:6px 8px">
+        <div style="font-size:8.5pt;margin-bottom:4px">
+          Printed Name: <span style="border-bottom:1px solid #000;display:inline-block;min-width:160px;padding-left:4px">${v('sigPrintedName')}</span>
+        </div>
+        <div class="fl" style="font-size:8.5pt;margin-top:8px">Signature (Registered Nurse)</div>
+        <div class="sig-line" style="border-bottom:1px solid #000;min-height:36px;margin-top:2px;position:relative">
+          <span style="font-size:8pt;color:#888;position:absolute;bottom:2px;left:4px"></span>
+        </div>
       </td>
-      <td style="width:20%">
-        <strong>Date:</strong><br>
-        <div class="other-line">${v('sigDate')}</div>
+      <td style="width:20%;padding:6px 8px;vertical-align:top">
+        <div style="font-size:8.5pt;font-weight:700">Date:</div>
+        <div style="border-bottom:1px solid #000;min-height:20px;padding-left:4px;font-size:8.5pt">${v('sigDate')}</div>
       </td>
-      <td>
-        <strong>Contact info:</strong><br>
-        Phone: <div class="other-line">${v('sigPhone')}</div>
-        Email: <div class="other-line">${v('sigEmail')}</div>
+      <td style="padding:6px 8px;vertical-align:top">
+        <div style="font-size:8.5pt;font-weight:700">Contact info:</div>
+        <div style="font-size:8.5pt">Phone: <span style="border-bottom:1px solid #000;display:inline-block;min-width:120px;padding-left:4px">${v('sigPhone')}</span></div>
+        <div style="font-size:8.5pt;margin-top:4px">Email: <span style="border-bottom:1px solid #000;display:inline-block;min-width:160px;padding-left:4px">${v('sigEmail')}</span></div>
       </td>
     </tr>
   </table>
