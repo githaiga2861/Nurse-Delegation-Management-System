@@ -2137,7 +2137,7 @@ if('serviceWorker' in navigator){
         <div class="form-row">
           <div class="form-group"><label class="form-label">13. Date Requested</label><input class="form-input" type="date" id="rau_dateRequested"></div>
         </div>
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-top:8px">
+        x solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-top:8px">
           <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px">Fields 15–17 are completed by the ND Program Manager — leave blank if not yet approved.</div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">15. Units Approved</label><input class="form-input" type="number" id="rau_unitsApproved" placeholder="Approved units"></div>
@@ -3628,6 +3628,14 @@ function openRndAssessmentModal(editDraftId) {
   }
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
+  _rndCurrentTab = 0;
+  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = i===0 ? 'block' : 'none';
+  });
+  document.querySelectorAll('#rndTabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  _rndUpdateNavBtns();
+  setTimeout(rndInitBodyDiagram, 150);
 }
 
 function closeRndModal() {
@@ -3665,6 +3673,7 @@ function _rndCollectData() {
     if (el.type === 'checkbox') data[key] = el.checked;
     else data[key] = el.value || '';
   });
+  data.bodyMarkings = rndGetBodyMarkings();
   return data;
 }
 
@@ -3732,6 +3741,14 @@ function editRndAssessmentDraft(d, fd) {
   window._rndDraftId = d.id;
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
+  _rndCurrentTab = 0;
+  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = i===0 ? 'block' : 'none';
+  });
+  document.querySelectorAll('#rndTabs .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  _rndUpdateNavBtns();
+  setTimeout(()=>{ rndInitBodyDiagram(); rndSetBodyMarkings(fd.bodyMarkings||null); }, 150);
   const btn = document.getElementById('rnd_submitBtn');
   if (btn) btn.textContent = 'Save Changes';
 }
@@ -4480,29 +4497,11 @@ function buildRndAssessmentPrintHtml(fd, draft) {
   // ══ PAGE 6 — BODY DIAGRAMS ════════════════════════════════════
   const page6 = `<section>
   ${pageHeader(6)}
-  <div class="body-figures">
-    <div class="body-figure">
-      <div class="body-rl"><span>Right</span><span>Left</span></div>
-      ${bodySvgAnterior}
-      <div class="fig-label">Anterior</div>
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl" style="opacity:0">&nbsp;</div>
-      ${bodySvgPosterior}
-      <div class="fig-label">Posterior</div>
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl"><span>Right</span><span>Left</span></div>
-      ${bodySvgAnterior}
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl" style="opacity:0">&nbsp;</div>
-      ${bodySvgPosterior}
-    </div>
+  <div style="position:relative;width:100%;margin:8px 0;text-align:center">
+    <img src="images/body.png" alt="Body diagram" style="width:100%;max-width:680px;display:inline-block">
+    ${fd.bodyMarkings ? `<img src="${fd.bodyMarkings}" alt="Skin markings" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:0.8">` : ''}
   </div>
+  <div style="text-align:center;font-style:italic;font-size:9pt;margin:4px 0">Skin Issues Noted</div>
 
   <div style="text-align:center;font-style:italic;font-size:10pt;margin:4px 0">Skin Issues Noted</div>
   <div class="skin-issue-line"></div>
@@ -5049,7 +5048,24 @@ function buildRndModal(){
       </div>
     </div>
     ${ta('skinOther','Skin — Other','',2)}
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px;text-align:center">
+    <div style="background:#f9f9f9;border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-align:center">Body Diagram — drag to mark skin issues on any area</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3)">Brush:</span>
+        <input type="range" min="3" max="20" value="7" id="rndBrushSize" style="width:70px">
+        <span style="font-size:11px;color:var(--text3)">Color:</span>
+        <input type="color" id="rndBrushColor" value="#e03030" style="width:26px;height:26px;border:none;border-radius:4px;cursor:pointer">
+        <button id="rndEraserBtn" onclick="rndToggleEraser(this)" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;color:var(--text)">Eraser</button>
+        <button onclick="rndClearDiagram()" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;color:var(--text)">Clear all</button>
+      </div>
+      <div style="position:relative;width:100%;cursor:crosshair" id="rndBodyWrap">
+        <img id="rndBodyImg" src="images/body.png" alt="Body diagram anterior posterior lateral views"
+          style="width:100%;display:block;border-radius:4px;image-rendering:crisp-edges">
+        <canvas id="rndBodyCanvas"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.75;touch-action:none"></canvas>
+      </div>
+      <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px;font-style:italic">Paint directly on the figure. Marks are saved with the form and printed on page 6.</div>
+    </div>
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Body Diagram — Reference for marking skin issues on printed form</div>
       <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
         <div>
@@ -9870,6 +9886,90 @@ async function loadSignedList(){
   }
 }
 
+// ── BODY DIAGRAM DRAW TOOL ─────────────────────────────────────
+window._rndBodyErasing = false;
+
+function rndInitBodyDiagram(){
+  const img = document.getElementById('rndBodyImg');
+  const canvas = document.getElementById('rndBodyCanvas');
+  const wrap = document.getElementById('rndBodyWrap');
+  if(!img || !canvas) return;
+
+  const sync = () => {
+    canvas.width  = img.naturalWidth  || img.offsetWidth  * 2;
+    canvas.height = img.naturalHeight || img.offsetHeight * 2;
+  };
+  if(img.complete) sync(); else img.onload = sync;
+
+  const pos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    const scaleX = canvas.width  / r.width;
+    const scaleY = canvas.height / r.height;
+    return [(src.clientX - r.left) * scaleX, (src.clientY - r.top) * scaleY];
+  };
+
+  let painting = false, last = null;
+
+  const paint = (e) => {
+    if(!painting) return;
+    e.preventDefault();
+    const ctx = canvas.getContext('2d');
+    const [x,y] = pos(e);
+    const bs = parseInt(document.getElementById('rndBrushSize')?.value || 7) * (canvas.width / wrap.offsetWidth);
+
+    if(window._rndBodyErasing){
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(x,y,bs*1.5,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      const col = document.getElementById('rndBrushColor')?.value || '#e03030';
+      ctx.strokeStyle = col; ctx.fillStyle = col;
+      ctx.lineWidth = bs; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if(last){
+        ctx.beginPath(); ctx.moveTo(last[0],last[1]); ctx.lineTo(x,y); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(x,y,bs/2,0,Math.PI*2); ctx.fill();
+      }
+    }
+    last = [x,y];
+  };
+
+  canvas.addEventListener('mousedown',  e=>{painting=true;last=null;paint(e)});
+  canvas.addEventListener('mousemove',  paint);
+  canvas.addEventListener('mouseup',    ()=>{painting=false;last=null});
+  canvas.addEventListener('mouseleave', ()=>{painting=false;last=null});
+  canvas.addEventListener('touchstart', e=>{painting=true;last=null;paint(e)},{passive:false});
+  canvas.addEventListener('touchmove',  paint,{passive:false});
+  canvas.addEventListener('touchend',   ()=>{painting=false;last=null});
+}
+
+function rndToggleEraser(btn){
+  window._rndBodyErasing = !window._rndBodyErasing;
+  btn.textContent = window._rndBodyErasing ? '✓ Erasing' : 'Eraser';
+  btn.style.background = window._rndBodyErasing ? 'var(--blue-glow)' : 'var(--bg2)';
+  btn.style.color = window._rndBodyErasing ? 'var(--blue)' : 'var(--text)';
+}
+
+function rndClearDiagram(){
+  const c = document.getElementById('rndBodyCanvas');
+  if(c) c.getContext('2d').clearRect(0,0,c.width,c.height);
+}
+
+function rndGetBodyMarkings(){
+  const c = document.getElementById('rndBodyCanvas');
+  return c ? c.toDataURL('image/png') : null;
+}
+
+function rndSetBodyMarkings(dataUrl){
+  if(!dataUrl) return;
+  const c = document.getElementById('rndBodyCanvas');
+  if(!c) return;
+  const img = new Image();
+  img.onload = () => c.getContext('2d').drawImage(img,0,0);
+  img.src = dataUrl;
+}
+  
 function editDraft(id){
   const d=(window.formDrafts||[]).find(x=>x.id===id);if(!d)return;
   const fd=d.form_data||{};
