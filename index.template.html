@@ -3609,23 +3609,11 @@ function openRndAssessmentModal(editDraftId) {
     if (d && d.form_data) _rndRestoreFormData(d.form_data);
   } else {
     _rndClearForm();
-    // Auto-fill client if one active client
-    const ac = (window.clients || []).filter(c => c.status === 'Active');
-    if (ac.length >= 1) {
-      const c = ac[0];
-      _rndSet('rnd_clientName', `${c.first} ${c.last}`);
-      _rndSet('rnd_dob', c.dob || '');
-      _rndSet('rnd_address', c.address || '');
-      _rndSet('rnd_diagnosis', c.diagnosis || '');
-      _rndSet('rnd_allergies', c.allergies || '');
-      _rndSet('rnd_physician', c.physician || '');
-      _rndSet('rnd_physicianPhone', c.physicianPhone || '');
-      _rndSet('rnd_pharmacy', c.pharmacy || '');
-      _rndSet('rnd_pharmacyPhone', c.pharmacyPhone || '');
-      _rndSet('rnd_medications', c.medications || '');
-    }
-    _rndSet('rnd_todayDate', new Date().toLocaleDateString('en-US', { timeZone: WA_TZ }));
+    const _today = new Date().toLocaleDateString('en-US', { timeZone: WA_TZ, month:'2-digit', day:'2-digit', year:'numeric' }).replace(/\//g,'-');
+    _rndSet('rnd_todayDate', _today);
   }
+  // Build client dropdown
+  _rndBuildClientDropdown();
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
   _rndCurrentTab = 0;
@@ -3685,6 +3673,47 @@ function _rndRestoreFormData(data) {
     else el.value = val || '';
   });
 }
+
+function _rndBuildClientDropdown(){
+  const sel = document.getElementById('rnd_clientSelect');
+  if(!sel) return;
+  const clients = (window.clients||[]).filter(c=>c.status==='Active');
+  sel.innerHTML = '<option value="">— Select client —</option>' +
+    clients.map(c=>`<option value="${c.id}">${c.first} ${c.last}</option>`).join('');
+  // If restoring a draft, pre-select the matching client
+  const name = document.getElementById('rnd_clientName')?.value||'';
+  if(name){
+    const match = clients.find(c=>`${c.first} ${c.last}`===name);
+    if(match) sel.value = match.id;
+  }
+}
+
+function _rndAutoFillClient(clientId){
+  if(!clientId) return;
+  const c = (window.clients||[]).find(x=>x.id===clientId);
+  if(!c) return;
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
+  const fullName = `${c.first||''} ${c.last||''}`.trim();
+  set('rnd_clientName', fullName);
+  // Also update hidden field and dropdown label
+  const hiddenName = document.getElementById('rnd_clientName');
+  if(hiddenName) hiddenName.value = fullName;
+  set('rnd_dob',            c.dob||'');
+  set('rnd_address',        c.address||'');
+  set('rnd_allergies',      c.allergies||'');
+  set('rnd_diagnoses',      c.diagnosis||'');
+  set('rnd_physician',      c.physician||'');
+  set('rnd_physicianPhone', c.physicianPhone||'');
+  set('rnd_physicianFax',   c.physicianFax||'');
+  set('rnd_pharmacy',       c.pharmacy||'');
+  set('rnd_pharmacyPhone',  c.pharmacyPhone||'');
+  set('rnd_pharmacyFax',    c.pharmacyFax||'');
+  set('rnd_medications',    c.medications||'');
+  // Auto-fill RN name from profile
+  set('rnd_sigPrintedName', currentProfile?.full_name||'');
+  set('rnd_sigPhone',       currentProfile?.phone||'');
+  set('rnd_sigEmail',       currentProfile?.email||'');
+}  
 
 // ── SAVE TO DRAFTS ────────────────────────────────────────────
 async function submitRndAssessment() {
@@ -4740,8 +4769,14 @@ function buildRndModal(){
   // ── TAB 1: DEMOGRAPHICS & VITALS ──────────────────────────────
   const sec1 = `
     ${secHdr('Client Demographics','#1a3d6b')}
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Client *</label>
+      <select class="form-input form-select" id="rnd_clientSelect" onchange="_rndAutoFillClient(this.value)" style="width:100%">
+        <option value="">— Select client —</option>
+      </select>
+    </div>
+    <input type="hidden" id="rnd_clientName">
     <div class="form-row">
-      ${txt('clientName','Client Name *','Last, First')}
       ${txt('dob','Date of Birth','MM-DD-YYYY')}
       ${txt('age','Age','e.g. 74')}
     </div>
@@ -5135,7 +5170,16 @@ const sec7 = `
     ${ta('finalComments','Comments','Any other relevant clinical notes…',3)}
     ${row2(txt('sigPrintedName','Printed Name','RN full name'), txt('sigDate','Date','MM-DD-YYYY'))}
     ${row2(txt('sigPhone','Contact Phone','Phone number','tel'), txt('sigEmail','Contact Email','Email address','email'))}
-    ${txt('sigSignature','Signature (type your name)','Sign here')}`;
+    <div style="background:var(--blue-glow);border:1px solid var(--blue-dim);border-radius:var(--radius-sm);padding:14px;margin-top:8px;text-align:center">
+      <div style="font-size:13px;margin-bottom:6px">✍️ <strong>Signature</strong></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">
+        Save this form to Drafts first, then use the <strong>Sign</strong> button on the Drafts page to apply your electronic signature.<br>
+        The signature will be embedded in the printed document automatically.
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="submitRndAssessment()">
+        Save to Drafts → Sign there
+      </button>
+    </div>`;
 
   // ── TABS HEADER ──────────────────────────────────────────────
   const tabs = [
