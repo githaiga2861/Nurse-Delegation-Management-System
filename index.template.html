@@ -1021,552 +1021,6 @@ if('serviceWorker' in navigator){
     </div>
   </div>
 </div>
-
-  <!-- ════════════════════════════════════════════════════════════
-     RND NURSING ASSESSMENT MODAL
-     Delegation — Nursing Assessment and Initial Care Plan
-════════════════════════════════════════════════════════════ -->
-<div class="overlay" id="rndAssessmentModal">
-  <div class="modal" style="width:min(900px,97vw);max-height:93vh">
-    <div class="modal-header" style="background:linear-gradient(135deg,#1a3d6b,#2355a0);color:#fff;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:18px 28px">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <img src="images/logo.png" alt="Golden Years" style="width:44px;height:44px;object-fit:contain;border-radius:8px;background:#fff;padding:2px">
-          <div>
-            <h4 style="color:#fff;font-size:15px;margin-bottom:2px">Delegation — Nursing Assessment and Initial Care Plan</h4>
-            <p style="font-size:11px;color:#a8c8f8;margin:0">RND Nursing Assessment · WAC 388-76-61050</p>
-          </div>
-        </div>
-      </div>
-      <button onclick="closeRndModal()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:#ffffff40">✕</button>
-    </div>
-
-    <!-- TABS -->
-    <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none" id="rndTabs">
-      <div class="tab active" onclick="rndTab(this,'rndSec1')" style="white-space:nowrap;flex-shrink:0">📋 Demographics &amp; Vitals</div>
-      <div class="tab" onclick="rndTab(this,'rndSec2')" style="white-space:nowrap;flex-shrink:0">🧠 Pain / Neuro</div>
-      <div class="tab" onclick="rndTab(this,'rndSec3')" style="white-space:nowrap;flex-shrink:0">💬 Psycho-Social</div>
-      <div class="tab" onclick="rndTab(this,'rndSec4')" style="white-space:nowrap;flex-shrink:0">❤️ Cardio / Endocrine</div>
-      <div class="tab" onclick="rndTab(this,'rndSec5')" style="white-space:nowrap;flex-shrink:0">🍽️ Nutrition / GU</div>
-      <div class="tab" onclick="rndTab(this,'rndSec6')" style="white-space:nowrap;flex-shrink:0">🦴 MSK / Functional</div>
-      <div class="tab" onclick="rndTab(this,'rndSec7')" style="white-space:nowrap;flex-shrink:0">🩹 Skin / Body Map</div>
-      <div class="tab" onclick="rndTab(this,'rndSec8')" style="white-space:nowrap;flex-shrink:0">💊 Medications</div>
-      <div class="tab" onclick="rndTab(this,'rndSec9')" style="white-space:nowrap;flex-shrink:0">✍️ Delegation &amp; Sign</div>
-    </div>
-
-    <div class="modal-body" style="padding:20px 28px;overflow-y:auto;max-height:calc(93vh - 180px)">
-
-      <!-- ── TAB 1: DEMOGRAPHICS & VITALS ── -->
-      <div id="rndSec1">
-        <div style="background:linear-gradient(90deg,#1a3d6b08,transparent);border-left:3px solid #1a3d6b;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#1a3d6b;text-transform:uppercase;letter-spacing:0.06em">Client Demographics</div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Client Name *</label><input class="form-input" id="rnd_clientName" placeholder="Last, First"></div>
-          <div class="form-group"><label class="form-label">Date of Birth</label><input class="form-input" type="text" id="rnd_dob" placeholder="MM-DD-YYYY"></div>
-          <div class="form-group"><label class="form-label">Age</label><input class="form-input" id="rnd_age" placeholder="e.g. 74"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Gender</label><select class="form-input form-select" id="rnd_gender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
-          <div class="form-group"><label class="form-label">Today's Date</label><input class="form-input" type="text" id="rnd_todayDate" placeholder="MM-DD-YYYY"></div>
-          <div class="form-group"><label class="form-label">Type of Assessment</label><input class="form-input" id="rnd_typeOfAssessment" placeholder="e.g. Initial, Annual, Follow-up"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group" style="flex:2"><label class="form-label">Address</label><input class="form-input" id="rnd_address" placeholder="Street, City, ZIP"></div>
-          <div class="form-group"><label class="form-label">Phone</label><input class="form-input" type="tel" id="rnd_phone" placeholder="Phone number"></div>
-        </div>
-
-        <div style="background:linear-gradient(90deg,#1a3d6b08,transparent);border-left:3px solid #1a3d6b;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#1a3d6b;text-transform:uppercase;letter-spacing:0.06em">Medical History</div>
-        </div>
-        <div class="form-group"><label class="form-label">Diagnoses</label><textarea class="form-input" id="rnd_diagnoses" rows="3" placeholder="List all diagnoses…"></textarea></div>
-        <div class="form-group"><label class="form-label">Hospitalizations / Surgeries / Mental Illness / Developmental Disability</label><textarea class="form-input" id="rnd_hospitalizations" rows="2" placeholder="Relevant history…"></textarea></div>
-        <div class="form-group"><label class="form-label">Allergies</label><input class="form-input" id="rnd_allergies" placeholder="List allergies or NKDA"></div>
-
-        <div class="form-row-3">
-          <div class="form-group"><label class="form-label">Physician 1</label><input class="form-input" id="rnd_physician" placeholder="Name"></div>
-          <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="rnd_physicianPhone" placeholder="Phone"></div>
-          <div class="form-group"><label class="form-label">Fax</label><input class="form-input" id="rnd_physicianFax" placeholder="Fax"></div>
-        </div>
-        <div class="form-row-3">
-          <div class="form-group"><label class="form-label">Physician 2</label><input class="form-input" id="rnd_physician2" placeholder="Name"></div>
-          <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="rnd_physician2Phone" placeholder="Phone"></div>
-          <div class="form-group"><label class="form-label">Fax</label><input class="form-input" id="rnd_physician2Fax" placeholder="Fax"></div>
-        </div>
-        <div class="form-row-3">
-          <div class="form-group"><label class="form-label">Pharmacy</label><input class="form-input" id="rnd_pharmacy" placeholder="Pharmacy name"></div>
-          <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="rnd_pharmacyPhone" placeholder="Phone"></div>
-          <div class="form-group"><label class="form-label">Fax</label><input class="form-input" id="rnd_pharmacyFax" placeholder="Fax"></div>
-        </div>
-
-        <div style="background:linear-gradient(90deg,#1a3d6b08,transparent);border-left:3px solid #1a3d6b;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#1a3d6b;text-transform:uppercase;letter-spacing:0.06em">Vital Signs</div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px">
-          <div class="form-group"><label class="form-label">Temp</label><input class="form-input" id="rnd_temp" placeholder="°F"></div>
-          <div class="form-group"><label class="form-label">Pulse</label><input class="form-input" id="rnd_pulse" placeholder="bpm"></div>
-          <div class="form-group"><label class="form-label">Resp</label><input class="form-input" id="rnd_resp" placeholder="/min"></div>
-          <div class="form-group"><label class="form-label">SpO2</label><input class="form-input" id="rnd_spo2" placeholder="%"></div>
-          <div class="form-group"><label class="form-label">BP</label><input class="form-input" id="rnd_bp" placeholder="sys/dia"></div>
-          <div class="form-group"><label class="form-label">Wt</label><input class="form-input" id="rnd_wt" placeholder="lbs"></div>
-          <div class="form-group"><label class="form-label">Ht</label><input class="form-input" id="rnd_ht" placeholder="in"></div>
-        </div>
-      </div>
-
-      <!-- ── TAB 2: PAIN / NEURO ── -->
-      <div id="rndSec2" style="display:none">
-        <div style="background:linear-gradient(90deg,#8b000008,transparent);border-left:3px solid #8b0000;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#8b0000;text-transform:uppercase;letter-spacing:0.06em">Pain / Rest</div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Pain Scale 0-10 Current Level</label><input class="form-input" id="rnd_painLevel" placeholder="0-10"></div>
-          <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="rnd_painLocation" placeholder="Pain location"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div><div class="label" style="margin-bottom:8px">Pain Characteristics</div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_painChronic" style="accent-color:var(--blue)"> Chronic</label>
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Non-verbal Indicators</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
-              ${['Grimacing','anorexia','frowning','guarding','insomnia','crying','moaning','rubbing','agitation','irritable'].map(x=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="rnd_nv${x.charAt(0).toUpperCase()+x.slice(1)}" style="accent-color:var(--blue)"> ${x}</label>`).join('')}
-            </div>
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Rest/Sleep Patterns</div>
-            <div style="display:grid;grid-template-columns:1fr;gap:3px">
-              ${[['napsDay','Naps — day'],['napsAfternoon','Naps — afternoon'],['upXToilet','Up X for toilet/position chg'],['insomniaFlag','Insomnia: difficulty'],['fallingAsleep','Difficulty falling asleep'],['stayingAsleep','Difficulty staying asleep']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            </div>
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Pain / Rest — Other</label><textarea class="form-input" id="rnd_painOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#8b000008,transparent);border-left:3px solid #8b0000;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#8b0000;text-transform:uppercase;letter-spacing:0.06em">Neurological / Cognition</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div><div class="label" style="margin-bottom:8px">Status</div>
-            ${[['neurAlert','Alert & responsive'],['neurOriented','Oriented?'],['neurMemLoss','Memory Loss / Unable to determine'],['neurShortTerm','Short term memory loss'],['neurLongTerm','Long term memory loss']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-group" style="margin-top:6px"><label class="form-label">Cognition</label><input class="form-input" id="rnd_neurCognition" placeholder="Describe…"></div>
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Conditions</div>
-            ${[['neurCVATIA','CVA/TIA'],['neurTBI','TBI'],['neurAphasia','Aphasia'],['neurNonVerbal','Non-Verbal/unable to express self'],['neurImpairedJudge','Impaired judgment/decisions'],['neurImpairedCritical','Impaired critical thinking'],['neurConfusion','Confusion / Dementia']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Precautions</div>
-            ${[['neurDevDelay','Developmental Delay'],['neurSeizure','Seizure Precautions'],['neurHeadache','Headache/Migraine'],['neurDizziness','Dizziness'],['neurImpairedProp','Impaired/decreased proprioception']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Neuro — Other</label><textarea class="form-input" id="rnd_neurOther" rows="2"></textarea></div>
-
-        <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px">
-          <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:8px">Delirium Screen</div>
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_deliriumNo" style="accent-color:var(--green)"> NO Delirium</label>
-          <label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_deliriumSudden" style="accent-color:var(--amber);margin-top:2px"> Sudden or recent change in mental functioning, including attention span, orientation, coherence, or other unpredictable behavior/mental variations over the course of a day.</label>
-          <label style="display:flex;align-items:flex-start;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_deliriumSpeech" style="accent-color:var(--amber);margin-top:2px"> Sudden or recent onset of episodes of disorganized speech (consider immediate referral to MD)</label>
-        </div>
-      </div>
-
-      <!-- ── TAB 3: PSYCHO-SOCIAL ── -->
-      <div id="rndSec3" style="display:none">
-        <div style="background:linear-gradient(90deg,#5c2d9108,transparent);border-left:3px solid #5c2d91;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#5c2d91;text-transform:uppercase;letter-spacing:0.06em">Psycho-Social Behavior / Mood</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <div class="label" style="margin-bottom:8px">Depression Screen</div>
-            ${[['psyHxDepression','Hx of Depression'],['psyHospDepression','Hospitalization for Depression'],['psyCurrentDepRx','Current Depression Rx?'],['psySuicideAttempt','Suicide attempt or ideation'],['psyFatigue','Fatigue/decreased energy'],['psyRestlessness','Restlessness'],['psyInsomniaSleep','Insomnia or excessive sleeping'],['psyEmotLabile','Emotionally labile/Mood Swings'],['psyLimitedAttn','Limited attention-span'],['psyLossInterest','Loss of Interest in activities'],['psyDifficulty','Difficulty w/decisions, choices']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="label" style="margin-top:8px;margin-bottom:4px">Anxiety Screen</div>
-            ${[['psyAnxious','Easily worried or Anxious'],['psyAnxietyRx','Current Anti-anxiety Rx']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div>
-            <div class="label" style="margin-bottom:8px">Behavioral Issues — Column 1</div>
-            ${[['biForgetful','Forgetful'],['biImpulsive','Impulsive'],['biEasilyIrritated','Easily irritated/agitated'],['biDemanding','Demanding / Manipulative'],['biSuspicious','Suspicious / Accusatory'],['biUnrealistic','Unrealistic fears/Paranoia'],['biInappropLang','Inappropriate language'],['biYells','Yells/screams'],['biIntimidating','Intimidating/Verbal abuse'],['biCrying','Crying/Tearfulness'],['biObsessive','Obsessive/Compulsive'],['biRepetitive','Repetitive emotionally'],['biAttnSeeking','Attention seeking'],['biResistive','Resistive to Care'],['biSelfInjures','Self-Injures']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div>
-            <div class="label" style="margin-bottom:8px">Behavioral Issues — Column 2</div>
-            ${[['biSundowner','Sundowner/agitated @night'],['biExitSeeking','Exit Seeking/Escape risk'],['biWandering','Wandering'],['biMisuse','Hx Misuse/abuse/Addiction'],['biArson','Hx arson/accidental fires'],['biAssaultive','Assaultive/Combative'],['biPhysOutbursts','Physical Outbursts'],['biPropertyDestruct','Property Destruction'],['biDelusions','Delusions'],['biHallucinations','Hallucinations/psychosis'],['biInappropToileting','Inappropriate toileting'],['biPredatorySexual','Predatory sexual behavior'],['biSexualAgression','Sexual acting out/agression'],['biExposeSelf','Exposes self/disrobes'],['biPica','Pica (eats non-edible objects)']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Psycho-Social — Other</label><textarea class="form-input" id="rnd_psyOther" rows="2"></textarea></div>
-
-        <div style="background:var(--purple-dim);border:1px solid #8b6ef530;border-radius:var(--radius-sm);padding:14px;margin-top:14px">
-          <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:10px">DEMENTIA or DDD SPECIALTY PLACEMENT</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Placement needed if client meets criteria in <strong>all 3 areas</strong>:</div>
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_demShortTermMemory" style="accent-color:var(--purple)"> 1) Short term Memory Loss</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_demCognitiveImpair" style="accent-color:var(--purple)"> OR Cognitive Impairment</label>
-          <div class="form-row" style="margin:6px 0">
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_demNotOriented" style="accent-color:var(--purple)"> 2) Not oriented to place or time</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_demLimitedComm" style="accent-color:var(--purple)"> Limited ability to communicate</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_demHandsOnEating" style="accent-color:var(--purple)"> Hands-on assistance with eating or drinking</label>
-          </div>
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_demBehaviorSymptom" style="accent-color:var(--purple)"> 3) At least one behavior/symptom from Behavioral Issues Category above in the past 30 days</label>
-        </div>
-
-        <div style="background:linear-gradient(90deg,#5c2d9108,transparent);border-left:3px solid #5c2d91;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#5c2d91;text-transform:uppercase;letter-spacing:0.06em">Sensory</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div><div class="label" style="margin-bottom:8px">Vision / Touch</div>
-            ${[['sensGlassDistance','Glasses — Distance'],['sensGlassReading','Glasses — Reading'],['sensGlaucoma','Glaucoma'],['sensEyeDrops','Eye drops'],['sensCataracts','Cataracts'],['sensProsthesis','Blind / Prosthesis'],['sensCornealTransplant','Corneal transplant']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Dental</div>
-            ${[['sensOwnTeeth','Own teeth'],['sensCaries','Caries/Malocclusion'],['sensMissingTeeth','Missing teeth/edentulous'],['sensDentures','Dentures'],['sensImpairedTaste','Impaired Taste'],['sensImpairedSmell','Impaired Smell']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Hearing</div>
-            ${[['sensHearingAids','Hearing Aids'],['sensTinnitus','Tinnitus'],['sensEarInfection','Hx of Ear infection'],['sensWaxBuild','Wax build-up/ear drops'],['sensDrainage','Drainage'],['sensEarSurgery','Ear surgery/tubes']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Sensory — Other</label><textarea class="form-input" id="rnd_sensOther" rows="2"></textarea></div>
-      </div>
-
-      <!-- ── TAB 4: CARDIO / ENDOCRINE ── -->
-      <div id="rndSec4" style="display:none">
-        <div style="background:linear-gradient(90deg,#c0000008,transparent);border-left:3px solid #c00;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#c00;text-transform:uppercase;letter-spacing:0.06em">Cardio-Pulmonary</div>
-        </div>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:12px"><input type="checkbox" id="rnd_cardioNoIssues" style="accent-color:var(--green)"> <strong>No Cardio or Pulmonary Issues</strong></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div><div class="label" style="margin-bottom:8px">Cardiac Conditions</div>
-            ${[['cardioCAD','CAD'],['cardioHTN','HTN'],['cardioMI','MI'],['cardioCHF','CHF'],['cardioHighChol','High cholesterol'],['cardioArrhythmia','Arrhythmia'],['cardioPacemaker','Pacemaker'],['cardioValve','Valve issues'],['cardioAnticoag','Anticoag therapy'],['cardioAtherosclerosis','Arterio-/atherosclerosis'],['cardioAngina','Pain/angina/Ischemia']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-row" style="margin-top:6px">
-              <div class="form-group"><label class="form-label">Edema</label><input class="form-input" id="rnd_cardioEdema" placeholder="Location"></div>
-              <div class="form-group"><label class="form-label">Amt</label><input class="form-input" id="rnd_cardioEdemaAmt" placeholder="+1/+2/+3"></div>
-            </div>
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Pulmonary / Circulation</div>
-            ${[['cardioVenousStasis','Venous stasis'],['cardioCirculatory','Circulatory impairment'],['cardioCOPD','COPD'],['cardioAsthma','Asthma'],['cardioSmoking','Hx Smoking'],['cardioSOBRest','SOB @ rest'],['cardioSOBActivity','SOB w/activity'],['cardioWheezing','Wheezing'],['cardioProduct','Cough — Product'],['cardioNonProduct','Cough — Non-product']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Respiratory Equipment</div>
-            ${[['cardioHxTB','Hx Tuberculosis'],['cardioInhaler','Inhaler'],['cardioNebulizer','Nebulizer'],['cardioCPAP','C-PAP'],['cardioBiPAP','Bi-PAP'],['cardioVentilator','Ventilator'],['cardioO2','O2'],['cardioTracheostomy','Tracheostomy'],['cardioPosturalDrainage','Postural drainage/Chest PT'],['cardioSuctioning','Suctioning']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-group" style="margin-top:6px"><label class="form-label">O2 Rate (L/min)</label><input class="form-input" id="rnd_cardioO2Rate" placeholder="L/min"></div>
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Cardio-Pulmonary — Other</label><textarea class="form-input" id="rnd_cardioOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#c0000008,transparent);border-left:3px solid #c00;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#c00;text-transform:uppercase;letter-spacing:0.06em">Endocrine</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="rnd_endoDiabetic" style="accent-color:var(--blue)"> <strong>Diabetic</strong></label>
-            <div class="form-group"><label class="form-label">DM Medications</label><input class="form-input" id="rnd_endoDMMeds" placeholder="Medication names"></div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Frequency 1</label><input class="form-input" id="rnd_endoFreq1" placeholder="e.g. BID"></div>
-              <div class="form-group"><label class="form-label">Via</label><input class="form-input" id="rnd_endoVia1" placeholder="e.g. PO"></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Frequency 2</label><input class="form-input" id="rnd_endoFreq2" placeholder="e.g. QD"></div>
-              <div class="form-group"><label class="form-label">BG Check Frequency</label><input class="form-input" id="rnd_endoBGFreq" placeholder="e.g. QID"></div>
-            </div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_endoBGCheck" style="accent-color:var(--blue)"> Bl. Gl. Check</label>
-            <div class="form-group"><label class="form-label">BG Check Via</label><input class="form-input" id="rnd_endoBGVia" placeholder="e.g. finger stick"></div>
-          </div>
-          <div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="rnd_endoThyroid" style="accent-color:var(--blue)"> <strong>Thyroid</strong></label>
-            <div class="form-group"><label class="form-label">Thyroid Rx</label><input class="form-input" id="rnd_endoThyroidRx" placeholder="Medication"></div>
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Endocrine — Other</label><textarea class="form-input" id="rnd_endoOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#c0000008,transparent);border-left:3px solid #c00;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#c00;text-transform:uppercase;letter-spacing:0.06em">Communicable Disease HX / Infection Control</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:10px">
-          <div>${[['commHerpesShingles','Herpes/Shingles'],['commHepatitis','Hepatitis'],['commHIV','HIV']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}</div>
-          <div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_commTB" style="accent-color:var(--blue)"> Tuberculosis</label>
-            <div class="form-group"><label class="form-label">TB Rx</label><input class="form-input" id="rnd_commTBRx" placeholder="Rx"></div>
-            ${[['commMRSA','MRSA'],['commOther','Other']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Universal Precautions</div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_commAlways" style="accent-color:var(--green)"> <strong>Always</strong></label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_commSpecialPrecautions" style="accent-color:var(--amber)"> Special Precautions</label>
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Communicable Disease — Other Notes</label><textarea class="form-input" id="rnd_commOtherText" rows="2" placeholder="Additional notes…"></textarea></div>
-      </div>
-
-      <!-- ── TAB 5: NUTRITION / GU ── -->
-      <div id="rndSec5" style="display:none">
-        <div style="background:linear-gradient(90deg,#2a6b2a08,transparent);border-left:3px solid #2a6b2a;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#2a6b2a;text-transform:uppercase;letter-spacing:0.06em">Nutrition / Gastro-Intestinal</div>
-        </div>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:12px"><input type="checkbox" id="rnd_nutriNothingByMouth" style="accent-color:var(--red)"> <strong>Nothing by Mouth</strong></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="rnd_nutriOral" style="accent-color:var(--blue)"> <strong>Oral</strong></label>
-            <div class="form-group"><label class="form-label">Appetite</label><input class="form-input" id="rnd_nutriAppetite" placeholder="Good/Fair/Poor"></div>
-            <div class="form-group"><label class="form-label">Food Allergies</label><input class="form-input" id="rnd_nutriFoodAllergies" placeholder="Allergies"></div>
-            <div class="form-group"><label class="form-label">Diet</label><input class="form-input" id="rnd_nutriDiet" placeholder="e.g. Regular, Low-sodium"></div>
-            <div class="form-group"><label class="form-label">Consistency</label><input class="form-input" id="rnd_nutriConsistency" placeholder="e.g. Regular, Pureed"></div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:8px"><input type="checkbox" id="rnd_nutriSpecialNeeds" style="accent-color:var(--blue)"> Special Needs</label>
-            <div class="form-group"><label class="form-label">TF Formula</label><input class="form-input" id="rnd_nutriTFFormula" placeholder="Formula name"></div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Method</label><input class="form-input" id="rnd_nutriTFMethod" placeholder="e.g. PEG, NG"></div>
-              <div class="form-group"><label class="form-label">Rate</label><input class="form-input" id="rnd_nutriTFRate" placeholder="mL/hr"></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Amount</label><input class="form-input" id="rnd_nutriTFAmt" placeholder="mL"></div>
-              <div class="form-group"><label class="form-label">Frequency</label><input class="form-input" id="rnd_nutriTFFreq" placeholder="e.g. Q4h"></div>
-            </div>
-          </div>
-          <div>
-            ${[['nutriDysphagia','Dysphagia'],['nutriAspirationRisk','Aspiration Risk'],['nutriSwallowingPrecautions','Swallowing Precautions']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-group"><label class="form-label">Body Frame/Build</label><input class="form-input" id="rnd_nutriBodyFrame" placeholder="Thin/Average/Obese"></div>
-            <div class="form-group"><label class="form-label">Weight</label><input class="form-input" id="rnd_nutriWeight" placeholder="lbs/kg"></div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_nutriWaterBoluses" style="accent-color:var(--blue)"> Water Boluses</label>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rnd_nutriRestriction" style="accent-color:var(--blue)"> Restriction</label><input class="form-input" id="rnd_nutriRestrictionAmt" placeholder="mL/day"></div>
-            </div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_nutriSxDehydration" style="accent-color:var(--blue)"> S/Sx dehydration</label>
-          </div>
-          <div>
-            ${[['nutriGERD','GERD/Indigestion'],['nutriUlcer','Ulcer'],['nutriHxCancer','Hx of cancer']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-group"><label class="form-label">Bowels Managed by</label><input class="form-input" id="rnd_nutriBowelsManagedBy" placeholder="e.g. Caregiver, Self"></div>
-            ${[['nutriConstipation','Constipation'],['nutriDiarrhea','Diarrhea/loose stools'],['nutriIrritableBowel','Irritable Bowel'],['nutriAutonomicDysreflexia','Autonomic Dysreflexia'],['nutriOstomy','Ostomy']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Nutrition/GI — Other</label><textarea class="form-input" id="rnd_nutriOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#2a6b2a08,transparent);border-left:3px solid #2a6b2a;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#2a6b2a;text-transform:uppercase;letter-spacing:0.06em">Genito-Urinary</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guContinent" style="accent-color:var(--blue)"> Continent</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guIncontinent" style="accent-color:var(--blue)"> <strong>Incontinent</strong></label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guNeedsAssist" style="accent-color:var(--blue)"> Needs assist</label>
-            </div>
-            <div class="form-group"><label class="form-label">Toileting Managed by</label><input class="form-input" id="rnd_guToiletingManagedBy" placeholder="e.g. Caregiver, Self"></div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Equipment</label><input class="form-input" id="rnd_guEquipment" placeholder="e.g. Commode, Catheter"></div>
-              <div class="form-group"><label class="form-label">Urine</label><input class="form-input" id="rnd_guUrine" placeholder="Clear/Cloudy/Dark"></div>
-            </div>
-            ${[['guBPH','BPH'],['guProstateCancer','Hx Prostate Cancer'],['guBreastCancer','Breast Cancer'],['guOvarianCancer','Ovarian Cancer'],['guUterineCancer','Uterine Cancer']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Kidney Disease Stage</label><input class="form-input" id="rnd_guKidneyStage" placeholder="Stage #"></div>
-            </div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guAutonomicDysreflexia" style="accent-color:var(--blue)"> Autonomic Dysreflexia</label>
-          </div>
-          <div>
-            <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guUTI" style="accent-color:var(--blue)"> <strong>UTI</strong></label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_guFreqUTI" style="accent-color:var(--blue)"> Frequent UTI's</label>
-            </div>
-            ${[['guBurning','Burning'],['guFrequency','Frequency'],['guHematuria','Hematuria'],['guUrgency','Urgency'],['guBackPain','Back/abd pain w/ urination'],['guMentalStatusChanges','Mental Status Changes'],['guMalodorous','Malodorous'],['guRetention','Retention, inability to urinate'],['guCurrentRx','Current Rx (Fever)']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Genito-Urinary — Other</label><textarea class="form-input" id="rnd_guOther" rows="2"></textarea></div>
-      </div>
-
-      <!-- ── TAB 6: MSK / FUNCTIONAL ── -->
-      <div id="rndSec6" style="display:none">
-        <div style="background:linear-gradient(90deg,#5c3a1e08,transparent);border-left:3px solid #5c3a1e;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#5c3a1e;text-transform:uppercase;letter-spacing:0.06em">Musculo-Skeletal</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_mskFallPrecautions" style="accent-color:var(--red)"> <strong>Fall Precautions</strong></label>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Balance</label><input class="form-input" id="rnd_mskBalance" placeholder="Good/Fair/Poor"></div>
-              <div class="form-group"><label class="form-label">Wt Bearing Status</label><input class="form-input" id="rnd_mskWtBearingStatus" placeholder="FWB/PWB/NWB"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:8px">
-              ${[['mskWeakness','Weakness'],['mskTremor','Tremor'],['mskSpasticity','Spasticity'],['mskRigidity','Rigidity'],['mskNumbness','Numbness'],['mskTingling','Tingling'],['mskPain','Pain'],['mskParalysis','Paralysis'],['mskNeuropathy','Neuropathy']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            </div>
-            <div class="form-group"><label class="form-label">Assistive Devices</label><input class="form-input" id="rnd_mskAssistiveDevices" placeholder="e.g. Cane, Walker, Wheelchair"></div>
-          </div>
-          <div>
-            <div class="form-group"><label class="form-label">Hx Fracture Location</label><input class="form-input" id="rnd_mskFractureLocation" placeholder="Location of fracture"></div>
-            ${[['mskBoneLoss','Bone Loss'],['mskOsteoarthritis','Osteoarthritis'],['mskRheumatoid','Rheumatoid Arthritis'],['mskContracture','Contracture'],['mskAmputation','Amputation / Asymmetry'],['mskCongenitalAnomaly','Congenital Anomaly']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">MSK — Other</label><textarea class="form-input" id="rnd_mskOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#5c3a1e08,transparent);border-left:3px solid #5c3a1e;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#5c3a1e;text-transform:uppercase;letter-spacing:0.06em">Functional Status / Abilities</div>
-        </div>
-        <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;margin-bottom:12px"><input type="checkbox" id="rnd_abilitiesTotalDependence" style="accent-color:var(--red)"> <strong>Total dependence</strong></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
-          <div>
-            <div class="label" style="margin-bottom:8px">Assistance Needed (per task)</div>
-            ${['Eating','Meal prep','Toileting','Transfers','Bed Mobility','Dress','Grooming','Bathing'].map(task=>`
-            <div class="form-group" style="margin-bottom:8px">
-              <label class="form-label">${task}</label>
-              <input class="form-input" id="rnd_abilities_${task.toLowerCase().replace(/ /g,'')}" placeholder="Indep / Cuing / Min / Mod / Max / Total">
-            </div>`).join('')}
-          </div>
-          <div>
-            <div class="label" style="margin-bottom:8px">Mobility Status</div>
-            ${[['mobIndependent','Independent'],['mobGaitBelt','w/ Gait belt'],['mobStandByAssist','w/Stand By Assist/CGA'],['mob2PersonAssist','1-2 Person assist'],['mobWalker','w/Walker'],['mobSeatedWalker','w/ seated-walker'],['mobWheeledWalker','w/Wheeled walker']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-            <div class="form-group"><label class="form-label">Ramps/Stairs</label><input class="form-input" id="rnd_mobRampsStairs" placeholder="Can/Cannot negotiate"></div>
-            <div class="form-group"><label class="form-label">Wheel Chair Use</label><input class="form-input" id="rnd_mobWheelChair" placeholder="Describe"></div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_mobNonAmbulatory" style="accent-color:var(--red)"> Non-ambulatory/Bedbound/WC Bound</label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_mobRepositioning" style="accent-color:var(--blue)"> Repositioning/cuing needed Q</label>
-            <div class="form-group"><label class="form-label">Repositioning hrs</label><input class="form-input" id="rnd_mobRepositioningHrs" placeholder="e.g. 2"></div>
-            <div class="label" style="margin-top:8px;margin-bottom:6px">Transfers/Assistive Devices</div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_mobMechLift" style="accent-color:var(--blue)"> Mechanical lift</label>
-            <div class="form-group"><label class="form-label">Lift type</label><input class="form-input" id="rnd_mobMechLiftType" placeholder="e.g. Hoyer"></div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_mobSlidingBoard" style="accent-color:var(--blue)"> Sliding board</label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_mobTransferPole" style="accent-color:var(--blue)"> Transfer pole</label>
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Abilities — Other</label><textarea class="form-input" id="rnd_abilitiesOther" rows="2"></textarea></div>
-        <div class="form-group"><label class="form-label">Safety / Emergency — Other</label><textarea class="form-input" id="rnd_safetyOther" rows="2" placeholder="Emergency assistance notes…"></textarea></div>
-        <div class="form-group"><label class="form-label">Transportation Needs — Other</label><textarea class="form-input" id="rnd_transportOther" rows="2" placeholder="Transport notes…"></textarea></div>
-      </div>
-
-      <!-- ── TAB 7: SKIN / BODY MAP ── -->
-      <div id="rndSec7" style="display:none">
-        <div style="background:linear-gradient(90deg,#8b450008,transparent);border-left:3px solid #8b4500;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#8b4500;text-transform:uppercase;letter-spacing:0.06em">Skin / Integumentary</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px">
-          <div><div class="label" style="margin-bottom:8px">Appearance of Skin</div>
-            ${[['skinIntactSupple','Intact/supple'],['skinAgeAppropriate','Age-appropriate'],['skinThinFragile','Thin/Fragile/Aged'],['skinDehydrated','Dehydrated'],['skinDryFlakey','Dry/Flakey']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Alterations (note locations on body diagram)</div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Pigmentation</label><input class="form-input" id="rnd_skinPigmentation" placeholder="Location"></div>
-            </div>
-            <div class="form-group"><label class="form-label">Sensation</label><input class="form-input" id="rnd_skinSensation" placeholder="Describe"></div>
-            ${[['skinMolesBirthMarks','Moles/Birth Marks'],['skinScarsIncisions','Scars/Incisions'],['skinDecubitusPressure','Decubitus/Pressure Ulcer']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div><div class="label" style="margin-bottom:8px">Skin Conditions</div>
-            ${[['skinRash','Rash'],['skinBruises','Bruises/Petechiae'],['skinLaceration','Laceration/Abrasion/Tear/Lesion'],['skinHxPressureUlcer','Hx Pressure Ulcer'],['skinSpecialCare','Special Skin Care/Mattress needed']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Skin — Other</label><textarea class="form-input" id="rnd_skinOther" rows="2"></textarea></div>
-
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:10px">
-          <div style="font-size:12px;font-weight:700;color:var(--text2);text-align:center;margin-bottom:12px">Body Diagram — Mark skin issues directly on the diagram during assessment; describe below</div>
-          <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
-            <div style="text-align:center">
-              <div style="font-size:11px;font-weight:700;color:var(--text3);display:flex;justify-content:space-between;width:120px;margin-bottom:2px"><span>Right</span><span>Left</span></div>
-              <svg viewBox="0 0 120 220" width="120" height="220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#333" stroke-width="1.2" style="background:#fff;border:1px solid #ddd;border-radius:4px">
-                <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/><rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
-                <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
-                <path d="M38 42 Q28 42 22 50 L18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
-                <path d="M82 42 Q92 42 98 50 L102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
-                <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 L26 150 Q29 154 33 155 Q37 156 37 152 Q37 148 33 146 L28 144 Q31 146 35 145 Q39 144 38 140 Q37 136 33 136 L24 138" fill="#fff"/>
-                <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 L94 150 Q91 154 87 155 Q83 156 83 152 Q83 148 87 146 L92 144 Q89 146 85 145 Q81 144 82 140 Q83 136 87 136 L96 138" fill="#fff"/>
-                <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
-                <path d="M30 126 Q28 150 30 170 Q31 185 30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 Q38 202 40 196 L34 198 Q32 194 32 200" fill="#fff"/>
-                <path d="M90 126 Q92 150 90 170 Q89 185 90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 Q82 202 80 196 L86 198 Q88 194 88 200" fill="#fff"/>
-                <circle cx="60" cy="82" r="1.5" fill="#333"/>
-              </svg>
-              <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:3px">Anterior</div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:11px;font-weight:700;color:var(--text3);height:16px;margin-bottom:2px"></div>
-              <svg viewBox="0 0 120 220" width="120" height="220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#333" stroke-width="1.2" style="background:#fff;border:1px solid #ddd;border-radius:4px">
-                <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/><rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
-                <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
-                <line x1="60" y1="42" x2="60" y2="108" stroke-width="0.7" stroke-dasharray="2,2"/>
-                <ellipse cx="47" cy="62" rx="9" ry="12" stroke-width="0.8"/>
-                <ellipse cx="73" cy="62" rx="9" ry="12" stroke-width="0.8"/>
-                <path d="M38 42 Q28 42 22 50 L18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
-                <path d="M82 42 Q92 42 98 50 L102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
-                <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 L26 150 L28 144 L24 138" fill="#fff"/>
-                <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 L94 150 L92 144 L96 138" fill="#fff"/>
-                <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
-                <path d="M60 110 Q60 120 60 126" stroke-width="0.7"/>
-                <path d="M30 126 Q28 150 30 170 Q31 185 30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 L34 198 Q32 194 32 200" fill="#fff"/>
-                <path d="M90 126 Q92 150 90 170 Q89 185 90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 L86 198 Q88 194 88 200" fill="#fff"/>
-              </svg>
-              <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:3px">Posterior</div>
-            </div>
-          </div>
-          <div style="font-size:11.5px;color:var(--text3);text-align:center;margin-top:10px;font-style:italic">Note skin issue locations on the printed form. Use the Skin Issues Notes field below.</div>
-        </div>
-        <div class="form-group" style="margin-top:12px"><label class="form-label">Skin Issues Noted (describe and note location)</label><textarea class="form-input" id="rnd_skinComments" rows="3" placeholder="Describe skin issues and their locations…"></textarea></div>
-      </div>
-
-      <!-- ── TAB 8: MEDICATIONS ── -->
-      <div id="rndSec8" style="display:none">
-        <div style="background:linear-gradient(90deg,#2a5a8a08,transparent);border-left:3px solid #2a5a8a;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#2a5a8a;text-transform:uppercase;letter-spacing:0.06em">Therapies &amp; Treatments</div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Skilled Therapies (in-house/outside resource)</label><textarea class="form-input" id="rnd_therapiesSkilled" rows="3" placeholder="PT, OT, SLP, etc."></textarea></div>
-          <div class="form-group"><label class="form-label">Medical Treatments (in-house/outside resource)</label><textarea class="form-input" id="rnd_therapiesMedical" rows="3" placeholder="Wound care, IV therapy, etc."></textarea></div>
-        </div>
-
-        <div style="background:linear-gradient(90deg,#2a5a8a08,transparent);border-left:3px solid #2a5a8a;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#2a5a8a;text-transform:uppercase;letter-spacing:0.06em">Medications</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
-          <div>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:6px"><input type="checkbox" id="rnd_medSeeAttached" style="accent-color:var(--blue)"> See attached Med list</label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer"><input type="checkbox" id="rnd_medSeeNsgTaskSheet" style="accent-color:var(--blue)"> See Nsg Task Sheet</label>
-          </div>
-          <div>
-            ${[['medNewAdmission','New admission to AFH'],['medNewClient','New Client for RN Delegation/Assumption'],['medRefusalPlan','Refusal Plan'],['medSelfMedication','Self-Medication Administration (MD order REQUIRED)']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-          <div>
-            ${[['medSystemInPlace','Med System in place & adequate'],['medMARReviewed','MAR reviewed'],['medRecordsAllDoses','Records all doses'],['medRecordsAllPRNs','Records all PRNs'],['medNotesReasons','Notes reasons & results'],['medRecordsErrors','Records errors/missed Rx\'s correctly']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;margin-bottom:5px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-          </div>
-        </div>
-        <div class="form-group"><label class="form-label">Medications — Other</label><textarea class="form-input" id="rnd_medOther" rows="2"></textarea></div>
-        <div class="form-group"><label class="form-label">Medication List</label><textarea class="form-input" id="rnd_medicationList" rows="5" placeholder="List all current medications, dosages, routes, and frequencies…"></textarea></div>
-      </div>
-
-      <!-- ── TAB 9: DELEGATION & SIGN ── -->
-      <div id="rndSec9" style="display:none">
-        <div style="background:linear-gradient(90deg,#1a3d6b08,transparent);border-left:3px solid #1a3d6b;padding:8px 14px;margin-bottom:16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#1a3d6b;text-transform:uppercase;letter-spacing:0.06em">Nurse Delegation</div>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_delegStable" style="accent-color:var(--green)"> <strong>Client Condition is stable and predictable — YES</strong></label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_delegNoNeed" style="accent-color:var(--amber)"> No delegation needs at present</label>
-        </div>
-        <div class="form-group"><label class="form-label">Reason for Nurse Delegation — Limitations</label>
-          <div style="display:flex;gap:16px;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_delegPhysical" style="accent-color:var(--blue)"> Physical</label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="rnd_delegCognitive" style="accent-color:var(--blue)"> Cognitive</label>
-          </div>
-        </div>
-
-        <div class="label" style="margin-bottom:10px">Delegated Tasks — Page 6</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px">
-          ${[['delegOralMed','Oral Med. Admin'],['delegTrachStoma','Trach/stoma care'],['delegEnema','Enema'],['delegBGM','Blood Glucose Monitoring'],['delegPillCrushing','Pill Crushing (in food)'],['delegGTubeMeds','G-Tube Meds'],['delegRectalMed','Rectal Med. Admin.'],['delegInsulin','Insulin Injections'],['delegNebulizer','Nebulizer'],['delegTubeFeeding','Tube feeding'],['delegVaginalMed','Vaginal Med. Admin'],['delegColostomy','Colostomy/Ileostomy Care']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;padding:5px;background:var(--bg1);border:1px solid var(--border);border-radius:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-        </div>
-
-        <div class="label" style="margin-bottom:10px">Delegated Tasks — Page 7</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px">
-          ${[['delegInhalationMeds','Inhalation Meds'],['delegStomaCare','Stoma Care'],['delegBladderCath','Bladder Catheterization'],['delegSimpleDressing','Simple Dressing Change'],['delegCPAP','C-PAP /Bi-PAP Tx'],['delegOralSuctioning','Oral Suctioning'],['delegBladderIrrigation','Bladder Irrigation'],['delegEyeDrops','Eye/Ocular Drops/Ointment'],['delegEarDrops','Ear drops'],['delegUrinaryCathCare','Urinary Catheter Care'],['delegTopicalMed','Topical/Transdermal Med']].map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;padding:5px;background:var(--bg1);border:1px solid var(--border);border-radius:4px"><input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue)"> ${lbl}</label>`).join('')}
-        </div>
-        <div class="form-group"><label class="form-label">Oxygen Use (L/min)</label><input class="form-input" id="rnd_delegO2Rate" placeholder="e.g. 2"></div>
-        <div class="form-group"><label class="form-label">Delegation — Other</label><textarea class="form-input" id="rnd_delegOther" rows="2"></textarea></div>
-
-        <div style="background:linear-gradient(90deg,#1a3d6b08,transparent);border-left:3px solid #1a3d6b;padding:8px 14px;margin:16px 0;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          <div style="font-size:12px;font-weight:700;color:#1a3d6b;text-transform:uppercase;letter-spacing:0.06em">Nursing Recommendation &amp; Signature</div>
-        </div>
-        <div class="form-group"><label class="form-label">Nursing Recommendation — client's name for the commendation sentence</label>
-          <input class="form-input" id="rnd_nursingRecClientName" placeholder="Client's first name or preferred name"></div>
-        <div class="form-group"><label class="form-label">Strengths</label><textarea class="form-input" id="rnd_strengths" rows="2" placeholder="Client strengths observed…"></textarea></div>
-        <div class="form-group"><label class="form-label">Current Needs</label><textarea class="form-input" id="rnd_currentNeeds" rows="2" placeholder="Current clinical needs…"></textarea></div>
-        <div class="form-group"><label class="form-label">Comments</label><textarea class="form-input" id="rnd_finalComments" rows="3" placeholder="Any other relevant clinical notes…"></textarea></div>
-
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Printed Name</label><input class="form-input" id="rnd_sigPrintedName" placeholder="RN full name"></div>
-          <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="text" id="rnd_sigDate" placeholder="MM-DD-YYYY"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Contact Phone</label><input class="form-input" type="tel" id="rnd_sigPhone" placeholder="Phone number"></div>
-          <div class="form-group"><label class="form-label">Contact Email</label><input class="form-input" type="email" id="rnd_sigEmail" placeholder="Email address"></div>
-        </div>
-        <div class="form-group"><label class="form-label">Signature (print name as signature)</label><input class="form-input" id="rnd_sigSignature" placeholder="Sign here by typing your name"></div>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button onclick="closeRndModal()" class="btn btn-ghost btn-sm">Cancel</button>
-      <button class="btn btn-ghost btn-sm" onclick="rndNavPrev()" id="rndBtnPrev" style="display:none">← Previous</button>
-      <button class="btn btn-ghost btn-sm" onclick="rndNavNext()" id="rndBtnNext">Next →</button>
-      <button id="rnd_submitBtn" class="btn btn-primary btn-sm" onclick="submitRndAssessment()" style="display:none">Generate &amp; Save to Drafts</button>
-    </div>
-  </div>
-</div>
   
 <!-- 13-678A PRN Medication Generate Modal -->
 <div class="overlay" id="generate13678aModal">
@@ -4142,1134 +3596,511 @@ function showPage(id){
   });
 }
 
+ // ═══════════════════════════════════════════════════════════════
+// RND ASSESSMENT MODAL — fully JS-generated, no raw template literals in HTML
+// Call buildRndModal() once on page load to inject the modal into the DOM
 // ═══════════════════════════════════════════════════════════════
-// RND NURSING ASSESSMENT — Modal + Print Builder
-// Form: Delegation — Nursing Assessment and Initial Care Plan
-// ═══════════════════════════════════════════════════════════════
 
-// ── OPEN MODAL ────────────────────────────────────────────────
-function openRndAssessmentModal(editDraftId) {
-  // Close any other open overlays first
-  document.querySelectorAll('.overlay').forEach(el => {
-    el.style.display = 'none';
-    el.classList.remove('open');
-  });
-  window._rndDraftId = editDraftId || null;
-  if (editDraftId) {
-    const d = (window.formDrafts || []).find(x => x.id === editDraftId);
-    if (d && d.form_data) _rndRestoreFormData(d.form_data);
-  } else {
-    _rndClearForm();
-    // Auto-fill client if one active client
-    const ac = (window.clients || []).filter(c => c.status === 'Active');
-    if (ac.length >= 1) {
-      const c = ac[0];
-      _rndSet('rnd_clientName', `${c.first} ${c.last}`);
-      _rndSet('rnd_dob', c.dob || '');
-      _rndSet('rnd_address', c.address || '');
-      _rndSet('rnd_diagnosis', c.diagnosis || '');
-      _rndSet('rnd_allergies', c.allergies || '');
-      _rndSet('rnd_physician', c.physician || '');
-      _rndSet('rnd_physicianPhone', c.physicianPhone || '');
-      _rndSet('rnd_pharmacy', c.pharmacy || '');
-      _rndSet('rnd_pharmacyPhone', c.pharmacyPhone || '');
-      _rndSet('rnd_medications', c.medications || '');
-    }
-    const _today = new Date().toLocaleDateString('en-US', { timeZone: WA_TZ, month:'2-digit', day:'2-digit', year:'numeric' }).replace(/\//g,'-');
-  _rndSet('rnd_todayDate', _today);
-  }
-  document.getElementById('rndAssessmentModal').classList.add('open');
-  document.getElementById('rndAssessmentModal').style.display = 'flex';
-  // Force tab 1 visible, hide all others
-  _rndCurrentTab = 0;
-  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = i === 0 ? 'block' : 'none';
-  });
-  document.querySelectorAll('#rndTabs .tab').forEach((t,i) => {
-    t.classList.toggle('active', i === 0);
-  });
-  _rndUpdateNavBtns();
-}
+function buildRndModal(){
+  // Helper: generate a labelled checkbox
+  const cb = (id, label, accent) =>
+    `<label style="display:flex;align-items:flex-start;gap:6px;font-size:11.5px;cursor:pointer;margin-bottom:5px;line-height:1.4">
+      <input type="checkbox" id="rnd_${id}" style="accent-color:${accent||'var(--blue)'};margin-top:2px;flex-shrink:0"> ${label}</label>`;
 
-function closeRndModal() {
-  document.getElementById('rndAssessmentModal').style.display = 'none';
-  document.getElementById('rndAssessmentModal').classList.remove('open');
-}
+  // Helper: section header bar
+  const secHdr = (label, color) =>
+    `<div style="background:linear-gradient(90deg,${color}12,transparent);border-left:3px solid ${color};padding:8px 14px;margin-bottom:14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
+      <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.06em">${label}</div>
+    </div>`;
 
-function _rndSet(id, val) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (el.type === 'checkbox') el.checked = !!val;
-  else el.value = val || '';
-}
+  // Helper: text input
+  const txt = (id, label, ph, type) =>
+    `<div class="form-group"><label class="form-label">${label}</label>
+      <input class="form-input" type="${type||'text'}" id="rnd_${id}" placeholder="${ph||''}"></div>`;
 
-function _rndGet(id) {
-  const el = document.getElementById(id);
-  if (!el) return '';
-  if (el.type === 'checkbox') return el.checked;
-  return el.value || '';
-}
+  // Helper: textarea
+  const ta = (id, label, ph, rows) =>
+    `<div class="form-group"><label class="form-label">${label}</label>
+      <textarea class="form-input" id="rnd_${id}" rows="${rows||2}" placeholder="${ph||''}"></textarea></div>`;
 
-function _rndClearForm() {
-  document.querySelectorAll('#rndAssessmentModal input, #rndAssessmentModal textarea, #rndAssessmentModal select').forEach(el => {
-    if (el.type === 'checkbox') el.checked = false;
-    else el.value = '';
-  });
-}
+  // Helper: 2-col checkbox grid
+  const cbGrid2 = (items, accent) =>
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px">${items.map(([id,lbl])=>cb(id,lbl,accent)).join('')}</div>`;
 
-// ── COLLECT ALL FORM DATA ─────────────────────────────────────
-function _rndCollectData() {
-  const ids = [...document.querySelectorAll('#rndAssessmentModal [id^="rnd_"]')];
-  const data = {};
-  ids.forEach(el => {
-    const key = el.id.replace('rnd_', '');
-    if (el.type === 'checkbox') data[key] = el.checked;
-    else data[key] = el.value || '';
-  });
-  return data;
-}
+  // Helper: 1-col checkbox list
+  const cbList = (items, accent) =>
+    items.map(([id,lbl])=>cb(id,lbl,accent)).join('');
 
-function _rndRestoreFormData(data) {
-  Object.entries(data).forEach(([key, val]) => {
-    const el = document.getElementById('rnd_' + key);
-    if (!el) return;
-    if (el.type === 'checkbox') el.checked = !!val;
-    else el.value = val || '';
-  });
-}
+  // Helper: row of inputs
+  const row2 = (a,b) => `<div class="form-row">${a}${b}</div>`;
+  const row3 = (a,b,c) => `<div class="form-row-3">${a}${b}${c}</div>`;
 
-// ── SAVE TO DRAFTS ────────────────────────────────────────────
-async function submitRndAssessment() {
-  const clientName = _rndGet('rnd_clientName');
-  if (!clientName.trim()) { alert('Client Name is required.'); return; }
-  const formData = _rndCollectData();
-  const btn = document.getElementById('rnd_submitBtn');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  const now = new Date().toISOString();
-  const editId = window._rndDraftId;
-  const existing = editId ? (window.formDrafts || []).find(x => x.id === editId) : null;
-  const draft = {
-    id: existing ? existing.id : Date.now().toString(),
-    user_id: currentUser?.id,
-    form_id: 'form-rnd-assessment',
-    form_name: 'Delegation — Nursing Assessment and Initial Care Plan',
-    client_id: null,
-    client_name: clientName,
-    caregiver_id: null,
-    caregiver_name: '—',
-    facility_id: null,
-    facility_name: '—',
-    form_data: formData,
-    status: 'Draft — Printed, Awaiting Signature',
-    created_at: existing ? existing.created_at : now,
-    updated_at: now
-  };
-  initSupa();
-  if (supa && currentUser) {
-    if (existing) {
-      await supa.from('form_drafts').update({ form_data: formData, client_name: clientName, updated_at: now }).eq('id', draft.id);
-    } else {
-      await supa.from('form_drafts').insert(draft).catch(e => console.warn(e));
-    }
-  }
-  window.formDrafts = window.formDrafts || [];
-  if (existing) {
-    const idx = window.formDrafts.findIndex(x => x.id === draft.id);
-    if (idx > -1) window.formDrafts[idx] = { ...window.formDrafts[idx], ...draft };
-    else window.formDrafts.unshift(draft);
-  } else {
-    window.formDrafts.unshift(draft);
-  }
-  btn.textContent = 'Generate & Save to Drafts'; btn.disabled = false;
-  closeRndModal();
-  showPage('documents');
-  setTimeout(() => { docsShowTab('Drafts'); renderDraftsTable(window.formDrafts); }, 100);
-  alert('✅ RND Nursing Assessment saved to Drafts.\n\nPrint from the Drafts tab.');
-}
+  // ── TAB 1: DEMOGRAPHICS & VITALS ──────────────────────────────
+  const sec1 = `
+    ${secHdr('Client Demographics','#1a3d6b')}
+    <div class="form-row">
+      ${txt('clientName','Client Name *','Last, First')}
+      ${txt('dob','Date of Birth','MM-DD-YYYY')}
+      ${txt('age','Age','e.g. 74')}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Gender</label>
+        <select class="form-input form-select" id="rnd_gender">
+          <option value="">Select…</option><option>Male</option><option>Female</option>
+          <option>Non-binary</option><option>Prefer not to say</option>
+        </select></div>
+      ${txt('todayDate',"Today's Date",'MM-DD-YYYY')}
+      ${txt('typeOfAssessment','Type of Assessment','e.g. Initial, Annual, Follow-up')}
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">${txt('address','Address','Street, City, ZIP')}</div>
+      ${txt('phone','Phone','Phone number','tel')}
+    </div>
+    ${secHdr('Medical History','#1a3d6b')}
+    ${ta('diagnoses','Diagnoses','List all diagnoses…',3)}
+    ${ta('hospitalizations','Hospitalizations / Surgeries / Mental Illness / Developmental Disability','Relevant history…',2)}
+    ${txt('allergies','Allergies','List allergies or NKDA')}
+    ${row3(txt('physician','Physician 1','Name'),txt('physicianPhone','Phone','Phone'),txt('physicianFax','Fax','Fax'))}
+    ${row3(txt('physician2','Physician 2','Name'),txt('physician2Phone','Phone','Phone'),txt('physician2Fax','Fax','Fax'))}
+    ${row3(txt('pharmacy','Pharmacy','Pharmacy name'),txt('pharmacyPhone','Phone','Phone'),txt('pharmacyFax','Fax','Fax'))}
+    ${secHdr('Vital Signs','#1a3d6b')}
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px">
+      ${txt('temp','Temp','°F')}${txt('pulse','Pulse','bpm')}${txt('resp','Resp','/min')}
+      ${txt('spo2','SpO2','%')}${txt('bp','BP','sys/dia')}${txt('wt','Wt','lbs')}${txt('ht','Ht','in')}
+    </div>`;
 
-// ── EDIT DRAFT HANDLER ────────────────────────────────────────
-function editRndAssessmentDraft(d, fd) {
-  _rndRestoreFormData(fd);
-  window._rndDraftId = d.id;
-  document.getElementById('rndAssessmentModal').classList.add('open');
-  document.getElementById('rndAssessmentModal').style.display = 'flex';
-  // Initialise tabs — show tab 1, hide all others
-  _rndCurrentTab = 0;
-  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i)=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display = i===0 ? 'block' : 'none';
-  });
-  document.querySelectorAll('#rndTabs .tab').forEach((t,i)=>{
-    t.classList.toggle('active', i===0);
-  });
-  _rndUpdateNavBtns();
-  const btn = document.getElementById('rnd_submitBtn');
-  if (btn) btn.textContent = 'Save Changes';
-}
+  // ── TAB 2: PAIN / NEURO ──────────────────────────────────────
+  const sec2 = `
+    ${secHdr('Pain / Rest','#8b0000')}
+    ${row2(txt('painLevel','Pain Scale 0-10 Current Level','0-10'), txt('painLocation','Location','Pain location'))}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div><div class="label" style="margin-bottom:6px">Pain Characteristics</div>
+        ${cb('painChronic','Chronic')}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Non-verbal Indicators</div>
+        ${cbGrid2([['nvGrimacing','Grimacing'],['nvAnorexia','anorexia'],['nvFrowning','frowning'],['nvGuarding','guarding'],['nvInsomnia','insomnia'],['nvCrying','crying'],['nvMoaning','moaning'],['nvRubbing','rubbing'],['nvAgitation','agitation'],['nvIrritable','irritable']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Rest/Sleep Patterns</div>
+        ${cbList([['napsDay','Naps — day'],['napsAfternoon','Naps — afternoon'],['upXToilet','Up X for toilet/position chg'],['insomniaFlag','Insomnia: difficulty'],['fallingAsleep','Difficulty falling asleep'],['stayingAsleep','Difficulty staying asleep']])}
+      </div>
+    </div>
+    ${ta('painOther','Pain / Rest — Other','',2)}
+    ${secHdr('Neurological / Cognition','#8b0000')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div><div class="label" style="margin-bottom:6px">Status</div>
+        ${cbList([['neurAlert','Alert & responsive'],['neurOriented','Oriented?'],['neurMemLoss','Memory Loss / Unable to determine'],['neurShortTerm','Short term memory loss'],['neurLongTerm','Long term memory loss']])}
+        ${txt('neurCognition','Cognition','Describe…')}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Conditions</div>
+        ${cbList([['neurCVATIA','CVA/TIA'],['neurTBI','TBI'],['neurAphasia','Aphasia'],['neurNonVerbal','Non-Verbal/unable to express self'],['neurImpairedJudge','Impaired judgment/decisions'],['neurImpairedCritical','Impaired critical thinking'],['neurConfusion','Confusion / Dementia']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Precautions</div>
+        ${cbList([['neurDevDelay','Developmental Delay'],['neurSeizure','Seizure Precautions'],['neurHeadache','Headache/Migraine'],['neurDizziness','Dizziness'],['neurImpairedProp','Impaired/decreased proprioception']])}
+      </div>
+    </div>
+    ${ta('neurOther','Neuro — Other','',2)}
+    <div style="background:var(--amber-dim);border:1px solid #d4873a30;border-radius:var(--radius-sm);padding:12px 14px;margin-top:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px">Delirium Screen</div>
+      ${cb('deliriumNo','NO Delirium','var(--green)')}
+      ${cb('deliriumSudden','Sudden or recent change in mental functioning, including attention span, orientation, coherence, or other unpredictable behavior/mental variations over the course of a day.','var(--amber)')}
+      ${cb('deliriumSpeech','Sudden or recent onset of episodes of disorganized speech (consider immediate referral to MD)','var(--amber)')}
+    </div>`;
 
-// ── PRINT BUILDER ─────────────────────────────────────────────
-function buildRndAssessmentPrintHtml(fd, draft) {
-  const v = (key, fallback) => {
-    const val = fd[key];
-    if (val === undefined || val === null || val === '') return fallback || '';
-    return String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  };
-  const chk = key => fd[key] ? '&#9745;' : '&#9744;'; // ☑ or ☐
-  const line = (label, val, w) => `<span style="display:inline-flex;align-items:baseline;gap:3px;${w?'width:'+w:''}"><strong>${label}</strong> <span style="border-bottom:1px solid #000;min-width:${w?'auto':'60px'};flex:1;display:inline-block">${v(val)}&nbsp;</span></span>`;
+  // ── TAB 3: PSYCHO-SOCIAL ─────────────────────────────────────
+  const sec3 = `
+    ${secHdr('Psycho-Social Behavior / Mood','#5c2d91')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div>
+        <div class="label" style="margin-bottom:6px">Depression Screen</div>
+        ${cbList([['psyHxDepression','Hx of Depression'],['psyHospDepression','Hospitalization for Depression'],['psyCurrentDepRx','Current Depression Rx?'],['psySuicideAttempt','Suicide attempt or ideation'],['psyFatigue','Fatigue/decreased energy'],['psyRestlessness','Restlessness'],['psyInsomniaSleep','Insomnia or excessive sleeping'],['psyEmotLabile','Emotionally labile/Mood Swings'],['psyLimitedAttn','Limited attention-span'],['psyLossInterest','Loss of Interest in activities'],['psyDifficulty','Difficulty w/decisions, choices']],'#5c2d91')}
+        <div class="label" style="margin-top:8px;margin-bottom:6px">Anxiety Screen</div>
+        ${cbList([['psyAnxious','Easily worried or Anxious'],['psyAnxietyRx','Current Anti-anxiety Rx']],'#5c2d91')}
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:6px">Behavioral Issues — Col 1</div>
+        ${cbList([['biForgetful','Forgetful'],['biImpulsive','Impulsive'],['biEasilyIrritated','Easily irritated/agitated'],['biDemanding','Demanding / Manipulative'],['biSuspicious','Suspicious / Accusatory'],['biUnrealistic','Unrealistic fears/Paranoia'],['biInappropLang','Inappropriate language'],['biYells','Yells/screams'],['biIntimidating','Intimidating/Verbal abuse'],['biCrying','Crying/Tearfulness'],['biObsessive','Obsessive/Compulsive'],['biRepetitive','Repetitive emotionally'],['biAttnSeeking','Attention seeking'],['biResistive','Resistive to Care'],['biSelfInjures','Self-Injures']],'#5c2d91')}
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:6px">Behavioral Issues — Col 2</div>
+        ${cbList([['biSundowner','Sundowner/agitated @night'],['biExitSeeking','Exit Seeking/Escape risk'],['biWandering','Wandering'],['biMisuse','Hx Misuse/abuse/Addiction'],['biArson','Hx arson/accidental fires'],['biAssaultive','Assaultive/Combative'],['biPhysOutbursts','Physical Outbursts'],['biPropertyDestruct','Property Destruction'],['biDelusions','Delusions'],['biHallucinations','Hallucinations/psychosis'],['biInappropToileting','Inappropriate toileting'],['biPredatorySexual','Predatory sexual behavior'],['biSexualAgression','Sexual acting out/agression'],['biExposeSelf','Exposes self/disrobes'],['biPica','Pica (eats non-edible objects)']],'#5c2d91')}
+      </div>
+    </div>
+    ${ta('psyOther','Psycho-Social — Other','',2)}
+    <div style="background:var(--purple-dim);border:1px solid #8b6ef530;border-radius:var(--radius-sm);padding:14px;margin:12px 0">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px">DEMENTIA or DDD SPECIALTY PLACEMENT</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Placement needed if client meets criteria in <strong>all 3 areas</strong>:</div>
+      ${cb('demShortTermMemory','1) Short term Memory Loss','var(--purple)')}
+      ${cb('demCognitiveImpair','OR Cognitive Impairment (AND)','var(--purple)')}
+      ${cb('demNotOriented','2) Not oriented to place or time','var(--purple)')}
+      ${cb('demLimitedComm','Limited ability to communicate','var(--purple)')}
+      ${cb('demHandsOnEating','Hands-on assistance with eating or drinking (AND)','var(--purple)')}
+      ${cb('demBehaviorSymptom','3) At least one behavior/symptom from Behavioral Issues in the past 30 days','var(--purple)')}
+    </div>
+    ${secHdr('Sensory','#5c2d91')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div><div class="label" style="margin-bottom:6px">Vision / Touch</div>
+        ${cbList([['sensGlassDistance','Glasses — Distance'],['sensGlassReading','Glasses — Reading'],['sensGlaucoma','Glaucoma'],['sensEyeDrops','Eye drops'],['sensCataracts','Cataracts'],['sensProsthesis','Blind / Prosthesis'],['sensCornealTransplant','Corneal transplant']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Dental</div>
+        ${cbList([['sensOwnTeeth','Own teeth'],['sensCaries','Caries/Malocclusion'],['sensMissingTeeth','Missing teeth/edentulous'],['sensDentures','Dentures'],['sensImpairedTaste','Impaired Taste'],['sensImpairedSmell','Impaired Smell']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Hearing</div>
+        ${cbList([['sensHearingAids','Hearing Aids'],['sensTinnitus','Tinnitus'],['sensEarInfection','Hx of Ear infection'],['sensWaxBuild','Wax build-up/ear drops'],['sensDrainage','Drainage'],['sensEarSurgery','Ear surgery/tubes']])}
+      </div>
+    </div>
+    ${ta('sensOther','Sensory — Other','',2)}`;
 
-  const LOGO = 'images/logo.png';
+  // ── TAB 4: CARDIO / ENDOCRINE ────────────────────────────────
+  const sec4 = `
+    ${secHdr('Cardio-Pulmonary','#c00000')}
+    ${cb('cardioNoIssues','No Cardio or Pulmonary Issues','var(--green)')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:10px 0">
+      <div><div class="label" style="margin-bottom:6px">Cardiac Conditions</div>
+        ${cbList([['cardioCAD','CAD'],['cardioHTN','HTN'],['cardioMI','MI'],['cardioCHF','CHF'],['cardioHighChol','High cholesterol'],['cardioArrhythmia','Arrhythmia'],['cardioPacemaker','Pacemaker'],['cardioValve','Valve issues'],['cardioAnticoag','Anticoag therapy'],['cardioAtherosclerosis','Arterio-/atherosclerosis'],['cardioAngina','Pain/angina/Ischemia']])}
+        ${row2(txt('cardioEdema','Edema','Location'),txt('cardioEdemaAmt','Amt','+1/+2/+3'))}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Pulmonary / Circulation</div>
+        ${cbList([['cardioVenousStasis','Venous stasis'],['cardioCirculatory','Circulatory impairment'],['cardioCOPD','COPD'],['cardioAsthma','Asthma'],['cardioSmoking','Hx Smoking'],['cardioSOBRest','SOB @ rest'],['cardioSOBActivity','SOB w/activity'],['cardioWheezing','Wheezing'],['cardioProduct','Cough — Productive'],['cardioNonProduct','Cough — Non-productive']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Respiratory Equipment</div>
+        ${cbList([['cardioHxTB','Hx Tuberculosis'],['cardioInhaler','Inhaler'],['cardioNebulizer','Nebulizer'],['cardioCPAP','C-PAP'],['cardioBiPAP','Bi-PAP'],['cardioVentilator','Ventilator'],['cardioO2','O2'],['cardioTracheostomy','Tracheostomy'],['cardioPosturalDrainage','Postural drainage/Chest PT'],['cardioSuctioning','Suctioning']])}
+        ${txt('cardioO2Rate','O2 Rate (L/min)','L/min')}
+      </div>
+    </div>
+    ${ta('cardioOther','Cardio-Pulmonary — Other','',2)}
+    ${secHdr('Endocrine','#c00000')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div>
+        ${cb('endoDiabetic','Diabetic')}
+        ${txt('endoDMMeds','DM Medications','Medication names')}
+        ${row2(txt('endoFreq1','Frequency 1','e.g. BID'),txt('endoVia1','Via','e.g. PO'))}
+        ${row2(txt('endoFreq2','Frequency 2','e.g. QD'),txt('endoBGFreq','BG Check Frequency','e.g. QID'))}
+        ${cb('endoBGCheck','Bl. Gl. Check')}
+        ${txt('endoBGVia','BG Check Via','e.g. finger stick')}
+      </div>
+      <div>
+        ${cb('endoThyroid','Thyroid')}
+        ${txt('endoThyroidRx','Thyroid Rx','Medication')}
+      </div>
+    </div>
+    ${ta('endoOther','Endocrine — Other','',2)}
+    ${secHdr('Communicable Disease / Infection Control','#c00000')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:10px">
+      <div>${cbList([['commHerpesShingles','Herpes/Shingles'],['commHepatitis','Hepatitis'],['commHIV','HIV']])}</div>
+      <div>
+        ${cb('commTB','Tuberculosis')}
+        ${txt('commTBRx','TB Rx','Rx')}
+        ${cb('commMRSA','MRSA')}
+        ${cb('commOther','Other')}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Universal Precautions</div>
+        ${cb('commAlways','Always','var(--green)')}
+        ${cb('commSpecialPrecautions','Special Precautions','var(--amber)')}
+      </div>
+    </div>
+    ${ta('commOtherText','Communicable Disease — Other Notes','Additional notes…',2)}`;
 
-  const css = `
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff}
-    @page{size:letter portrait;margin:0.4in 0.4in 0.35in 0.4in}
-    @media print{body{margin:0}.no-print{display:none!important}section{page-break-after:always}section:last-child{page-break-after:avoid}}
-    section{width:100%;padding:0}
-    .pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;padding-bottom:4px;border-bottom:3px solid #c00}
-    .pg-header-logo{width:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .pg-header-logo img{width:66px;height:66px;object-fit:contain}
-    .pg-header-center{flex:1;text-align:center;padding:0 8px}
-    .pg-header-center .delegation{font-size:22pt;color:#aaa;font-weight:300;letter-spacing:0.02em;line-height:1.1}
-    .pg-header-right{text-align:right;font-size:10pt;font-weight:700;line-height:1.4}
-    .demo-row{margin:6px 0;font-size:9pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
-    .demo-field{display:inline-flex;align-items:baseline;gap:3px}
-    .demo-field strong{white-space:nowrap;font-size:9pt}
-    .demo-underline{border-bottom:1px solid #000;min-width:50px;display:inline-block}
-    .blue-bar{background:#a8c8d8;padding:3px 6px;font-weight:700;font-size:9pt;text-align:center;margin:3px 0}
-    table.form-table{width:100%;border-collapse:collapse;margin-bottom:3px}
-    table.form-table td,table.form-table th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
-    table.form-table .section-label{font-weight:700;font-size:8.5pt;width:90px;min-width:90px;background:#fff}
-    .chk{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-size:8.5pt}
-    .chk-grid{display:grid;gap:1px 6px;font-size:8.5pt}
-    .sub-header{background:#000;color:#fff;font-weight:700;font-size:9pt;padding:2px 6px;text-align:center;margin:2px 0}
-    .abilities-table{width:100%;border-collapse:collapse}
-    .abilities-table td,.abilities-table th{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle}
-    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:8.5pt}
-    .body-figures{display:flex;justify-content:center;gap:0;margin:8px 0}
-    .body-figure{display:flex;flex-direction:column;align-items:center;gap:2px}
-    .body-figure svg{width:120px;height:220px}
-    .body-figure .fig-label{font-size:8.5pt;font-style:italic}
-    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:8pt;font-weight:700}
-    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:14px}
-    .comments-line{display:flex;align-items:baseline;gap:4px;margin:3px 0;font-size:9pt}
-    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:4px;padding-top:2px;font-size:8pt}
-    .deleg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;margin:2px 0}
-    .deleg-cell{border:1px solid #000;padding:2px 4px;font-size:8pt}
-    .sig-table{width:100%;border-collapse:collapse}
-    .sig-table td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:9pt;min-height:40px}
-    .text-area-field{width:100%;min-height:28px;font-size:8.5pt;word-wrap:break-word;white-space:pre-wrap}
-    .other-line{color:#555;font-size:8pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:14px;padding-left:4px}`;
+  // ── TAB 5: NUTRITION / GU ────────────────────────────────────
+  const sec5 = `
+    ${secHdr('Nutrition / Gastro-Intestinal','#2a6b2a')}
+    ${cb('nutriNothingByMouth','Nothing by Mouth','var(--red)')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:10px 0">
+      <div>
+        ${cb('nutriOral','Oral')}
+        ${txt('nutriAppetite','Appetite','Good/Fair/Poor')}
+        ${txt('nutriFoodAllergies','Food Allergies','Allergies')}
+        ${txt('nutriDiet','Diet','e.g. Regular, Low-sodium')}
+        ${txt('nutriConsistency','Consistency','e.g. Regular, Pureed')}
+        ${cb('nutriSpecialNeeds','Special Needs')}
+        ${txt('nutriTFFormula','TF Formula','Formula name')}
+        ${row2(txt('nutriTFMethod','Method','e.g. PEG, NG'),txt('nutriTFRate','Rate','mL/hr'))}
+        ${row2(txt('nutriTFAmt','Amount','mL'),txt('nutriTFFreq','Frequency','e.g. Q4h'))}
+      </div>
+      <div>
+        ${cbList([['nutriDysphagia','Dysphagia'],['nutriAspirationRisk','Aspiration Risk'],['nutriSwallowingPrecautions','Swallowing Precautions']])}
+        ${txt('nutriBodyFrame','Body Frame/Build','Thin/Average/Obese')}
+        ${txt('nutriWeight','Weight','lbs/kg')}
+        ${cb('nutriWaterBoluses','Water Boluses')}
+        ${cb('nutriRestriction','Restriction')}
+        ${txt('nutriRestrictionAmt','Restriction Amount','mL/day')}
+        ${cb('nutriSxDehydration','S/Sx dehydration')}
+      </div>
+      <div>
+        ${cbList([['nutriGERD','GERD/Indigestion'],['nutriUlcer','Ulcer'],['nutriHxCancer','Hx of cancer']])}
+        ${txt('nutriBowelsManagedBy','Bowels Managed by','e.g. Caregiver, Self')}
+        ${cbList([['nutriConstipation','Constipation'],['nutriDiarrhea','Diarrhea/loose stools'],['nutriIrritableBowel','Irritable Bowel'],['nutriAutonomicDysreflexia','Autonomic Dysreflexia'],['nutriOstomy','Ostomy']])}
+      </div>
+    </div>
+    ${ta('nutriOther','Nutrition/GI — Other','',2)}
+    ${secHdr('Genito-Urinary','#2a6b2a')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div>
+        <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+          ${cb('guContinent','Continent')}${cb('guIncontinent','Incontinent')}${cb('guNeedsAssist','Needs assist')}
+        </div>
+        ${txt('guToiletingManagedBy','Toileting Managed by','e.g. Caregiver, Self')}
+        ${row2(txt('guEquipment','Equipment','e.g. Commode, Catheter'),txt('guUrine','Urine','Clear/Cloudy/Dark'))}
+        ${cbList([['guBPH','BPH'],['guProstateCancer','Hx Prostate Cancer'],['guBreastCancer','Breast Cancer'],['guOvarianCancer','Ovarian Cancer'],['guUterineCancer','Uterine Cancer']])}
+        ${txt('guKidneyStage','Kidney Disease Stage','Stage #')}
+        ${cb('guAutonomicDysreflexia','Autonomic Dysreflexia')}
+      </div>
+      <div>
+        <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+          ${cb('guUTI','UTI')}${cb('guFreqUTI','Frequent UTIs')}
+        </div>
+        ${cbList([['guBurning','Burning'],['guFrequency','Frequency/urgency'],['guHematuria','Hematuria'],['guBackPain','Back/abd pain w/ urination'],['guMentalStatusChanges','Mental Status Changes'],['guMalodorous','Malodorous'],['guRetention','Retention, inability to urinate'],['guCurrentRx','Current Rx (Fever)']])}
+      </div>
+    </div>
+    ${ta('guOther','Genito-Urinary — Other','',2)}`;
 
-  // Human body SVG — anterior (front)
-  const bodySvgAnterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
-    <!-- Head -->
+  // ── TAB 6: MSK / FUNCTIONAL ──────────────────────────────────
+  const sec6 = `
+    ${secHdr('Musculo-Skeletal','#5c3a1e')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div>
+        ${cb('mskFallPrecautions','Fall Precautions','var(--red)')}
+        ${row2(txt('mskBalance','Balance','Good/Fair/Poor'),txt('mskWtBearingStatus','Wt Bearing Status','FWB/PWB/NWB'))}
+        ${cbGrid2([['mskWeakness','Weakness'],['mskTremor','Tremor'],['mskSpasticity','Spasticity'],['mskRigidity','Rigidity'],['mskNumbness','Numbness'],['mskTingling','Tingling'],['mskPain','Pain'],['mskParalysis','Paralysis'],['mskNeuropathy','Neuropathy']])}
+        ${txt('mskAssistiveDevices','Assistive Devices','e.g. Cane, Walker, Wheelchair')}
+      </div>
+      <div>
+        ${txt('mskFractureLocation','Hx Fracture Location','Location')}
+        ${cbList([['mskBoneLoss','Bone Loss'],['mskOsteoarthritis','Osteoarthritis'],['mskRheumatoid','Rheumatoid Arthritis'],['mskContracture','Contracture'],['mskAmputation','Amputation / Asymmetry'],['mskCongenitalAnomaly','Congenital Anomaly']])}
+      </div>
+    </div>
+    ${ta('mskOther','MSK — Other','',2)}
+    ${secHdr('Functional Status / Abilities','#5c3a1e')}
+    ${cb('abilitiesTotalDependence','Total dependence','var(--red)')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px 0">
+      <div>
+        <div class="label" style="margin-bottom:8px">Assistance Needed (Indep / Cuing / Min / Mod / Max / Total)</div>
+        ${['Eating','Meal prep','Toileting','Transfers','Bed Mobility','Dress','Grooming','Bathing'].map(t=>
+          `<div class="form-group" style="margin-bottom:6px"><label class="form-label">${t}</label>
+           <input class="form-input" id="rnd_abilities_${t.toLowerCase().replace(/ /g,'')}" placeholder="e.g. Min assist"></div>`
+        ).join('')}
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:8px">Mobility Status</div>
+        ${cbList([['mobIndependent','Independent'],['mobGaitBelt','w/ Gait belt'],['mobStandByAssist','w/Stand By Assist/CGA'],['mob2PersonAssist','1-2 Person assist'],['mobWalker','w/Walker'],['mobSeatedWalker','w/ seated-walker'],['mobWheeledWalker','w/Wheeled walker']])}
+        ${txt('mobRampsStairs','Ramps/Stairs','Can/Cannot negotiate')}
+        ${txt('mobWheelChair','Wheel Chair Use','Describe')}
+        ${cb('mobNonAmbulatory','Non-ambulatory/Bedbound/WC Bound','var(--red)')}
+        ${cb('mobRepositioning','Repositioning/cuing needed Q')}
+        ${txt('mobRepositioningHrs','Repositioning hrs','e.g. 2')}
+        <div class="label" style="margin-top:8px;margin-bottom:6px">Transfers/Assistive Devices</div>
+        ${cb('mobMechLift','Mechanical lift')}
+        ${txt('mobMechLiftType','Lift type','e.g. Hoyer')}
+        ${cb('mobSlidingBoard','Sliding board')}
+        ${cb('mobTransferPole','Transfer pole')}
+      </div>
+    </div>
+    ${ta('abilitiesOther','Abilities — Other','',2)}
+    ${ta('safetyOther','Safety / Emergency — Other','Emergency assistance notes…',2)}
+    ${ta('transportOther','Transportation Needs — Other','Transport notes…',2)}`;
+
+  // ── TAB 7: SKIN / BODY MAP ───────────────────────────────────
+  const bodySvgA = `<svg viewBox="0 0 120 220" width="120" height="220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#333" stroke-width="1.2" style="background:#fff;border:1px solid #ddd;border-radius:4px">
     <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/>
-    <!-- Neck -->
     <rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
-    <!-- Torso -->
     <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
-    <!-- Shoulders -->
-    <path d="M38 42 Q28 42 22 50 L18 70" stroke-linecap="round"/>
-    <path d="M82 42 Q92 42 98 50 L102 70" stroke-linecap="round"/>
-    <!-- Left arm (viewer's right) -->
-    <path d="M18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
-    <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 Q31 160 28 155 L26 150 Q29 154 33 155 Q37 156 37 152 Q37 148 33 146 L28 144 Q31 146 35 145 Q39 144 38 140 Q37 136 33 136 L24 138 Q22 132 22 140" fill="#fff"/>
-    <!-- Right arm (viewer's left) -->
-    <path d="M102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
-    <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 Q89 160 92 155 L94 150 Q91 154 87 155 Q83 156 83 152 Q83 148 87 146 L92 144 Q89 146 85 145 Q81 144 82 140 Q83 136 87 136 L96 138 Q98 132 98 140" fill="#fff"/>
-    <!-- Hips/pelvis -->
+    <path d="M38 42 Q28 42 22 50 L18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
+    <path d="M82 42 Q92 42 98 50 L102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
+    <path d="M18 140 Q16 150 10 158 Q12 165 18 162 L20 156 Q22 162 27 165 Q31 160 28 155 L26 150 Q33 155 37 152 Q37 148 33 146 L28 144 Q35 145 38 140 Q37 136 33 136 L24 138" fill="#fff"/>
+    <path d="M102 140 Q104 150 110 158 Q108 165 102 162 L100 156 Q98 162 93 165 Q89 160 92 155 L94 150 Q87 155 83 152 Q83 148 87 146 L92 144 Q85 145 82 140 Q83 136 87 136 L96 138" fill="#fff"/>
     <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
-    <!-- Left leg -->
-    <path d="M30 126 Q28 150 30 170 Q31 185 30 200" stroke-linecap="round"/>
-    <path d="M30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 Q36 206 38 202 Q40 200 40 196 L34 198 Q32 194 32 200" fill="#fff"/>
-    <!-- Right leg -->
-    <path d="M90 126 Q92 150 90 170 Q89 185 90 200" stroke-linecap="round"/>
-    <path d="M90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 Q84 206 82 202 Q80 200 80 196 L86 198 Q88 194 88 200" fill="#fff"/>
-    <!-- Collarbone hints -->
-    <path d="M50 40 Q38 44 30 48" stroke-width="0.7"/>
-    <path d="M70 40 Q82 44 90 48" stroke-width="0.7"/>
-    <!-- Navel -->
-    <circle cx="60" cy="82" r="1.5" fill="#000"/>
+    <path d="M30 126 Q28 150 30 170 Q31 185 30 200 Q28 210 26 219 Q30 220 32 215 L34 210 Q40 218 44 214 Q44 210 40 207 L36 204 Q40 196 34 198 Q32 194 32 200" fill="#fff"/>
+    <path d="M90 126 Q92 150 90 170 Q89 185 90 200 Q92 210 94 219 Q90 220 88 215 L86 210 Q80 218 76 214 Q76 210 80 207 L84 204 Q80 196 86 198 Q88 194 88 200" fill="#fff"/>
+    <circle cx="60" cy="82" r="1.5" fill="#333"/>
   </svg>`;
 
-  // Human body SVG — posterior (back)
-  const bodySvgPosterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
-    <!-- Head -->
+  const bodySvgP = `<svg viewBox="0 0 120 220" width="120" height="220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#333" stroke-width="1.2" style="background:#fff;border:1px solid #ddd;border-radius:4px">
     <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/>
-    <!-- Neck -->
     <rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
-    <!-- Torso back -->
     <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
-    <!-- Spine line -->
     <line x1="60" y1="42" x2="60" y2="108" stroke-width="0.7" stroke-dasharray="2,2"/>
-    <!-- Shoulder blades -->
     <ellipse cx="47" cy="62" rx="9" ry="12" stroke-width="0.8"/>
     <ellipse cx="73" cy="62" rx="9" ry="12" stroke-width="0.8"/>
-    <!-- Left arm back -->
     <path d="M38 42 Q28 42 22 50 L18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
-    <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 Q31 160 28 155 L26 150 Q29 154 33 155 Q37 156 37 152 Q37 148 33 146 L28 144 Q31 146 35 145 Q39 144 38 140 Q37 136 33 136 L24 138 Q22 132 22 140" fill="#fff"/>
-    <!-- Right arm back -->
     <path d="M82 42 Q92 42 98 50 L102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
-    <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 Q89 160 92 155 L94 150 Q91 154 87 155 Q83 156 83 152 Q83 148 87 146 L92 144 Q89 146 85 145 Q81 144 82 140 Q83 136 87 136 L96 138 Q98 132 98 140" fill="#fff"/>
-    <!-- Buttocks -->
+    <path d="M18 140 Q16 150 10 158 Q12 165 18 162 L20 156 Q22 162 27 165 Q31 160 28 155 L26 150 L28 144 L24 138" fill="#fff"/>
+    <path d="M102 140 Q104 150 110 158 Q108 165 102 162 L100 156 Q98 162 93 165 Q89 160 92 155 L94 150 L92 144 L96 138" fill="#fff"/>
     <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
-    <path d="M60 110 Q60 120 60 126" stroke-width="0.7"/>
-    <!-- Left leg back -->
-    <path d="M30 126 Q28 150 30 170 Q31 185 30 200" stroke-linecap="round"/>
-    <path d="M30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 L34 198 Q32 194 32 200" fill="#fff"/>
-    <!-- Right leg back -->
-    <path d="M90 126 Q92 150 90 170 Q89 185 90 200" stroke-linecap="round"/>
-    <path d="M90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 L86 198 Q88 194 88 200" fill="#fff"/>
+    <path d="M60 110 L60 126" stroke-width="0.7"/>
+    <path d="M30 126 Q28 150 30 170 Q31 185 30 200 Q28 210 26 219 Q30 220 32 215 L34 210 Q40 218 44 214 Q44 210 40 207 L36 204 L34 198 Q32 194 32 200" fill="#fff"/>
+    <path d="M90 126 Q92 150 90 170 Q89 185 90 200 Q92 210 94 219 Q90 220 88 215 L86 210 Q80 218 76 214 Q76 210 80 207 L84 204 L86 198 Q88 194 88 200" fill="#fff"/>
   </svg>`;
 
-  const pageHeader = (pageNum) => `
-  <div class="pg-header">
-    <div class="pg-header-logo">
-      <img src="${LOGO}" alt="Golden Years Home Health" onerror="this.style.display='none'">
+  const sec7 = `
+    ${secHdr('Skin / Integumentary','#8b4500')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div><div class="label" style="margin-bottom:6px">Appearance of Skin</div>
+        ${cbList([['skinIntactSupple','Intact/supple'],['skinAgeAppropriate','Age-appropriate'],['skinThinFragile','Thin/Fragile/Aged'],['skinDehydrated','Dehydrated'],['skinDryFlakey','Dry/Flakey']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Alterations (note locations on diagram)</div>
+        ${txt('skinPigmentation','Pigmentation','Location')}
+        ${txt('skinSensation','Sensation','Describe')}
+        ${cbList([['skinMolesBirthMarks','Moles/Birth Marks'],['skinScarsIncisions','Scars/Incisions'],['skinDecubitusPressure','Decubitus/Pressure Ulcer']])}
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Skin Conditions</div>
+        ${cbList([['skinRash','Rash'],['skinBruises','Bruises/Petechiae'],['skinLaceration','Laceration/Abrasion/Tear/Lesion'],['skinHxPressureUlcer','Hx Pressure Ulcer'],['skinSpecialCare','Special Skin Care/Mattress needed']])}
+      </div>
     </div>
-    <div class="pg-header-center">
-      <div class="delegation">Delegation</div>
+    ${ta('skinOther','Skin — Other','',2)}
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Body Diagram — Reference for marking skin issues on printed form</div>
+      <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:700;display:flex;justify-content:space-between;width:120px;margin-bottom:3px"><span>Right</span><span>Left</span></div>
+          ${bodySvgA}
+          <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:4px">Anterior</div>
+        </div>
+        <div>
+          <div style="height:18px"></div>
+          ${bodySvgP}
+          <div style="font-size:10px;font-style:italic;color:var(--text3);margin-top:4px">Posterior</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;font-style:italic">Mark locations on the printed form. Describe below.</div>
     </div>
-    <div class="pg-header-right">Nursing Assessment<br>and Initial Care Plan</div>
+    ${ta('skinComments','Skin Issues Noted (describe and note location)','Describe skin issues and their locations…',3)}`;
+
+  // ── TAB 8: MEDICATIONS ───────────────────────────────────────
+  const sec8 = `
+    ${secHdr('Therapies & Treatments','#2a5a8a')}
+    ${row2(ta('therapiesSkilled','Skilled Therapies (in-house/outside resource)','PT, OT, SLP…',3), ta('therapiesMedical','Medical Treatments (in-house/outside resource)','Wound care, IV therapy…',3))}
+    ${secHdr('Medications','#2a5a8a')}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px">
+      <div>
+        ${cb('medSeeAttached','See attached Med list')}
+        ${cb('medSeeNsgTaskSheet','See Nsg Task Sheet')}
+      </div>
+      <div>
+        ${cbList([['medNewAdmission','New admission to AFH'],['medNewClient','New Client for RN Delegation/Assumption'],['medRefusalPlan','Refusal Plan'],['medSelfMedication','Self-Medication Administration (MD order REQUIRED)']])}
+      </div>
+      <div>
+        ${cbList([['medSystemInPlace','Med System in place & adequate'],['medMARReviewed','MAR reviewed'],['medRecordsAllDoses','Records all doses'],['medRecordsAllPRNs','Records all PRNs'],['medNotesReasons','Notes reasons & results'],['medRecordsErrors','Records errors/missed Rx\'s correctly']])}
+      </div>
+    </div>
+    ${ta('medOther','Medications — Other','',2)}
+    ${ta('medicationList','Medication List','List all current medications, dosages, routes, and frequencies…',5)}`;
+
+  // ── TAB 9: DELEGATION & SIGN ─────────────────────────────────
+  const delegTasks1 = [
+    ['delegOralMed','Oral Med. Admin'],['delegTrachStoma','Trach/stoma care'],
+    ['delegEnema','Enema'],['delegBGM','Blood Glucose Monitoring'],
+    ['delegPillCrushing','Pill Crushing (in food)'],['delegGTubeMeds','G-Tube Meds'],
+    ['delegRectalMed','Rectal Med. Admin.'],['delegInsulin','Insulin Injections'],
+    ['delegNebulizer','Nebulizer'],['delegTubeFeeding','Tube feeding'],
+    ['delegVaginalMed','Vaginal Med. Admin'],['delegColostomy','Colostomy/Ileostomy Care']
+  ];
+  const delegTasks2 = [
+    ['delegInhalationMeds','Inhalation Meds'],['delegStomaCare','Stoma Care'],
+    ['delegBladderCath','Bladder Catheterization'],['delegSimpleDressing','Simple Dressing Change'],
+    ['delegCPAP','C-PAP /Bi-PAP Tx'],['delegOralSuctioning','Oral Suctioning'],
+    ['delegBladderIrrigation','Bladder Irrigation'],['delegEyeDrops','Eye/Ocular Drops/Ointment'],
+    ['delegEarDrops','Ear drops'],['delegUrinaryCathCare','Urinary Catheter Care'],
+    ['delegTopicalMed','Topical/Transdermal Med']
+  ];
+  const delegGrid = items =>
+    `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:12px">
+      ${items.map(([id,lbl])=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;padding:5px 6px;background:var(--bg1);border:1px solid var(--border);border-radius:4px">
+        <input type="checkbox" id="rnd_${id}" style="accent-color:var(--blue);flex-shrink:0"> ${lbl}</label>`).join('')}
+    </div>`;
+
+  const sec9 = `
+    ${secHdr('Nurse Delegation','#1a3d6b')}
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+      ${cb('delegStable','Client Condition is stable and predictable — YES','var(--green)')}
+      ${cb('delegNoNeed','No delegation needs at present','var(--amber)')}
+    </div>
+    <div class="form-group"><label class="form-label">Reason for Nurse Delegation — Limitations</label>
+      <div style="display:flex;gap:16px;margin-top:4px">
+        ${cb('delegPhysical','Physical')}
+        ${cb('delegCognitive','Cognitive')}
+      </div>
+    </div>
+    <div class="label" style="margin-bottom:8px">Delegated Tasks — Page 6</div>
+    ${delegGrid(delegTasks1)}
+    <div class="label" style="margin-bottom:8px">Delegated Tasks — Page 7</div>
+    ${delegGrid(delegTasks2)}
+    ${txt('delegO2Rate','Oxygen Use (L/min)','e.g. 2')}
+    ${ta('delegOther','Delegation — Other','',2)}
+    ${secHdr('Nursing Recommendation & Signature','#1a3d6b')}
+    ${txt('nursingRecClientName','Client name for recommendation sentence','Client first name')}
+    ${ta('strengths','Strengths','Client strengths observed…',2)}
+    ${ta('currentNeeds','Current Needs','Current clinical needs…',2)}
+    ${ta('finalComments','Comments','Any other relevant clinical notes…',3)}
+    ${row2(txt('sigPrintedName','Printed Name','RN full name'), txt('sigDate','Date','MM-DD-YYYY'))}
+    ${row2(txt('sigPhone','Contact Phone','Phone number','tel'), txt('sigEmail','Contact Email','Email address','email'))}
+    ${txt('sigSignature','Signature (type your name)','Sign here')}`;
+
+  // ── TABS HEADER ──────────────────────────────────────────────
+  const tabs = [
+    ['rndSec1','📋 Demographics & Vitals', sec1],
+    ['rndSec2','🧠 Pain / Neuro',          sec2],
+    ['rndSec3','💬 Psycho-Social',          sec3],
+    ['rndSec4','❤️ Cardio / Endocrine',    sec4],
+    ['rndSec5','🍽️ Nutrition / GU',        sec5],
+    ['rndSec6','🦴 MSK / Functional',       sec6],
+    ['rndSec7','🩹 Skin / Body Map',        sec7],
+    ['rndSec8','💊 Medications',            sec8],
+    ['rndSec9','✍️ Delegation & Sign',     sec9],
+  ];
+
+  const tabBar = tabs.map(([id,label],i)=>
+    `<div class="tab${i===0?' active':''}" onclick="rndTab(this,'${id}')" style="white-space:nowrap;flex-shrink:0">${label}</div>`
+  ).join('');
+
+  const tabSections = tabs.map(([id,,content],i)=>
+    `<div id="${id}" style="display:${i===0?'block':'none'}">${content}</div>`
+  ).join('');
+
+  // ── FULL MODAL ───────────────────────────────────────────────
+  const html = `
+  <div class="overlay" id="rndAssessmentModal" style="display:none">
+    <div class="modal" style="width:min(920px,97vw);max-height:94vh;display:flex;flex-direction:column">
+
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a3d6b,#2355a0);color:#fff;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:16px 24px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <img src="images/logo.png" alt="Golden Years" style="width:42px;height:42px;object-fit:contain;border-radius:7px;background:#fff;padding:2px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px">Delegation — Nursing Assessment and Initial Care Plan</div>
+            <div style="font-size:11px;color:#a8c8f8">RND Nursing Assessment · WAC 388-76-61050</div>
+          </div>
+        </div>
+        <button onclick="closeRndModal()" class="btn btn-ghost btn-sm" style="color:#fff;border-color:#ffffff40">✕</button>
+      </div>
+
+      <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;flex-shrink:0" id="rndTabs">
+        ${tabBar}
+      </div>
+
+      <div class="modal-body" style="padding:20px 24px;overflow-y:auto;flex:1">
+        ${tabSections}
+      </div>
+
+      <div class="modal-footer" style="flex-shrink:0">
+        <button onclick="closeRndModal()" class="btn btn-ghost btn-sm">Cancel</button>
+        <button class="btn btn-ghost btn-sm" onclick="rndNavPrev()" id="rndBtnPrev" style="display:none">← Previous</button>
+        <button class="btn btn-ghost btn-sm" onclick="rndNavNext()" id="rndBtnNext">Next →</button>
+        <button id="rnd_submitBtn" class="btn btn-primary btn-sm" onclick="submitRndAssessment()" style="display:none">Generate &amp; Save to Drafts</button>
+      </div>
+
+    </div>
   </div>`;
 
-  const pageFooter = (pageNum) => `
-  <div class="footer-bar">
-    <span>Client Name: <strong>${v('clientName')}</strong></span>
-    <span>Page ${pageNum}</span>
-  </div>`;
-
-  // ══ PAGE 1 ══════════════════════════════════════════════════
-  const page1 = `<section>
-  ${pageHeader(1)}
-  <div class="demo-row">
-    <span class="demo-field"><strong>Client Name:</strong> <span class="demo-underline" style="min-width:120px">${v('clientName')}</span></span>
-    <span class="demo-field"><strong>DOB:</strong> <span class="demo-underline" style="min-width:60px">${v('dob')}</span></span>
-    <span class="demo-field"><strong>Age:</strong> <span class="demo-underline" style="min-width:40px">${v('age')}</span></span>
-    <span class="demo-field"><strong>Gender:</strong> <span class="demo-underline" style="min-width:50px">${v('gender')}</span></span>
-    <span class="demo-field"><strong>Today's Date:</strong> <span class="demo-underline" style="min-width:70px">${v('todayDate')}</span></span>
-  </div>
-  <div class="demo-row">
-    <span class="demo-field"><strong>Address:</strong> <span class="demo-underline" style="min-width:200px">${v('address')}</span></span>
-    <span class="demo-field"><strong>Phone:</strong> <span class="demo-underline" style="min-width:80px">${v('phone')}</span></span>
-  </div>
-  <div class="demo-row">
-    <span class="demo-field"><strong>Type of Assessment:</strong> <span class="demo-underline" style="min-width:80px">${v('typeOfAssessment')}</span></span>
-  </div>
-
-  <div class="blue-bar" style="margin-top:6px">&nbsp;</div>
-
-  <table class="form-table">
-    <tr><td colspan="3" style="font-weight:700">Diagnoses:</td></tr>
-    <tr><td colspan="3" style="min-height:36px"><div class="text-area-field">${v('diagnoses')}</div></td></tr>
-    <tr><td colspan="3">Hospitalizations/Surgeries/Mental Illness/Developmental Disability: <span class="demo-underline" style="min-width:300px;display:inline-block">${v('hospitalizations')}</span></td></tr>
-    <tr><td colspan="3"><strong>Allergies:</strong> ${v('allergies') || '-'}</td></tr>
-    <tr>
-      <td>Physician: ${v('physician')}</td>
-      <td>Phone: ${v('physicianPhone')}</td>
-      <td>Fax: ${v('physicianFax')}</td>
-    </tr>
-    <tr>
-      <td>Physician: ${v('physician2')}</td>
-      <td>Phone: ${v('physician2Phone')}</td>
-      <td>Fax: ${v('physician2Fax')}</td>
-    </tr>
-    <tr>
-      <td>Pharmacy: ${v('pharmacy')}</td>
-      <td>Phone: ${v('pharmacyPhone')}</td>
-      <td>Fax: ${v('pharmacyFax')}</td>
-    </tr>
-    <tr>
-      <td><strong>Temp:</strong> ${v('temp')}</td>
-      <td><strong>Pulse:</strong> ${v('pulse')}</td>
-      <td><strong>Resp:</strong> ${v('resp')}</td>
-    </tr>
-    <tr>
-      <td><strong>SpO2:</strong> ${v('spo2')}</td>
-      <td><strong>BP:</strong> ${v('bp')}</td>
-      <td><strong>Wt:</strong> ${v('wt')} &nbsp;&nbsp; <strong>Ht:</strong> ${v('ht')}</td>
-    </tr>
-  </table>
-
-  <div class="sub-header">CURRENT SYSTEMS REVIEW / FUNCTIONAL ASSESSMENT</div>
-
-  <table class="form-table">
-    <!-- PAIN / REST -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>PAIN / REST</strong></td>
-      <td style="width:200px">
-        <div><strong>Pain at assessment:</strong></div>
-        <div>Pain Scale 0-10 Current level: <span class="demo-underline">${v('painLevel')}</span></div>
-        <div class="chk">${chk('painChronic')} Chronic</div>
-        <div>Location: <span class="demo-underline">${v('painLocation')}</span></div>
-      </td>
-      <td style="width:210px">
-        <div><strong>Non-verbal indicators:</strong></div>
-        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
-          <span class="chk">${chk('nvGrimacing')} Grimacing</span>
-          <span class="chk">${chk('nvAnorexia')} anorexia</span>
-          <span class="chk">${chk('nvFrowning')} frowning</span>
-          <span class="chk">${chk('nvGuarding')} guarding</span>
-          <span class="chk">${chk('nvInsomnia')} insomnia</span>
-          <span class="chk">${chk('nvCrying')} crying</span>
-          <span class="chk">${chk('nvMoaning')} moaning</span>
-          <span class="chk">${chk('nvRubbing')} rubbing</span>
-          <span class="chk">${chk('nvAgitation')} agitation</span>
-          <span class="chk">${chk('nvIrritable')} irritable</span>
-        </div>
-      </td>
-      <td>
-        <div><strong>Rest/Sleep Patterns</strong></div>
-        <div>Naps <span class="chk">${chk('napsDay')} day</span> <span class="chk">${chk('napsAfternoon')} afternoon</span></div>
-        <div>Night</div>
-        <div class="chk">${chk('upXToilet')} Up X for toilet/position chg</div>
-        <div class="chk">${chk('insomniaFlag')} Insomnia: difficulty</div>
-        <div><span class="chk">${chk('fallingAsleep')} falling asleep</span> <span class="chk">${chk('stayingAsleep')} staying asleep</span></div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('painOther')}</div></td></tr>
-
-    <!-- NEUROLOGICAL -->
-    <tr>
-      <td class="section-label" rowspan="3"><strong>NEUROLOGICAL/<br>COGNITION</strong></td>
-      <td>
-        <div class="chk">${chk('neurAlert')} Alert &amp; responsive</div>
-        <div class="chk">${chk('neurOriented')} Oriented?</div>
-        <div>Memory Loss <span class="chk">${chk('neurMemLoss')} Unable to determine</span></div>
-        <div style="margin-left:14px"><span class="chk">${chk('neurShortTerm')} Short term</span> <span class="chk">${chk('neurLongTerm')} Long term</span></div>
-        <div>Cognition: <span class="demo-underline">${v('neurCognition')}</span></div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('neurCVATIA')} CVA/TIA</span>
-          <span class="chk">${chk('neurTBI')} TBI</span>
-          <span class="chk">${chk('neurAphasia')} Aphasia</span>
-          <span class="chk">${chk('neurNonVerbal')} Non-Verbal/unable to express self</span>
-          <span class="chk">${chk('neurImpairedJudge')} Impaired judgment/decisions</span>
-          <span class="chk">${chk('neurImpairedCritical')} Impaired critical thinking</span>
-          <span class="chk">${chk('neurConfusion')} <strong>Confusion / Dementia</strong></span>
-        </div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('neurDevDelay')} Developmental Delay</span>
-          <span class="chk">${chk('neurSeizure')} <strong>Seizure Precautions</strong></span>
-          <span class="chk">${chk('neurHeadache')} Headache/Migraine</span>
-          <span class="chk">${chk('neurDizziness')} Dizziness</span>
-          <span class="chk">${chk('neurImpairedProp')} Impaired/decreased proprioception</span>
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('neurOther')}</div></td></tr>
-    <tr>
-      <td colspan="3">
-        <strong>Delirium screen:</strong> <span class="chk">${chk('deliriumNo')} NO Delirium</span><br>
-        <span class="chk" style="align-items:flex-start">${chk('deliriumSudden')} Sudden or recent change in mental functioning, including attention span, orientation, coherence, or other unpredictable behavior/mental variations over the course of a day.</span><br>
-        <span class="chk" style="align-items:flex-start">${chk('deliriumSpeech')} Sudden or recent onset of episodes of disorganized speech (consider immediate referral to MD)</span>
-      </td>
-    </tr>
-  </table>
-  <div style="background:#a8c8d8;padding:2px 6px;font-weight:700;font-size:9pt;text-align:right">No Behavioral Issues</div>
-  ${pageFooter(1)}
-  </section>`;
-
-  // ══ PAGE 2 ══════════════════════════════════════════════════
-  const page2 = `<section>
-  ${pageHeader(2)}
-  <table class="form-table">
-    <!-- PSYCHO-SOCIAL -->
-    <tr>
-      <td class="section-label" rowspan="2" style="width:90px"><strong>PSYCHO-SOCIAL BEHAVIOR/MOOD</strong><br><br><strong>Current mood</strong></td>
-      <td style="width:180px">
-        <div><strong>Depression screen:</strong></div>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('psyHxDepression')} Hx of Depression</span>
-          <span class="chk">${chk('psyHospDepression')} Hospitalization for Depression</span>
-          <span class="chk">${chk('psyCurrentDepRx')} <strong>Current Depression Rx?</strong></span>
-          <span class="chk">${chk('psySuicideAttempt')} Suicide attempt or ideation</span>
-          <span class="chk">${chk('psyFatigue')} Fatigue/decreased energy</span>
-          <span class="chk">${chk('psyRestlessness')} Restlessness</span>
-          <span class="chk">${chk('psyInsomniaSleep')} Insomnia or excessive sleeping</span>
-          <span class="chk">${chk('psyEmotLabile')} Emotionally labile/Mood Swings</span>
-          <span class="chk">${chk('psyLimitedAttn')} Limited attention-span</span>
-          <span class="chk">${chk('psyLossInterest')} Loss of Interest in activities</span>
-          <span class="chk">${chk('psyDifficulty')} Difficulty w/decisions, choices</span>
-        </div>
-        <div style="margin-top:3px"><strong>Anxiety Screen:</strong></div>
-        <div class="chk">${chk('psyAnxious')} Easily worried or Anxious</div>
-        <div class="chk">${chk('psyAnxietyRx')} Current Anti-anxiety Rx</div>
-      </td>
-      <td style="width:170px">
-        <div><strong>Behavioral Issues</strong></div>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('biForgetful')} <strong>Forgetful</strong></span>
-          <span class="chk">${chk('biImpulsive')} <strong>Impulsive</strong></span>
-          <span class="chk">${chk('biEasilyIrritated')} <strong>Easily irritated/agitated</strong></span>
-          <span class="chk">${chk('biDemanding')} <strong>Demanding</strong>/Manipulative</span>
-          <span class="chk">${chk('biSuspicious')} <strong>Suspicious</strong>/Accusatory</span>
-          <span class="chk">${chk('biUnrealistic')} Unrealistic fears/Paranoia</span>
-          <span class="chk">${chk('biInappropLang')} Inappropriate language</span>
-          <span class="chk">${chk('biYells')} Yells/screams</span>
-          <span class="chk">${chk('biIntimidating')} <strong>Intimidating/Verbal abuse</strong></span>
-          <span class="chk">${chk('biCrying')} <strong>Crying/Tearfulness</strong></span>
-          <span class="chk">${chk('biObsessive')} Obsessive/Compulsive</span>
-          <span class="chk">${chk('biRepetitive')} Repetitive emotionally</span>
-          <span class="chk">${chk('biAttnSeeking')} <strong>Attention seeking</strong></span>
-          <span class="chk">${chk('biResistive')} <strong>Resistive to Care</strong></span>
-          <span class="chk">${chk('biSelfInjures')} <strong>Self-Injures</strong></span>
-        </div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('biSundowner')} <strong>Sundowner/agitated @night</strong></span>
-          <span class="chk">${chk('biExitSeeking')} Exit Seeking/Escape risk</span>
-          <span class="chk">${chk('biWandering')} <strong>Wandering</strong></span>
-          <span class="chk">${chk('biMisuse')} Hx Misuse/abuse/Addiction</span>
-          <span class="chk">${chk('biArson')} Hx arson/accidental fires</span>
-          <span class="chk">${chk('biAssaultive')} <strong>Assaultive/Combative</strong></span>
-          <span class="chk">${chk('biPhysOutbursts')} Physical Outbursts</span>
-          <span class="chk">${chk('biPropertyDestruct')} <strong>Property Destruction</strong></span>
-          <span class="chk">${chk('biDelusions')} Delusions</span>
-          <span class="chk">${chk('biHallucinations')} Hallucinations/psychosis</span>
-          <span class="chk">${chk('biInappropToileting')} <strong>Inappropriate toileting</strong></span>
-          <span class="chk">${chk('biPredatorySexual')} Predatory sexual behavior</span>
-          <span class="chk">${chk('biSexualAgression')} Sexual acting out/agression</span>
-          <span class="chk">${chk('biExposeSelf')} Exposes self/disrobes</span>
-          <span class="chk">${chk('biPica')} Pica (eats non-edible objects)</span>
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('psyOther')}</div></td></tr>
-
-    <!-- DEMENTIA / DDD -->
-    <tr>
-      <td class="section-label"><strong>DEMENTIA or DDD SPECIALTY PLACEMENT</strong></td>
-      <td colspan="3" style="font-size:8.5pt">
-        <strong>Dementia or DDD Specialty placement is needed if the client meets criteria in all 3 areas below:</strong><br>
-        1) <span class="chk">${chk('demShortTermMemory')} Short term Memory Loss</span> <strong>OR</strong> <span class="chk">${chk('demCognitiveImpair')} Cognitive Impairment</span> <strong>AND</strong><br>
-        2) <strong>One</strong> of the following: <span class="chk">${chk('demNotOriented')} not oriented to place or time</span> <span class="chk">${chk('demLimitedComm')} limited ability to communicate</span><br>
-        &nbsp;&nbsp;&nbsp;<span class="chk">${chk('demHandsOnEating')} hands-on assistance with eating or drinking</span> <strong>AND</strong><br>
-        3) <span class="chk">${chk('demBehaviorSymptom')} <strong>At least one</strong> behavior/symptom from the <strong>Behavioral Issues</strong> Category above <strong>in the past 30 days.</strong></span>
-      </td>
-    </tr>
-
-    <!-- SENSORY -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>SENSORY</strong></td>
-      <td>
-        <div><strong>Touch: Vision status:</strong></div>
-        <div>Glasses: <span class="chk">${chk('sensGlassDistance')} Distance</span> <span class="chk">${chk('sensGlassReading')} Reading</span></div>
-        <div class="chk">${chk('sensGlaucoma')} Glaucoma</div>
-        <div class="chk">${chk('sensEyeDrops')} Eye drops</div>
-        <div class="chk">${chk('sensCataracts')} Cataracts</div>
-        <div>Blind: <span class="chk">${chk('sensProsthesis')} Prosthesis</span></div>
-        <div class="chk">${chk('sensCornealTransplant')} Corneal transplant</div>
-      </td>
-      <td>
-        <div><strong>Dental status:</strong></div>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('sensOwnTeeth')} Own teeth</span>
-          <span class="chk">${chk('sensCaries')} Caries/Malocclusion</span>
-          <span class="chk">${chk('sensMissingTeeth')} Missing teeth/edentulous</span>
-          <span class="chk">${chk('sensDentures')} Dentures:</span>
-          <span class="chk">${chk('sensImpairedTaste')} Impaired <strong>Taste</strong>:</span>
-          <span class="chk">${chk('sensImpairedSmell')} Impaired <strong>Smell</strong>:</span>
-        </div>
-      </td>
-      <td>
-        <div><strong>Hearing status:</strong></div>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('sensHearingAids')} Hearing Aids:</span>
-          <span class="chk">${chk('sensTinnitus')} Tinnitus</span>
-          <span class="chk">${chk('sensEarInfection')} Hx of Ear infection</span>
-          <span class="chk">${chk('sensWaxBuild')} Wax build-up/ear drops</span>
-          <span class="chk">${chk('sensDrainage')} Drainage</span>
-          <span class="chk">${chk('sensEarSurgery')} Ear surgery/tubes</span>
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('sensOther')}</div></td></tr>
-
-    <!-- CARDIO-PULMONARY -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>CARDIO-PULMONARY</strong><br><br><span class="chk">${chk('cardioNoIssues')} No Cardio or Pulmonary Issues</span></td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
-          <span class="chk">${chk('cardioCAD')} CAD</span>
-          <span class="chk">${chk('cardioHTN')} HTN</span>
-          <span class="chk">${chk('cardioMI')} MI</span>
-          <span class="chk">${chk('cardioCHF')} CHF</span>
-          <span class="chk">${chk('cardioHighChol')} High cholesterol</span>
-          <span class="chk">${chk('cardioArrhythmia')} Arrhythmia</span>
-          <span class="chk">${chk('cardioPacemaker')} <strong>Pacemaker</strong></span>
-          <span class="chk">${chk('cardioValve')} Valve issues</span>
-          <span class="chk">${chk('cardioAnticoag')} <strong>Anticoag therapy</strong></span>
-          <span class="chk">${chk('cardioAtherosclerosis')} Arterio-/atherosclerosis</span>
-          <span class="chk">${chk('cardioAngina')} Pain/angina/Ischemia</span>
-        </div>
-        <div>Edema: <span class="demo-underline">${v('cardioEdema')}</span> Amt: <span class="demo-underline">${v('cardioEdemaAmt')}</span></div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('cardioVenousStasis')} Venous stasis</span>
-          <span class="chk">${chk('cardioCirculatory')} Circulatory impairment:</span>
-          <span class="chk">${chk('cardioCOPD')} COPD</span>
-          <span class="chk">${chk('cardioAsthma')} Asthma</span>
-          <span class="chk">${chk('cardioSmoking')} Hx Smoking</span>
-        </div>
-        <div><strong>Lungs</strong></div>
-        <div>SOB: <span class="chk">${chk('cardioSOBRest')} @rest</span> <span class="chk">${chk('cardioSOBActivity')} w/activity</span></div>
-        <div class="chk">${chk('cardioWheezing')} Wheezing</div>
-        <div>Cough: <span class="chk">${chk('cardioProduct')} Product</span> <span class="chk">${chk('cardioNonProduct')} Non-product</span></div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('cardioHxTB')} Hx Tuberculosis</span>
-          <span class="chk">${chk('cardioInhaler')} Inhaler</span>
-          <span class="chk">${chk('cardioNebulizer')} <strong>Nebulizer</strong></span>
-          <span class="chk">${chk('cardioCPAP')} C-PAP</span>
-          <span class="chk">${chk('cardioBiPAP')} Bi-PAP</span>
-          <span class="chk">${chk('cardioVentilator')} Ventilator/Type</span>
-          <span class="chk">${chk('cardioO2')} <strong>O2</strong></span>
-        </div>
-        <div>Rate: <span class="demo-underline">${v('cardioO2Rate')}</span> L/min</div>
-        <div class="chk">${chk('cardioTracheostomy')} <strong>Tracheostomy</strong></div>
-        <div class="chk">${chk('cardioPosturalDrainage')} Postural drainage/Chest PT</div>
-        <div class="chk">${chk('cardioSuctioning')} Suctioning</div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('cardioOther')}</div></td></tr>
-  </table>
-  ${pageFooter(2)}
-  </section>`;
-
-  // ══ PAGE 3 ══════════════════════════════════════════════════
-  const page3 = `<section>
-  ${pageHeader(3)}
-  <table class="form-table">
-    <!-- ENDOCRINE -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>ENDOCRINE</strong></td>
-      <td colspan="2">
-        <div><span class="chk">${chk('endoDiabetic')} Diabetic:</span> DM Meds: <span class="demo-underline">${v('endoDMMeds')}</span></div>
-        <div>Frequency: <span class="demo-underline">${v('endoFreq1')}</span></div>
-        <div>Frequency: <span class="demo-underline">${v('endoFreq2')}</span> via <span class="demo-underline">${v('endoVia1')}</span></div>
-        <div><span class="chk">${chk('endoBGCheck')} Bl. Gl. Check Frequency:</span> <span class="demo-underline">${v('endoBGFreq')}</span> via <span class="demo-underline">${v('endoBGVia')}</span></div>
-      </td>
-      <td>
-        <div><span class="chk">${chk('endoThyroid')} Thyroid:</span></div>
-        <div>Rx: <span class="demo-underline">${v('endoThyroidRx')}</span></div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('endoOther')}</div></td></tr>
-
-    <!-- COMMUNICABLE DISEASE -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>COMMUNICABLE DISEASE HX/Infection Control</strong></td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('commHerpesShingles')} <strong>Herpes/Shingles</strong></span>
-          <span class="chk">${chk('commHepatitis')} <strong>Hepatitis</strong></span>
-          <span class="chk">${chk('commHIV')} <strong>HIV</strong></span>
-        </div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('commTB')} <strong>Tuberculosis</strong></span>
-          <span>Rx? <span class="demo-underline">${v('commTBRx')}</span></span>
-          <span class="chk">${chk('commMRSA')} <strong>MRSA</strong></span>
-          <span class="chk">${chk('commOther')} <strong>Other</strong></span>
-        </div>
-      </td>
-      <td>
-        <div><strong>UNIVERSAL PRECAUTIONS</strong></div>
-        <div class="chk">${chk('commAlways')} <strong>Always</strong></div>
-        <div class="chk">${chk('commSpecialPrecautions')} <strong>Special Precautions</strong></div>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="3" style="font-size:8pt">
-        Other: The formal and informal caregiver will use latex/plastic gloves when in contact with any secretions to prevent spread of infection. Thorough hand washing with soap will be done before and after gloving. Gloves will be put on and discarded at the end of each task.
-        <div class="other-line">${v('commOtherText')}</div>
-      </td>
-    </tr>
-
-    <!-- NUTRITION / GI -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>NUTRITION/<br>GASTRO-INTESTINAL</strong><br><br><span class="chk">${chk('nutriNothingByMouth')} <strong>Nothing by Mouth</strong></span></td>
-      <td style="width:180px">
-        <div><strong>Dietary Intake:</strong></div>
-        <div><span class="chk">${chk('nutriOral')} <strong>Oral</strong></span> Appetite: <span class="demo-underline">${v('nutriAppetite')}</span></div>
-        <div>Food Allergies: <span class="demo-underline">${v('nutriFoodAllergies')}</span></div>
-        <div>Diet: <span class="demo-underline">${v('nutriDiet')}</span></div>
-        <div>Consistency: <span class="demo-underline">${v('nutriConsistency')}</span></div>
-        <div class="chk">${chk('nutriSpecialNeeds')} Special Needs:</div>
-        <div><strong>TF Formula:</strong> <span class="demo-underline">${v('nutriTFFormula')}</span></div>
-        <div>Method: <span class="demo-underline">${v('nutriTFMethod')}</span></div>
-        <div>Rate: <span class="demo-underline">${v('nutriTFRate')}</span> Amt: <span class="demo-underline">${v('nutriTFAmt')}</span></div>
-        <div>Frequency: <span class="demo-underline">${v('nutriTFFreq')}</span></div>
-      </td>
-      <td>
-        <div class="chk">${chk('nutriDysphagia')} <strong>Dysphagia</strong></div>
-        <div class="chk">${chk('nutriAspirationRisk')} Aspiration Risk</div>
-        <div class="chk">${chk('nutriSwallowingPrecautions')} <strong>Swallowing Precautions</strong></div>
-        <div>Body Frame/Build: <span class="demo-underline">${v('nutriBodyFrame')}</span></div>
-        <div>Weight: <span class="demo-underline">${v('nutriWeight')}</span></div>
-        <div><strong>Fluid Intake:</strong></div>
-        <div class="chk">${chk('nutriWaterBoluses')} Water Boluses:</div>
-        <div class="chk">${chk('nutriRestriction')} Restriction: <span class="demo-underline">${v('nutriRestrictionAmt')}</span> /day</div>
-        <div class="chk">${chk('nutriSxDehydration')} S/Sx dehydration</div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('nutriGERD')} GERD/Indigestion</span>
-          <span class="chk">${chk('nutriUlcer')} Ulcer:</span>
-          <span class="chk">${chk('nutriHxCancer')} Hx of cancer:</span>
-        </div>
-        <div><strong>Bowels:</strong></div>
-        <div><strong>Managed by</strong>: <span class="demo-underline">${v('nutriBowelsManagedBy')}</span></div>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('nutriConstipation')} Constipation:</span>
-          <span class="chk">${chk('nutriDiarrhea')} Diarrhea/loose stools</span>
-          <span class="chk">${chk('nutriIrritableBowel')} Irritable Bowel</span>
-          <span class="chk">${chk('nutriAutonomicDysreflexia')} Autonomic Dysreflexia</span>
-          <span class="chk">${chk('nutriOstomy')} Ostomy:</span>
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('nutriOther')}</div></td></tr>
-
-    <!-- GENITO-URINARY -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>GENITO-URINARY</strong></td>
-      <td colspan="2">
-        <div>
-          <span class="chk">${chk('guContinent')} Continent</span>
-          <span class="chk">${chk('guIncontinent')} <strong>Incontinent</strong></span>
-          <span class="chk">${chk('guNeedsAssist')} Needs assist</span>
-        </div>
-        <div><strong>Toileting Managed by:</strong> <span class="demo-underline">${v('guToiletingManagedBy')}</span></div>
-        <div>Equipment: <span class="demo-underline">${v('guEquipment')}</span> Urine: <span class="demo-underline">${v('guUrine')}</span></div>
-        <div>
-          <span class="chk">${chk('guBPH')} BPH</span>
-          <span class="chk">${chk('guProstateCancer')} hx Prostate Cancer</span>
-        </div>
-        <div>
-          <span class="chk">${chk('guBreastCancer')} Breast</span>
-          <span class="chk">${chk('guOvarianCancer')} Ovarian</span>
-          <span class="chk">${chk('guUterineCancer')} Uterine Cancer</span>
-        </div>
-        <div>Kidney Disease: Stage <span class="demo-underline">${v('guKidneyStage')}</span> <span class="chk">${chk('guAutonomicDysreflexia')} Autonomic Dysreflexia</span></div>
-      </td>
-      <td>
-        <div>History of <span class="chk">${chk('guUTI')} <strong>UTI</strong></span> <span class="chk">${chk('guFreqUTI')} Frequent UTI's</span></div>
-        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
-          <span class="chk">${chk('guBurning')} burning</span>
-          <span class="chk">${chk('guFrequency')} frequency</span>
-          <span class="chk">${chk('guHematuria')} Hematuria</span>
-          <span class="chk">${chk('guUrgency')} urgency</span>
-          <span class="chk">${chk('guBackPain')} back, abd pain w/ urination</span>
-          <span class="chk">${chk('guMentalStatusChanges')} Mental Status Changes</span>
-          <span class="chk">${chk('guMalodorous')} Malodorous</span>
-          <span class="chk">${chk('guRetention')} Retention, inability to urinate</span>
-        </div>
-        <div><strong>Fever</strong></div>
-        <div class="chk">${chk('guCurrentRx')} Current Rx</div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('guOther')}</div></td></tr>
-  </table>
-  ${pageFooter(3)}
-  </section>`;
-
-  // ══ PAGE 4 ══════════════════════════════════════════════════
-  const page4 = `<section>
-  ${pageHeader(4)}
-  <table class="form-table">
-    <!-- MUSCULO-SKELETAL -->
-    <tr>
-      <td class="section-label" rowspan="2"><strong>MUSCULO-SKELETAL</strong><br><br><span class="demo-underline">${v('mskCheckbox')}</span></td>
-      <td style="width:230px">
-        <div><span class="chk">${chk('mskFallPrecautions')} <strong>Fall Precautions</strong></span> <strong>Balance:</strong> <span class="demo-underline">${v('mskBalance')}</span></div>
-        <div>Wt bearing status: <span class="demo-underline">${v('mskWtBearingStatus')}</span></div>
-        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
-          <span class="chk">${chk('mskWeakness')} Weakness</span>
-          <span class="chk">${chk('mskTremor')} Tremor</span>
-          <span class="chk">${chk('mskSpasticity')} Spasticity</span>
-          <span class="chk">${chk('mskRigidity')} Rigidity</span>
-          <span class="chk">${chk('mskNumbness')} Numbness</span>
-          <span class="chk">${chk('mskTingling')} Tingling</span>
-          <span class="chk">${chk('mskPain')} Pain</span>
-          <span class="chk">${chk('mskParalysis')} Paralysis</span>
-          <span class="chk">${chk('mskNeuropathy')} Neuropathy</span>
-        </div>
-        <div><strong>Assistive Devices:</strong> <span class="demo-underline">${v('mskAssistiveDevices')}</span></div>
-      </td>
-      <td>
-        <div>Hx fracture Location: <span class="demo-underline">${v('mskFractureLocation')}</span></div>
-        <div class="chk">${chk('mskBoneLoss')} Bone Loss:</div>
-        <div>Arthritis:</div>
-        <div><span class="chk">${chk('mskOsteoarthritis')} Osteoarthritis</span> <span class="chk">${chk('mskRheumatoid')} Rheumatoid</span></div>
-        <div class="chk">${chk('mskContracture')} Contracture</div>
-        <div class="chk">${chk('mskAmputation')} Amputation; Asymmetry</div>
-        <div class="chk">${chk('mskCongenitalAnomaly')} Congenital Anomaly</div>
-      </td>
-    </tr>
-    <tr><td colspan="2">Other: <div class="other-line">${v('mskOther')}</div></td></tr>
-  </table>
-
-  <div class="sub-header">FUNCTIONAL STATUS</div>
-
-  <table class="abilities-table">
-    <tr>
-      <td style="width:90px;font-weight:700;text-align:center">ABILITIES<br><br><span class="chk" style="justify-content:center">${chk('abilitiesTotalDependence')} total dependence</span></td>
-      <td style="width:180px;font-weight:700;text-align:center">Assistance Needed<br>(Indep, Cuing, Set-up Assist,<br>CGA/SBA, Min, Mod, Max, Total)</td>
-      <td style="width:80px;font-weight:700;text-align:center">Task</td>
-      <td>
-        <strong>Mobility Status: Risk for falls:<br>Ambulation/Assistive Devices:</strong><br>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;font-size:8pt">
-          <span class="chk">${chk('mobIndependent')} Independent</span>
-          <span class="chk">${chk('mobGaitBelt')} w/ Gait belt</span>
-          <span class="chk">${chk('mobStandByAssist')} w/Stand By Assist/CGA</span>
-          <span class="chk">${chk('mob2PersonAssist')} 1-2 Person assist</span>
-          <span class="chk">${chk('mobWalker')} w/Walker</span>
-          <span class="chk">${chk('mobSeatedWalker')} w/ seated-walker</span>
-          <span class="chk">${chk('mobWheeledWalker')} w/Wheeled walker</span>
-        </div>
-        Ramps/Stairs: <span class="demo-underline">${v('mobRampsStairs')}</span><br>
-        Wheel chair use: <span class="demo-underline">${v('mobWheelChair')}</span><br>
-        <div class="chk">${chk('mobNonAmbulatory')} <strong>Non-ambulatory/Bedbound/WC Bound</strong></div>
-        <div class="chk">${chk('mobRepositioning')} Repositioning/cuing needed Q <span class="demo-underline">${v('mobRepositioningHrs')}</span> hrs</div>
-        <strong>Transfers/Assistive Devices:</strong>
-        <div><span class="chk">${chk('mobMechLift')} <strong>Mechanical lift</strong></span> <span class="demo-underline">${v('mobMechLiftType')}</span></div>
-        <div><span class="chk">${chk('mobSlidingBoard')} Sliding board</span> <span class="chk">${chk('mobTransferPole')} Transfer pole</span></div>
-      </td>
-    </tr>
-    ${['Eating','Meal prep','Toileting','Transfers','Bed Mobility','Dress','Grooming','Bathing'].map((task, i) => `
-    <tr>
-      <td></td>
-      <td><div class="other-line">${v('abilities_' + task.toLowerCase().replace(/ /g,''))}</div></td>
-      <td class="task-cell">${task}</td>
-      <td></td>
-    </tr>`).join('')}
-    <tr>
-      <td colspan="4">Other: <div class="other-line">${v('abilitiesOther')}</div></td>
-    </tr>
-  </table>
-
-  <table class="form-table" style="margin-top:4px">
-    <tr>
-      <td style="font-size:8pt;line-height:1.55">
-        <strong>Guidelines to Avoid Falls:</strong><br>
-        • Coordinate with client regarding a plan of care to prevent falls. Remind client to:<br>
-        &nbsp;&nbsp;&nbsp;• Request assistance as needed, &amp; wear non-skid footwear.<br>
-        • Observe environment for potentially unsafe conditions.<br>
-        &nbsp;&nbsp;&nbsp;• Ensure the hallways &amp; pathway to other rooms are free of obstacles &amp; properly lit.<br>
-        &nbsp;&nbsp;&nbsp;• Place assistive devices such as walkers and canes within reach.<br>
-        &nbsp;&nbsp;&nbsp;• Evaluate chair and bed height.<br>
-        • Provide a night light<br>
-        • Trying to get to the toilet is a cause of many falls.<br>
-        &nbsp;&nbsp;&nbsp;• Take resident to the toilet routinely, at least every 4-5 hrs.<br>
-        &nbsp;&nbsp;&nbsp;• Ensure the bathroom is dry and clear of clutter, w/ enough clearance to maneauver any assistive devices.<br>
-        &nbsp;&nbsp;&nbsp;• Evaluate the need for rails that client can utilize, such as bathtub, toilet, and sink.
-      </td>
-    </tr>
-  </table>
-  ${pageFooter(4)}
-  </section>`;
-
-  // ══ PAGE 5 ══════════════════════════════════════════════════
-  const page5 = `<section>
-  ${pageHeader(5)}
-  <table class="form-table">
-    <tr>
-      <td style="font-size:8pt;line-height:1.55">
-        • Avoid overstimulation of light and noise. Remove sources of agitation.<br>
-        • Walk frequently with resident to increase/sustain stamina, endurance &amp; strength, and to decrease restlessness.<br>
-        • Medication effects can cause falls.<br>
-        &nbsp;&nbsp;&nbsp;• Consider peak effect for prescribed medications that affect level of consciousness, gait and elimination when planning activities.<br>
-        &nbsp;&nbsp;&nbsp;• Ask the MD to review the resident's medications with falls in mind.<br>
-        <strong><u>Always notify the Primary MD when a resident has fallen, even if there is no apparent injury.</u></strong>
-      </td>
-    </tr>
-
-    <!-- SAFETY / EMERGENCY -->
-    <tr>
-      <td class="section-label" style="font-weight:700;color:red"><strong>Safety/<br>Emergency<br>Assistance<br>Required</strong></td>
-      <td colspan="3" style="font-size:8.5pt">
-        The resident is considered independent if capable of getting out after one verbal cue.<br>
-        This resident <strong>IS NOT</strong> Physically &amp; mentally capable of safely getting out of the home without the assistance of another individual or the use of mobility aids. <strong>Correct</strong>
-        <div>Other: <div class="other-line">${v('safetyOther')}</div></div>
-      </td>
-    </tr>
-
-    <!-- TRANSPORTATION -->
-    <tr>
-      <td class="section-label"><strong>Transportation Needs</strong></td>
-      <td colspan="3">
-        <div style="font-weight:700;font-size:8.5pt">Requires special access transport</div>
-        <div>Other: <div class="other-line">${v('transportOther')}</div></div>
-      </td>
-    </tr>
-  </table>
-
-  <div class="sub-header">SKIN/ INTEGUMENTARY</div>
-  <table class="form-table">
-    <tr>
-      <td class="section-label" rowspan="2"><strong>SKIN/<br>INTEGUMENTARY</strong><br><br><strong>Risk for Skin Breakdown</strong></td>
-      <td>
-        <div><strong>Appearance of Skin:</strong></div>
-        <div class="chk">${chk('skinIntactSupple')} <strong>Intact/supple</strong></div>
-        <div class="chk">${chk('skinAgeAppropriate')} Age-appropriate</div>
-        <div class="chk">${chk('skinThinFragile')} Thin/Fragile/Aged</div>
-        <div class="chk">${chk('skinDehydrated')} Dehydrated</div>
-        <div class="chk">${chk('skinDryFlakey')} Dry/Flakey</div>
-      </td>
-      <td>
-        <div><strong>Alterations</strong> (Note locations below)</div>
-        <div>Pigmentation: <span class="demo-underline">${v('skinPigmentation')}</span></div>
-        <div>Sensation: <span class="demo-underline">${v('skinSensation')}</span></div>
-        <div class="chk">${chk('skinMolesBirthMarks')} Moles/Birth Marks</div>
-        <div class="chk">${chk('skinScarsIncisions')} Scars/Incisions</div>
-        <div class="chk">${chk('skinDecubitusPressure')} Decubitus/Pressure Ulcer</div>
-      </td>
-      <td>
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('skinRash')} Rash</span>
-          <span class="chk">${chk('skinBruises')} Bruises/Petechiae:</span>
-          <span class="chk">${chk('skinLaceration')} Laceration/Abrasion/Tear/Lesion</span>
-          <span class="chk">${chk('skinHxPressureUlcer')} Hx Pressure Ulcer</span>
-          <span class="chk">${chk('skinSpecialCare')} Special Skin Care/Mattress needed</span>
-        </div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('skinOther')}</div></td></tr>
-  </table>
-  ${pageFooter(5)}
-  </section>`;
-
-  // ══ PAGE 6 — BODY DIAGRAMS ════════════════════════════════════
-  const page6 = `<section>
-  ${pageHeader(6)}
-  <div class="body-figures">
-    <div class="body-figure">
-      <div class="body-rl"><span>Right</span><span>Left</span></div>
-      ${bodySvgAnterior}
-      <div class="fig-label">Anterior</div>
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl" style="opacity:0">&nbsp;</div>
-      ${bodySvgPosterior}
-      <div class="fig-label">Posterior</div>
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl"><span>Right</span><span>Left</span></div>
-      ${bodySvgAnterior}
-    </div>
-    <div style="width:20px"></div>
-    <div class="body-figure">
-      <div class="body-rl" style="opacity:0">&nbsp;</div>
-      ${bodySvgPosterior}
-    </div>
-  </div>
-
-  <div style="text-align:center;font-style:italic;font-size:10pt;margin:4px 0">Skin Issues Noted</div>
-  <div class="skin-issue-line"></div>
-
-  <div class="comments-line">Comments: <span class="demo-underline" style="flex:1;min-width:200px">${v('skinComments')}</span></div>
-
-  <table class="form-table" style="margin-top:6px">
-    <tr>
-      <td colspan="2" style="background:#a8c8d8;font-weight:700;text-align:center">Current Health Care Therapies &amp; Treatments Ordered or Recommended</td>
-    </tr>
-    <tr>
-      <td style="width:50%"><strong>Skilled Therapies (in-house/outside resource):</strong><br><div class="other-line">${v('therapiesSkilled')}</div></td>
-      <td><strong>Medical Treatments (in-house/outside resource):</strong><br><div class="other-line">${v('therapiesMedical')}</div></td>
-    </tr>
-    <tr><td colspan="2" style="background:#a8c8d8;font-weight:700;text-align:center">MEDICATIONS</td></tr>
-    <tr>
-      <td style="vertical-align:top">
-        <div class="chk">${chk('medSeeAttached')} See attached Med list</div>
-        <div class="chk">${chk('medSeeNsgTaskSheet')} See Nsg Task Sheet</div>
-      </td>
-      <td style="vertical-align:top;width:250px">
-        <div class="chk-grid" style="grid-template-columns:1fr">
-          <span class="chk">${chk('medNewAdmission')} New admission to AFH</span>
-          <span class="chk">${chk('medNewClient')} New Client for RN Delegation/Assumption</span>
-          <span class="chk">${chk('medRefusalPlan')} Refusal Plan</span>
-          <span class="chk">${chk('medSelfMedication')} <strong>Self-Medication Administration, MD order REQUIRED</strong></span>
-        </div>
-      </td>
-      <td style="vertical-align:top">
-        <div class="chk">${chk('medSystemInPlace')} <strong>Med System</strong> in place &amp; adequate</div>
-        <div class="chk">${chk('medMARReviewed')} MAR reviewed:</div>
-        <div class="chk">${chk('medRecordsAllDoses')} Records all doses</div>
-        <div class="chk">${chk('medRecordsAllPRNs')} Records all PRN's;</div>
-        <div class="chk">${chk('medNotesReasons')} Notes reasons &amp; results</div>
-        <div class="chk">${chk('medRecordsErrors')} Records errors/missed Rx's correctly</div>
-      </td>
-    </tr>
-    <tr><td colspan="3">Other: <div class="other-line">${v('medOther')}</div></td></tr>
-    <tr>
-      <td colspan="3" style="font-size:8pt">
-        <strong>Medication Assistance or Administration</strong> (See RCW 69.41.010 (11) &amp; RCW 69.41.085 for information about &amp; definition of medication administration): <strong>Med Administration/Nurse delegation</strong>
-      </td>
-    </tr>
-  </table>
-
-  <div style="margin-top:4px">
-    <table class="form-table">
-      <tr>
-        <td colspan="3" style="background:#a8c8d8">
-          <span class="chk">${chk('delegStable')} <strong>Client Condition is stable and predictable YES</strong></span>
-          &nbsp;&nbsp;&nbsp;
-          <span class="chk">${chk('delegNoNeed')} No delegation needs at present</span>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="4"><strong>Reason for Nurse Delegation:</strong> Limitations: <span class="chk">${chk('delegPhysical')} Physical</span> <span class="chk">${chk('delegCognitive')} Cognitive</span></td>
-      </tr>
-    </table>
-    <div class="deleg-grid">
-      <div class="deleg-cell"><span class="chk">${chk('delegOralMed')} Oral Med. Admin</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegTrachStoma')} Trach/stoma care</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegEnema')} Enema</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegBGM')} Blood Glucose Monitoring</span></div>
-
-      <div class="deleg-cell"><span class="chk">${chk('delegPillCrushing')} Pill Crushing (in food)</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegGTubeMeds')} G-Tube Meds</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegRectalMed')} Rectal Med. Admin.</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegInsulin')} Insulin Injections</span></div>
-
-      <div class="deleg-cell"><span class="chk">${chk('delegNebulizer')} Nebulizer</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegTubeFeeding')} Tube feeding</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegVaginalMed')} Vaginal Med. Admin</span></div>
-      <div class="deleg-cell"><span class="chk">${chk('delegColostomy')} Colostomy/Ileostomy Care</span></div>
-    </div>
-  </div>
-  ${pageFooter(6)}
-  </section>`;
-
-  // ══ PAGE 7 ════════════════════════════════════════════════════
-  const page7 = `<section>
-  ${pageHeader(7)}
-  <div class="deleg-grid" style="margin-bottom:4px">
-    <div class="deleg-cell"><span class="chk">${chk('delegInhalationMeds')} Inhalation Meds</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegStomaCare')} Stoma Care</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegBladderCath')} Bladder Catheterization</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegSimpleDressing')} Simple Dressing Change</span></div>
-
-    <div class="deleg-cell"><span class="chk">${chk('delegCPAP')} C-PAP /Bi-PAP Tx</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegOralSuctioning')} Oral Suctioning</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegBladderIrrigation')} Bladder Irrigation</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegEyeDrops')} Eye/Ocular Drops/Ointment</span></div>
-
-    <div class="deleg-cell">Oxygen Use <span class="demo-underline">${v('delegO2Rate')}</span> L/min</div>
-    <div class="deleg-cell"><span class="chk">${chk('delegEarDrops')} Ear drops</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegUrinaryCathCare')} Urinary Catheter Care</span></div>
-    <div class="deleg-cell"><span class="chk">${chk('delegTopicalMed')} Topical/Transdermal Med</span></div>
-  </div>
-  <div style="font-size:8.5pt">Other: <div class="other-line">${v('delegOther')}</div></div>
-
-  <table class="form-table" style="margin-top:4px">
-    <tr><td style="background:#a8c8d8;text-align:center;font-style:italic">Medication List</td></tr>
-    <tr><td style="min-height:50px"><div class="text-area-field" style="min-height:50px">${v('medicationList')}</div></td></tr>
-  </table>
-
-  <div style="margin:6px 0;font-size:9pt">
-    <div><strong>Is there any other issue or relevant information about this client?</strong> -</div>
-    <div style="margin-top:4px"><strong>Nursing Recommendation:</strong> It was a pleasure to meet and talk with <span class="demo-underline" style="min-width:100px">${v('nursingRecClientName')}</span> during this assessment.</div>
-    <div style="margin-top:6px"><strong>Strengths:</strong></div>
-    <div class="other-line">${v('strengths')}</div>
-    <div style="margin-top:6px"><strong>Current Needs:</strong></div>
-    <div class="other-line">${v('currentNeeds')}</div>
-    <div style="margin-top:6px"><strong>Comments:</strong></div>
-    <div class="other-line">${v('finalComments')}</div>
-  </div>
-
-  <div style="font-size:8pt;margin-top:80px;line-height:1.6;border-top:1px solid #ccc;padding-top:6px">
-    Information is current as of this date only. This assessment in no way contains any independent medical or mental diagnosis by the assessor. The information herein is a culmination of available information obtained from a variety of sources including the individual, the family, medical records, physical examination, therapists, social workers, nurses, caregivers, providers, or other professionals. The assessor will not be held liable for misinformation provided by the above sources or for any changes in the individual's condition after today, or for the lack of reporting of any changes.<br><br>
-    I completed this assessment and I meet the qualifications for an assessor stated in WAC 388-76-61050
-  </div>
-
-  <table class="sig-table" style="margin-top:6px">
-    <tr>
-      <td style="width:45%">
-        Printed Name: <div class="other-line">${v('sigPrintedName')}</div>
-        Signature: <div class="other-line">${v('sigSignature')}</div>
-      </td>
-      <td style="width:20%">
-        <strong>Date:</strong><br>
-        <div class="other-line">${v('sigDate')}</div>
-      </td>
-      <td>
-        <strong>Contact info:</strong><br>
-        Phone: <div class="other-line">${v('sigPhone')}</div>
-        Email: <div class="other-line">${v('sigEmail')}</div>
-      </td>
-    </tr>
-  </table>
-  ${pageFooter(7)}
-  </section>`;
-
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-  <title>RND Nursing Assessment — ${v('clientName') || 'New Assessment'}</title>
-  <style>${css}</style></head><body>
-  ${page1}${page2}${page3}${page4}${page5}${page6}${page7}
-  <script>window.onafterprint=function(){window.close();}<\/script>
-  </body></html>`;
+  // Inject into DOM — remove old modal first if present
+  const old = document.getElementById('rndAssessmentModal');
+  if(old) old.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
-// ── TAB NAVIGATION ────────────────────────────────────────────
-const RND_TABS = ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'];
-let _rndCurrentTab = 0;
-
-function rndTab(el, secId) {
-  document.querySelectorAll('#rndTabs .tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  RND_TABS.forEach(id => {
-    const s = document.getElementById(id);
-    if (s) s.style.display = 'none';
-  });
-  const target = document.getElementById(secId);
-  if (target) target.style.display = 'block';
-  _rndCurrentTab = RND_TABS.indexOf(secId);
-  _rndUpdateNavBtns();
-}
-
-function rndNavNext() {
-  if (_rndCurrentTab < RND_TABS.length - 1) {
-    _rndCurrentTab++;
-    _rndGoToTab(_rndCurrentTab);
-  }
-}
-
-function rndNavPrev() {
-  if (_rndCurrentTab > 0) {
-    _rndCurrentTab--;
-    _rndGoToTab(_rndCurrentTab);
-  }
-}
-
-function _rndGoToTab(idx) {
-  const tabs = document.querySelectorAll('#rndTabs .tab');
-  if (tabs[idx]) {
-    tabs[idx].click();
-    tabs[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }
-}
-
-function _rndUpdateNavBtns() {
-  const prevBtn = document.getElementById('rndBtnPrev');
-  const nextBtn = document.getElementById('rndBtnNext');
-  const submitBtn = document.getElementById('rnd_submitBtn');
-  if (prevBtn) prevBtn.style.display = _rndCurrentTab > 0 ? 'inline-flex' : 'none';
-  if (nextBtn) nextBtn.style.display = _rndCurrentTab < RND_TABS.length - 1 ? 'inline-flex' : 'none';
-  if (submitBtn) submitBtn.style.display = _rndCurrentTab === RND_TABS.length - 1 ? 'inline-flex' : 'none';
-}
+// Call on page load
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', buildRndModal);
+} else {
+  buildRndModal();
+}         
   
 // ── HELPERS ───────────────────────────────────────
 function statCard(color,label,val,sub){
