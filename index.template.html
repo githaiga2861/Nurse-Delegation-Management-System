@@ -3789,52 +3789,77 @@ function _rndAutoFillClient(clientId){
 
 // ── SAVE TO DRAFTS ────────────────────────────────────────────
 async function submitRndAssessment() {
-  const clientName = _rndGet('rnd_clientName');
-  if (!clientName.trim()) { alert('Client Name is required.'); return; }
-  const formData = _rndCollectData();
+  // Get client name from hidden field or dropdown label
+  const clientNameEl = document.getElementById('rnd_clientName');
+  const selectEl = document.getElementById('rnd_clientSelect');
+  let clientName = (clientNameEl?.value||'').trim();
+  if(!clientName && selectEl?.value){
+    const opt = selectEl.options[selectEl.selectedIndex];
+    clientName = opt ? opt.text.trim() : '';
+  }
+  if(!clientName){ alert('Please select a client first.'); return; }
+
   const btn = document.getElementById('rnd_submitBtn');
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  const now = new Date().toISOString();
-  const editId = window._rndDraftId;
-  const existing = editId ? (window.formDrafts || []).find(x => x.id === editId) : null;
-  const draft = {
-    id: existing ? existing.id : Date.now().toString(),
-    user_id: currentUser?.id,
-    form_id: 'form-rnd-assessment',
-    form_name: 'Delegation — Nursing Assessment and Initial Care Plan',
-    client_id: null,
-    client_name: clientName,
-    caregiver_id: null,
-    caregiver_name: '—',
-    facility_id: null,
-    facility_name: '—',
-    form_data: formData,
-    status: 'Draft — Printed, Awaiting Signature',
-    created_at: existing ? existing.created_at : now,
-    updated_at: now
-  };
-  initSupa();
-  if (supa && currentUser) {
-    if (existing) {
-      await supa.from('form_drafts').update({ form_data: formData, client_name: clientName, updated_at: now }).eq('id', draft.id);
-    } else {
-      const { error: insertErr } = await supa.from('form_drafts').insert(draft);
-      if(insertErr) console.warn('Draft insert error:', insertErr.message);
+  if(btn){ btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  try {
+    const formData = _rndCollectData();
+    const now = new Date().toISOString();
+    const editId = window._rndDraftId;
+    const existing = editId ? (window.formDrafts || []).find(x => x.id === editId) : null;
+
+    const draft = {
+      id:            existing ? existing.id : Date.now().toString(),
+      user_id:       currentUser?.id || null,
+      form_id:       'form-rnd-assessment',
+      form_name:     'Delegation — Nursing Assessment and Initial Care Plan',
+      client_id:     null,
+      client_name:   clientName,
+      caregiver_id:  null,
+      caregiver_name:'—',
+      facility_id:   null,
+      facility_name: '—',
+      form_data:     formData,
+      status:        'Draft — Printed, Awaiting Signature',
+      created_at:    existing ? existing.created_at : now,
+      updated_at:    now
+    };
+
+    initSupa();
+    if(supa && currentUser){
+      if(existing){
+        const { error: updErr } = await supa.from('form_drafts')
+          .update({ form_data: formData, client_name: clientName, updated_at: now })
+          .eq('id', draft.id);
+        if(updErr) console.warn('RND update error:', updErr.message);
+      } else {
+        const { error: insErr } = await supa.from('form_drafts').insert(draft);
+        if(insErr) console.warn('RND insert error:', insErr.message);
+      }
     }
+
+    // Update local cache
+    window.formDrafts = window.formDrafts || [];
+    if(existing){
+      const idx = window.formDrafts.findIndex(x => x.id === draft.id);
+      if(idx > -1) window.formDrafts[idx] = { ...window.formDrafts[idx], ...draft };
+      else window.formDrafts.unshift(draft);
+    } else {
+      window.formDrafts.unshift(draft);
+    }
+
+    closeRndModal();
+    showPage('documents');
+    setTimeout(() => { docsShowTab('Drafts'); renderDraftsTable(window.formDrafts); }, 100);
+    alert('✅ RND Nursing Assessment saved to Drafts.\n\nPrint from the Drafts tab.');
+
+  } catch(err) {
+    console.error('RND save failed:', err);
+    alert('❌ Save failed: ' + (err.message || 'Unknown error. Check console.'));
+  } finally {
+    // Always reset button regardless of success or failure
+    if(btn){ btn.textContent = 'Generate & Save to Drafts'; btn.disabled = false; }
   }
-  window.formDrafts = window.formDrafts || [];
-  if (existing) {
-    const idx = window.formDrafts.findIndex(x => x.id === draft.id);
-    if (idx > -1) window.formDrafts[idx] = { ...window.formDrafts[idx], ...draft };
-    else window.formDrafts.unshift(draft);
-  } else {
-    window.formDrafts.unshift(draft);
-  }
-  btn.textContent = 'Generate & Save to Drafts'; btn.disabled = false;
-  closeRndModal();
-  showPage('documents');
-  setTimeout(() => { docsShowTab('Drafts'); renderDraftsTable(window.formDrafts); }, 100);
-  alert('✅ RND Nursing Assessment saved to Drafts.\n\nPrint from the Drafts tab.');
 }
 
 // ── EDIT DRAFT HANDLER ────────────────────────────────────────
