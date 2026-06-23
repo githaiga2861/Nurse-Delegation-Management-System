@@ -3596,6 +3596,1109 @@ function showPage(id){
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// RND NURSING ASSESSMENT — Modal + Print Builder
+// Form: Delegation — Nursing Assessment and Initial Care Plan
+// ═══════════════════════════════════════════════════════════════
+
+// ── OPEN MODAL ────────────────────────────────────────────────
+function openRndAssessmentModal(editDraftId) {
+  window._rndDraftId = editDraftId || null;
+  if (editDraftId) {
+    const d = (window.formDrafts || []).find(x => x.id === editDraftId);
+    if (d && d.form_data) _rndRestoreFormData(d.form_data);
+  } else {
+    _rndClearForm();
+    // Auto-fill client if one active client
+    const ac = (window.clients || []).filter(c => c.status === 'Active');
+    if (ac.length >= 1) {
+      const c = ac[0];
+      _rndSet('rnd_clientName', `${c.first} ${c.last}`);
+      _rndSet('rnd_dob', c.dob || '');
+      _rndSet('rnd_address', c.address || '');
+      _rndSet('rnd_diagnosis', c.diagnosis || '');
+      _rndSet('rnd_allergies', c.allergies || '');
+      _rndSet('rnd_physician', c.physician || '');
+      _rndSet('rnd_physicianPhone', c.physicianPhone || '');
+      _rndSet('rnd_pharmacy', c.pharmacy || '');
+      _rndSet('rnd_pharmacyPhone', c.pharmacyPhone || '');
+      _rndSet('rnd_medications', c.medications || '');
+    }
+    _rndSet('rnd_todayDate', new Date().toLocaleDateString('en-US', { timeZone: WA_TZ }));
+  }
+  document.getElementById('rndAssessmentModal').classList.add('open');
+  document.getElementById('rndAssessmentModal').style.display = 'flex';
+}
+
+function closeRndModal() {
+  document.getElementById('rndAssessmentModal').style.display = 'none';
+  document.getElementById('rndAssessmentModal').classList.remove('open');
+}
+
+function _rndSet(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.type === 'checkbox') el.checked = !!val;
+  else el.value = val || '';
+}
+
+function _rndGet(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  if (el.type === 'checkbox') return el.checked;
+  return el.value || '';
+}
+
+function _rndClearForm() {
+  document.querySelectorAll('#rndAssessmentModal input, #rndAssessmentModal textarea, #rndAssessmentModal select').forEach(el => {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+}
+
+// ── COLLECT ALL FORM DATA ─────────────────────────────────────
+function _rndCollectData() {
+  const ids = [...document.querySelectorAll('#rndAssessmentModal [id^="rnd_"]')];
+  const data = {};
+  ids.forEach(el => {
+    const key = el.id.replace('rnd_', '');
+    if (el.type === 'checkbox') data[key] = el.checked;
+    else data[key] = el.value || '';
+  });
+  return data;
+}
+
+function _rndRestoreFormData(data) {
+  Object.entries(data).forEach(([key, val]) => {
+    const el = document.getElementById('rnd_' + key);
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!val;
+    else el.value = val || '';
+  });
+}
+
+// ── SAVE TO DRAFTS ────────────────────────────────────────────
+async function submitRndAssessment() {
+  const clientName = _rndGet('rnd_clientName');
+  if (!clientName.trim()) { alert('Client Name is required.'); return; }
+  const formData = _rndCollectData();
+  const btn = document.getElementById('rnd_submitBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const now = new Date().toISOString();
+  const editId = window._rndDraftId;
+  const existing = editId ? (window.formDrafts || []).find(x => x.id === editId) : null;
+  const draft = {
+    id: existing ? existing.id : Date.now().toString(),
+    user_id: currentUser?.id,
+    form_id: 'form-rnd-assessment',
+    form_name: 'Delegation — Nursing Assessment and Initial Care Plan',
+    client_id: null,
+    client_name: clientName,
+    caregiver_id: null,
+    caregiver_name: '—',
+    facility_id: null,
+    facility_name: '—',
+    form_data: formData,
+    status: 'Draft — Printed, Awaiting Signature',
+    created_at: existing ? existing.created_at : now,
+    updated_at: now
+  };
+  initSupa();
+  if (supa && currentUser) {
+    if (existing) {
+      await supa.from('form_drafts').update({ form_data: formData, client_name: clientName, updated_at: now }).eq('id', draft.id);
+    } else {
+      await supa.from('form_drafts').insert(draft).catch(e => console.warn(e));
+    }
+  }
+  window.formDrafts = window.formDrafts || [];
+  if (existing) {
+    const idx = window.formDrafts.findIndex(x => x.id === draft.id);
+    if (idx > -1) window.formDrafts[idx] = { ...window.formDrafts[idx], ...draft };
+    else window.formDrafts.unshift(draft);
+  } else {
+    window.formDrafts.unshift(draft);
+  }
+  btn.textContent = 'Generate & Save to Drafts'; btn.disabled = false;
+  closeRndModal();
+  showPage('documents');
+  setTimeout(() => { docsShowTab('Drafts'); renderDraftsTable(window.formDrafts); }, 100);
+  alert('✅ RND Nursing Assessment saved to Drafts.\n\nPrint from the Drafts tab.');
+}
+
+// ── EDIT DRAFT HANDLER ────────────────────────────────────────
+function editRndAssessmentDraft(d, fd) {
+  _rndRestoreFormData(fd);
+  window._rndDraftId = d.id;
+  document.getElementById('rndAssessmentModal').classList.add('open');
+  document.getElementById('rndAssessmentModal').style.display = 'flex';
+  const btn = document.getElementById('rnd_submitBtn');
+  if (btn) btn.textContent = 'Save Changes';
+}
+
+// ── PRINT BUILDER ─────────────────────────────────────────────
+function buildRndAssessmentPrintHtml(fd, draft) {
+  const v = (key, fallback) => {
+    const val = fd[key];
+    if (val === undefined || val === null || val === '') return fallback || '';
+    return String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  };
+  const chk = key => fd[key] ? '&#9745;' : '&#9744;'; // ☑ or ☐
+  const line = (label, val, w) => `<span style="display:inline-flex;align-items:baseline;gap:3px;${w?'width:'+w:''}"><strong>${label}</strong> <span style="border-bottom:1px solid #000;min-width:${w?'auto':'60px'};flex:1;display:inline-block">${v(val)}&nbsp;</span></span>`;
+
+  const LOGO = 'images/logo.png';
+
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff}
+    @page{size:letter portrait;margin:0.4in 0.4in 0.35in 0.4in}
+    @media print{body{margin:0}.no-print{display:none!important}section{page-break-after:always}section:last-child{page-break-after:avoid}}
+    section{width:100%;padding:0}
+    .pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;padding-bottom:4px;border-bottom:3px solid #c00}
+    .pg-header-logo{width:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .pg-header-logo img{width:66px;height:66px;object-fit:contain}
+    .pg-header-center{flex:1;text-align:center;padding:0 8px}
+    .pg-header-center .delegation{font-size:22pt;color:#aaa;font-weight:300;letter-spacing:0.02em;line-height:1.1}
+    .pg-header-right{text-align:right;font-size:10pt;font-weight:700;line-height:1.4}
+    .demo-row{margin:6px 0;font-size:9pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+    .demo-field{display:inline-flex;align-items:baseline;gap:3px}
+    .demo-field strong{white-space:nowrap;font-size:9pt}
+    .demo-underline{border-bottom:1px solid #000;min-width:50px;display:inline-block}
+    .blue-bar{background:#a8c8d8;padding:3px 6px;font-weight:700;font-size:9pt;text-align:center;margin:3px 0}
+    table.form-table{width:100%;border-collapse:collapse;margin-bottom:3px}
+    table.form-table td,table.form-table th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
+    table.form-table .section-label{font-weight:700;font-size:8.5pt;width:90px;min-width:90px;background:#fff}
+    .chk{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-size:8.5pt}
+    .chk-grid{display:grid;gap:1px 6px;font-size:8.5pt}
+    .sub-header{background:#000;color:#fff;font-weight:700;font-size:9pt;padding:2px 6px;text-align:center;margin:2px 0}
+    .abilities-table{width:100%;border-collapse:collapse}
+    .abilities-table td,.abilities-table th{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle}
+    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:8.5pt}
+    .body-figures{display:flex;justify-content:center;gap:0;margin:8px 0}
+    .body-figure{display:flex;flex-direction:column;align-items:center;gap:2px}
+    .body-figure svg{width:120px;height:220px}
+    .body-figure .fig-label{font-size:8.5pt;font-style:italic}
+    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:8pt;font-weight:700}
+    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:14px}
+    .comments-line{display:flex;align-items:baseline;gap:4px;margin:3px 0;font-size:9pt}
+    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:4px;padding-top:2px;font-size:8pt}
+    .deleg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;margin:2px 0}
+    .deleg-cell{border:1px solid #000;padding:2px 4px;font-size:8pt}
+    .sig-table{width:100%;border-collapse:collapse}
+    .sig-table td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:9pt;min-height:40px}
+    .text-area-field{width:100%;min-height:28px;font-size:8.5pt;word-wrap:break-word;white-space:pre-wrap}
+    .other-line{color:#555;font-size:8pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:14px;padding-left:4px}`;
+
+  // Human body SVG — anterior (front)
+  const bodySvgAnterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
+    <!-- Head -->
+    <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/>
+    <!-- Neck -->
+    <rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
+    <!-- Torso -->
+    <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
+    <!-- Shoulders -->
+    <path d="M38 42 Q28 42 22 50 L18 70" stroke-linecap="round"/>
+    <path d="M82 42 Q92 42 98 50 L102 70" stroke-linecap="round"/>
+    <!-- Left arm (viewer's right) -->
+    <path d="M18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
+    <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 Q31 160 28 155 L26 150 Q29 154 33 155 Q37 156 37 152 Q37 148 33 146 L28 144 Q31 146 35 145 Q39 144 38 140 Q37 136 33 136 L24 138 Q22 132 22 140" fill="#fff"/>
+    <!-- Right arm (viewer's left) -->
+    <path d="M102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
+    <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 Q89 160 92 155 L94 150 Q91 154 87 155 Q83 156 83 152 Q83 148 87 146 L92 144 Q89 146 85 145 Q81 144 82 140 Q83 136 87 136 L96 138 Q98 132 98 140" fill="#fff"/>
+    <!-- Hips/pelvis -->
+    <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
+    <!-- Left leg -->
+    <path d="M30 126 Q28 150 30 170 Q31 185 30 200" stroke-linecap="round"/>
+    <path d="M30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 Q36 206 38 202 Q40 200 40 196 L34 198 Q32 194 32 200" fill="#fff"/>
+    <!-- Right leg -->
+    <path d="M90 126 Q92 150 90 170 Q89 185 90 200" stroke-linecap="round"/>
+    <path d="M90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 Q84 206 82 202 Q80 200 80 196 L86 198 Q88 194 88 200" fill="#fff"/>
+    <!-- Collarbone hints -->
+    <path d="M50 40 Q38 44 30 48" stroke-width="0.7"/>
+    <path d="M70 40 Q82 44 90 48" stroke-width="0.7"/>
+    <!-- Navel -->
+    <circle cx="60" cy="82" r="1.5" fill="#000"/>
+  </svg>`;
+
+  // Human body SVG — posterior (back)
+  const bodySvgPosterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
+    <!-- Head -->
+    <ellipse cx="60" cy="20" rx="13" ry="16" fill="#fff"/>
+    <!-- Neck -->
+    <rect x="55" y="34" width="10" height="8" rx="2" fill="#fff"/>
+    <!-- Torso back -->
+    <path d="M38 42 Q28 50 26 80 Q24 95 28 110 L92 110 Q96 95 94 80 Q92 50 82 42 Q72 38 60 38 Q48 38 38 42Z" fill="#fff"/>
+    <!-- Spine line -->
+    <line x1="60" y1="42" x2="60" y2="108" stroke-width="0.7" stroke-dasharray="2,2"/>
+    <!-- Shoulder blades -->
+    <ellipse cx="47" cy="62" rx="9" ry="12" stroke-width="0.8"/>
+    <ellipse cx="73" cy="62" rx="9" ry="12" stroke-width="0.8"/>
+    <!-- Left arm back -->
+    <path d="M38 42 Q28 42 22 50 L18 70 Q14 90 16 110 Q17 125 18 140" stroke-linecap="round"/>
+    <path d="M18 140 Q16 150 10 158 Q8 162 12 165 Q16 168 18 162 L20 156 Q22 162 24 165 Q27 168 29 164 Q31 160 28 155 L26 150 Q29 154 33 155 Q37 156 37 152 Q37 148 33 146 L28 144 Q31 146 35 145 Q39 144 38 140 Q37 136 33 136 L24 138 Q22 132 22 140" fill="#fff"/>
+    <!-- Right arm back -->
+    <path d="M82 42 Q92 42 98 50 L102 70 Q106 90 104 110 Q103 125 102 140" stroke-linecap="round"/>
+    <path d="M102 140 Q104 150 110 158 Q112 162 108 165 Q104 168 102 162 L100 156 Q98 162 96 165 Q93 168 91 164 Q89 160 92 155 L94 150 Q91 154 87 155 Q83 156 83 152 Q83 148 87 146 L92 144 Q89 146 85 145 Q81 144 82 140 Q83 136 87 136 L96 138 Q98 132 98 140" fill="#fff"/>
+    <!-- Buttocks -->
+    <path d="M28 110 Q26 118 30 126 L90 126 Q94 118 92 110Z" fill="#fff"/>
+    <path d="M60 110 Q60 120 60 126" stroke-width="0.7"/>
+    <!-- Left leg back -->
+    <path d="M30 126 Q28 150 30 170 Q31 185 30 200" stroke-linecap="round"/>
+    <path d="M30 200 Q28 210 25 215 Q22 218 26 219 Q30 220 32 215 L34 210 Q36 216 40 218 Q44 219 44 214 Q44 210 40 207 L36 204 L34 198 Q32 194 32 200" fill="#fff"/>
+    <!-- Right leg back -->
+    <path d="M90 126 Q92 150 90 170 Q89 185 90 200" stroke-linecap="round"/>
+    <path d="M90 200 Q92 210 95 215 Q98 218 94 219 Q90 220 88 215 L86 210 Q84 216 80 218 Q76 219 76 214 Q76 210 80 207 L84 204 L86 198 Q88 194 88 200" fill="#fff"/>
+  </svg>`;
+
+  const pageHeader = (pageNum) => `
+  <div class="pg-header">
+    <div class="pg-header-logo">
+      <img src="${LOGO}" alt="Golden Years Home Health" onerror="this.style.display='none'">
+    </div>
+    <div class="pg-header-center">
+      <div class="delegation">Delegation</div>
+    </div>
+    <div class="pg-header-right">Nursing Assessment<br>and Initial Care Plan</div>
+  </div>`;
+
+  const pageFooter = (pageNum) => `
+  <div class="footer-bar">
+    <span>Client Name: <strong>${v('clientName')}</strong></span>
+    <span>Page ${pageNum}</span>
+  </div>`;
+
+  // ══ PAGE 1 ══════════════════════════════════════════════════
+  const page1 = `<section>
+  ${pageHeader(1)}
+  <div class="demo-row">
+    <span class="demo-field"><strong>Client Name:</strong> <span class="demo-underline" style="min-width:120px">${v('clientName')}</span></span>
+    <span class="demo-field"><strong>DOB:</strong> <span class="demo-underline" style="min-width:60px">${v('dob')}</span></span>
+    <span class="demo-field"><strong>Age:</strong> <span class="demo-underline" style="min-width:40px">${v('age')}</span></span>
+    <span class="demo-field"><strong>Gender:</strong> <span class="demo-underline" style="min-width:50px">${v('gender')}</span></span>
+    <span class="demo-field"><strong>Today's Date:</strong> <span class="demo-underline" style="min-width:70px">${v('todayDate')}</span></span>
+  </div>
+  <div class="demo-row">
+    <span class="demo-field"><strong>Address:</strong> <span class="demo-underline" style="min-width:200px">${v('address')}</span></span>
+    <span class="demo-field"><strong>Phone:</strong> <span class="demo-underline" style="min-width:80px">${v('phone')}</span></span>
+  </div>
+  <div class="demo-row">
+    <span class="demo-field"><strong>Type of Assessment:</strong> <span class="demo-underline" style="min-width:80px">${v('typeOfAssessment')}</span></span>
+  </div>
+
+  <div class="blue-bar" style="margin-top:6px">&nbsp;</div>
+
+  <table class="form-table">
+    <tr><td colspan="3" style="font-weight:700">Diagnoses:</td></tr>
+    <tr><td colspan="3" style="min-height:36px"><div class="text-area-field">${v('diagnoses')}</div></td></tr>
+    <tr><td colspan="3">Hospitalizations/Surgeries/Mental Illness/Developmental Disability: <span class="demo-underline" style="min-width:300px;display:inline-block">${v('hospitalizations')}</span></td></tr>
+    <tr><td colspan="3"><strong>Allergies:</strong> ${v('allergies') || '-'}</td></tr>
+    <tr>
+      <td>Physician: ${v('physician')}</td>
+      <td>Phone: ${v('physicianPhone')}</td>
+      <td>Fax: ${v('physicianFax')}</td>
+    </tr>
+    <tr>
+      <td>Physician: ${v('physician2')}</td>
+      <td>Phone: ${v('physician2Phone')}</td>
+      <td>Fax: ${v('physician2Fax')}</td>
+    </tr>
+    <tr>
+      <td>Pharmacy: ${v('pharmacy')}</td>
+      <td>Phone: ${v('pharmacyPhone')}</td>
+      <td>Fax: ${v('pharmacyFax')}</td>
+    </tr>
+    <tr>
+      <td><strong>Temp:</strong> ${v('temp')}</td>
+      <td><strong>Pulse:</strong> ${v('pulse')}</td>
+      <td><strong>Resp:</strong> ${v('resp')}</td>
+    </tr>
+    <tr>
+      <td><strong>SpO2:</strong> ${v('spo2')}</td>
+      <td><strong>BP:</strong> ${v('bp')}</td>
+      <td><strong>Wt:</strong> ${v('wt')} &nbsp;&nbsp; <strong>Ht:</strong> ${v('ht')}</td>
+    </tr>
+  </table>
+
+  <div class="sub-header">CURRENT SYSTEMS REVIEW / FUNCTIONAL ASSESSMENT</div>
+
+  <table class="form-table">
+    <!-- PAIN / REST -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>PAIN / REST</strong></td>
+      <td style="width:200px">
+        <div><strong>Pain at assessment:</strong></div>
+        <div>Pain Scale 0-10 Current level: <span class="demo-underline">${v('painLevel')}</span></div>
+        <div class="chk">${chk('painChronic')} Chronic</div>
+        <div>Location: <span class="demo-underline">${v('painLocation')}</span></div>
+      </td>
+      <td style="width:210px">
+        <div><strong>Non-verbal indicators:</strong></div>
+        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
+          <span class="chk">${chk('nvGrimacing')} Grimacing</span>
+          <span class="chk">${chk('nvAnorexia')} anorexia</span>
+          <span class="chk">${chk('nvFrowning')} frowning</span>
+          <span class="chk">${chk('nvGuarding')} guarding</span>
+          <span class="chk">${chk('nvInsomnia')} insomnia</span>
+          <span class="chk">${chk('nvCrying')} crying</span>
+          <span class="chk">${chk('nvMoaning')} moaning</span>
+          <span class="chk">${chk('nvRubbing')} rubbing</span>
+          <span class="chk">${chk('nvAgitation')} agitation</span>
+          <span class="chk">${chk('nvIrritable')} irritable</span>
+        </div>
+      </td>
+      <td>
+        <div><strong>Rest/Sleep Patterns</strong></div>
+        <div>Naps <span class="chk">${chk('napsDay')} day</span> <span class="chk">${chk('napsAfternoon')} afternoon</span></div>
+        <div>Night</div>
+        <div class="chk">${chk('upXToilet')} Up X for toilet/position chg</div>
+        <div class="chk">${chk('insomniaFlag')} Insomnia: difficulty</div>
+        <div><span class="chk">${chk('fallingAsleep')} falling asleep</span> <span class="chk">${chk('stayingAsleep')} staying asleep</span></div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('painOther')}</div></td></tr>
+
+    <!-- NEUROLOGICAL -->
+    <tr>
+      <td class="section-label" rowspan="3"><strong>NEUROLOGICAL/<br>COGNITION</strong></td>
+      <td>
+        <div class="chk">${chk('neurAlert')} Alert &amp; responsive</div>
+        <div class="chk">${chk('neurOriented')} Oriented?</div>
+        <div>Memory Loss <span class="chk">${chk('neurMemLoss')} Unable to determine</span></div>
+        <div style="margin-left:14px"><span class="chk">${chk('neurShortTerm')} Short term</span> <span class="chk">${chk('neurLongTerm')} Long term</span></div>
+        <div>Cognition: <span class="demo-underline">${v('neurCognition')}</span></div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('neurCVATIA')} CVA/TIA</span>
+          <span class="chk">${chk('neurTBI')} TBI</span>
+          <span class="chk">${chk('neurAphasia')} Aphasia</span>
+          <span class="chk">${chk('neurNonVerbal')} Non-Verbal/unable to express self</span>
+          <span class="chk">${chk('neurImpairedJudge')} Impaired judgment/decisions</span>
+          <span class="chk">${chk('neurImpairedCritical')} Impaired critical thinking</span>
+          <span class="chk">${chk('neurConfusion')} <strong>Confusion / Dementia</strong></span>
+        </div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('neurDevDelay')} Developmental Delay</span>
+          <span class="chk">${chk('neurSeizure')} <strong>Seizure Precautions</strong></span>
+          <span class="chk">${chk('neurHeadache')} Headache/Migraine</span>
+          <span class="chk">${chk('neurDizziness')} Dizziness</span>
+          <span class="chk">${chk('neurImpairedProp')} Impaired/decreased proprioception</span>
+        </div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('neurOther')}</div></td></tr>
+    <tr>
+      <td colspan="3">
+        <strong>Delirium screen:</strong> <span class="chk">${chk('deliriumNo')} NO Delirium</span><br>
+        <span class="chk" style="align-items:flex-start">${chk('deliriumSudden')} Sudden or recent change in mental functioning, including attention span, orientation, coherence, or other unpredictable behavior/mental variations over the course of a day.</span><br>
+        <span class="chk" style="align-items:flex-start">${chk('deliriumSpeech')} Sudden or recent onset of episodes of disorganized speech (consider immediate referral to MD)</span>
+      </td>
+    </tr>
+  </table>
+  <div style="background:#a8c8d8;padding:2px 6px;font-weight:700;font-size:9pt;text-align:right">No Behavioral Issues</div>
+  ${pageFooter(1)}
+  </section>`;
+
+  // ══ PAGE 2 ══════════════════════════════════════════════════
+  const page2 = `<section>
+  ${pageHeader(2)}
+  <table class="form-table">
+    <!-- PSYCHO-SOCIAL -->
+    <tr>
+      <td class="section-label" rowspan="2" style="width:90px"><strong>PSYCHO-SOCIAL BEHAVIOR/MOOD</strong><br><br><strong>Current mood</strong></td>
+      <td style="width:180px">
+        <div><strong>Depression screen:</strong></div>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('psyHxDepression')} Hx of Depression</span>
+          <span class="chk">${chk('psyHospDepression')} Hospitalization for Depression</span>
+          <span class="chk">${chk('psyCurrentDepRx')} <strong>Current Depression Rx?</strong></span>
+          <span class="chk">${chk('psySuicideAttempt')} Suicide attempt or ideation</span>
+          <span class="chk">${chk('psyFatigue')} Fatigue/decreased energy</span>
+          <span class="chk">${chk('psyRestlessness')} Restlessness</span>
+          <span class="chk">${chk('psyInsomniaSleep')} Insomnia or excessive sleeping</span>
+          <span class="chk">${chk('psyEmotLabile')} Emotionally labile/Mood Swings</span>
+          <span class="chk">${chk('psyLimitedAttn')} Limited attention-span</span>
+          <span class="chk">${chk('psyLossInterest')} Loss of Interest in activities</span>
+          <span class="chk">${chk('psyDifficulty')} Difficulty w/decisions, choices</span>
+        </div>
+        <div style="margin-top:3px"><strong>Anxiety Screen:</strong></div>
+        <div class="chk">${chk('psyAnxious')} Easily worried or Anxious</div>
+        <div class="chk">${chk('psyAnxietyRx')} Current Anti-anxiety Rx</div>
+      </td>
+      <td style="width:170px">
+        <div><strong>Behavioral Issues</strong></div>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('biForgetful')} <strong>Forgetful</strong></span>
+          <span class="chk">${chk('biImpulsive')} <strong>Impulsive</strong></span>
+          <span class="chk">${chk('biEasilyIrritated')} <strong>Easily irritated/agitated</strong></span>
+          <span class="chk">${chk('biDemanding')} <strong>Demanding</strong>/Manipulative</span>
+          <span class="chk">${chk('biSuspicious')} <strong>Suspicious</strong>/Accusatory</span>
+          <span class="chk">${chk('biUnrealistic')} Unrealistic fears/Paranoia</span>
+          <span class="chk">${chk('biInappropLang')} Inappropriate language</span>
+          <span class="chk">${chk('biYells')} Yells/screams</span>
+          <span class="chk">${chk('biIntimidating')} <strong>Intimidating/Verbal abuse</strong></span>
+          <span class="chk">${chk('biCrying')} <strong>Crying/Tearfulness</strong></span>
+          <span class="chk">${chk('biObsessive')} Obsessive/Compulsive</span>
+          <span class="chk">${chk('biRepetitive')} Repetitive emotionally</span>
+          <span class="chk">${chk('biAttnSeeking')} <strong>Attention seeking</strong></span>
+          <span class="chk">${chk('biResistive')} <strong>Resistive to Care</strong></span>
+          <span class="chk">${chk('biSelfInjures')} <strong>Self-Injures</strong></span>
+        </div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('biSundowner')} <strong>Sundowner/agitated @night</strong></span>
+          <span class="chk">${chk('biExitSeeking')} Exit Seeking/Escape risk</span>
+          <span class="chk">${chk('biWandering')} <strong>Wandering</strong></span>
+          <span class="chk">${chk('biMisuse')} Hx Misuse/abuse/Addiction</span>
+          <span class="chk">${chk('biArson')} Hx arson/accidental fires</span>
+          <span class="chk">${chk('biAssaultive')} <strong>Assaultive/Combative</strong></span>
+          <span class="chk">${chk('biPhysOutbursts')} Physical Outbursts</span>
+          <span class="chk">${chk('biPropertyDestruct')} <strong>Property Destruction</strong></span>
+          <span class="chk">${chk('biDelusions')} Delusions</span>
+          <span class="chk">${chk('biHallucinations')} Hallucinations/psychosis</span>
+          <span class="chk">${chk('biInappropToileting')} <strong>Inappropriate toileting</strong></span>
+          <span class="chk">${chk('biPredatorySexual')} Predatory sexual behavior</span>
+          <span class="chk">${chk('biSexualAgression')} Sexual acting out/agression</span>
+          <span class="chk">${chk('biExposeSelf')} Exposes self/disrobes</span>
+          <span class="chk">${chk('biPica')} Pica (eats non-edible objects)</span>
+        </div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('psyOther')}</div></td></tr>
+
+    <!-- DEMENTIA / DDD -->
+    <tr>
+      <td class="section-label"><strong>DEMENTIA or DDD SPECIALTY PLACEMENT</strong></td>
+      <td colspan="3" style="font-size:8.5pt">
+        <strong>Dementia or DDD Specialty placement is needed if the client meets criteria in all 3 areas below:</strong><br>
+        1) <span class="chk">${chk('demShortTermMemory')} Short term Memory Loss</span> <strong>OR</strong> <span class="chk">${chk('demCognitiveImpair')} Cognitive Impairment</span> <strong>AND</strong><br>
+        2) <strong>One</strong> of the following: <span class="chk">${chk('demNotOriented')} not oriented to place or time</span> <span class="chk">${chk('demLimitedComm')} limited ability to communicate</span><br>
+        &nbsp;&nbsp;&nbsp;<span class="chk">${chk('demHandsOnEating')} hands-on assistance with eating or drinking</span> <strong>AND</strong><br>
+        3) <span class="chk">${chk('demBehaviorSymptom')} <strong>At least one</strong> behavior/symptom from the <strong>Behavioral Issues</strong> Category above <strong>in the past 30 days.</strong></span>
+      </td>
+    </tr>
+
+    <!-- SENSORY -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>SENSORY</strong></td>
+      <td>
+        <div><strong>Touch: Vision status:</strong></div>
+        <div>Glasses: <span class="chk">${chk('sensGlassDistance')} Distance</span> <span class="chk">${chk('sensGlassReading')} Reading</span></div>
+        <div class="chk">${chk('sensGlaucoma')} Glaucoma</div>
+        <div class="chk">${chk('sensEyeDrops')} Eye drops</div>
+        <div class="chk">${chk('sensCataracts')} Cataracts</div>
+        <div>Blind: <span class="chk">${chk('sensProsthesis')} Prosthesis</span></div>
+        <div class="chk">${chk('sensCornealTransplant')} Corneal transplant</div>
+      </td>
+      <td>
+        <div><strong>Dental status:</strong></div>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('sensOwnTeeth')} Own teeth</span>
+          <span class="chk">${chk('sensCaries')} Caries/Malocclusion</span>
+          <span class="chk">${chk('sensMissingTeeth')} Missing teeth/edentulous</span>
+          <span class="chk">${chk('sensDentures')} Dentures:</span>
+          <span class="chk">${chk('sensImpairedTaste')} Impaired <strong>Taste</strong>:</span>
+          <span class="chk">${chk('sensImpairedSmell')} Impaired <strong>Smell</strong>:</span>
+        </div>
+      </td>
+      <td>
+        <div><strong>Hearing status:</strong></div>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('sensHearingAids')} Hearing Aids:</span>
+          <span class="chk">${chk('sensTinnitus')} Tinnitus</span>
+          <span class="chk">${chk('sensEarInfection')} Hx of Ear infection</span>
+          <span class="chk">${chk('sensWaxBuild')} Wax build-up/ear drops</span>
+          <span class="chk">${chk('sensDrainage')} Drainage</span>
+          <span class="chk">${chk('sensEarSurgery')} Ear surgery/tubes</span>
+        </div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('sensOther')}</div></td></tr>
+
+    <!-- CARDIO-PULMONARY -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>CARDIO-PULMONARY</strong><br><br><span class="chk">${chk('cardioNoIssues')} No Cardio or Pulmonary Issues</span></td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
+          <span class="chk">${chk('cardioCAD')} CAD</span>
+          <span class="chk">${chk('cardioHTN')} HTN</span>
+          <span class="chk">${chk('cardioMI')} MI</span>
+          <span class="chk">${chk('cardioCHF')} CHF</span>
+          <span class="chk">${chk('cardioHighChol')} High cholesterol</span>
+          <span class="chk">${chk('cardioArrhythmia')} Arrhythmia</span>
+          <span class="chk">${chk('cardioPacemaker')} <strong>Pacemaker</strong></span>
+          <span class="chk">${chk('cardioValve')} Valve issues</span>
+          <span class="chk">${chk('cardioAnticoag')} <strong>Anticoag therapy</strong></span>
+          <span class="chk">${chk('cardioAtherosclerosis')} Arterio-/atherosclerosis</span>
+          <span class="chk">${chk('cardioAngina')} Pain/angina/Ischemia</span>
+        </div>
+        <div>Edema: <span class="demo-underline">${v('cardioEdema')}</span> Amt: <span class="demo-underline">${v('cardioEdemaAmt')}</span></div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('cardioVenousStasis')} Venous stasis</span>
+          <span class="chk">${chk('cardioCirculatory')} Circulatory impairment:</span>
+          <span class="chk">${chk('cardioCOPD')} COPD</span>
+          <span class="chk">${chk('cardioAsthma')} Asthma</span>
+          <span class="chk">${chk('cardioSmoking')} Hx Smoking</span>
+        </div>
+        <div><strong>Lungs</strong></div>
+        <div>SOB: <span class="chk">${chk('cardioSOBRest')} @rest</span> <span class="chk">${chk('cardioSOBActivity')} w/activity</span></div>
+        <div class="chk">${chk('cardioWheezing')} Wheezing</div>
+        <div>Cough: <span class="chk">${chk('cardioProduct')} Product</span> <span class="chk">${chk('cardioNonProduct')} Non-product</span></div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('cardioHxTB')} Hx Tuberculosis</span>
+          <span class="chk">${chk('cardioInhaler')} Inhaler</span>
+          <span class="chk">${chk('cardioNebulizer')} <strong>Nebulizer</strong></span>
+          <span class="chk">${chk('cardioCPAP')} C-PAP</span>
+          <span class="chk">${chk('cardioBiPAP')} Bi-PAP</span>
+          <span class="chk">${chk('cardioVentilator')} Ventilator/Type</span>
+          <span class="chk">${chk('cardioO2')} <strong>O2</strong></span>
+        </div>
+        <div>Rate: <span class="demo-underline">${v('cardioO2Rate')}</span> L/min</div>
+        <div class="chk">${chk('cardioTracheostomy')} <strong>Tracheostomy</strong></div>
+        <div class="chk">${chk('cardioPosturalDrainage')} Postural drainage/Chest PT</div>
+        <div class="chk">${chk('cardioSuctioning')} Suctioning</div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('cardioOther')}</div></td></tr>
+  </table>
+  ${pageFooter(2)}
+  </section>`;
+
+  // ══ PAGE 3 ══════════════════════════════════════════════════
+  const page3 = `<section>
+  ${pageHeader(3)}
+  <table class="form-table">
+    <!-- ENDOCRINE -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>ENDOCRINE</strong></td>
+      <td colspan="2">
+        <div><span class="chk">${chk('endoDiabetic')} Diabetic:</span> DM Meds: <span class="demo-underline">${v('endoDMMeds')}</span></div>
+        <div>Frequency: <span class="demo-underline">${v('endoFreq1')}</span></div>
+        <div>Frequency: <span class="demo-underline">${v('endoFreq2')}</span> via <span class="demo-underline">${v('endoVia1')}</span></div>
+        <div><span class="chk">${chk('endoBGCheck')} Bl. Gl. Check Frequency:</span> <span class="demo-underline">${v('endoBGFreq')}</span> via <span class="demo-underline">${v('endoBGVia')}</span></div>
+      </td>
+      <td>
+        <div><span class="chk">${chk('endoThyroid')} Thyroid:</span></div>
+        <div>Rx: <span class="demo-underline">${v('endoThyroidRx')}</span></div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('endoOther')}</div></td></tr>
+
+    <!-- COMMUNICABLE DISEASE -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>COMMUNICABLE DISEASE HX/Infection Control</strong></td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('commHerpesShingles')} <strong>Herpes/Shingles</strong></span>
+          <span class="chk">${chk('commHepatitis')} <strong>Hepatitis</strong></span>
+          <span class="chk">${chk('commHIV')} <strong>HIV</strong></span>
+        </div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('commTB')} <strong>Tuberculosis</strong></span>
+          <span>Rx? <span class="demo-underline">${v('commTBRx')}</span></span>
+          <span class="chk">${chk('commMRSA')} <strong>MRSA</strong></span>
+          <span class="chk">${chk('commOther')} <strong>Other</strong></span>
+        </div>
+      </td>
+      <td>
+        <div><strong>UNIVERSAL PRECAUTIONS</strong></div>
+        <div class="chk">${chk('commAlways')} <strong>Always</strong></div>
+        <div class="chk">${chk('commSpecialPrecautions')} <strong>Special Precautions</strong></div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-size:8pt">
+        Other: The formal and informal caregiver will use latex/plastic gloves when in contact with any secretions to prevent spread of infection. Thorough hand washing with soap will be done before and after gloving. Gloves will be put on and discarded at the end of each task.
+        <div class="other-line">${v('commOtherText')}</div>
+      </td>
+    </tr>
+
+    <!-- NUTRITION / GI -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>NUTRITION/<br>GASTRO-INTESTINAL</strong><br><br><span class="chk">${chk('nutriNothingByMouth')} <strong>Nothing by Mouth</strong></span></td>
+      <td style="width:180px">
+        <div><strong>Dietary Intake:</strong></div>
+        <div><span class="chk">${chk('nutriOral')} <strong>Oral</strong></span> Appetite: <span class="demo-underline">${v('nutriAppetite')}</span></div>
+        <div>Food Allergies: <span class="demo-underline">${v('nutriFoodAllergies')}</span></div>
+        <div>Diet: <span class="demo-underline">${v('nutriDiet')}</span></div>
+        <div>Consistency: <span class="demo-underline">${v('nutriConsistency')}</span></div>
+        <div class="chk">${chk('nutriSpecialNeeds')} Special Needs:</div>
+        <div><strong>TF Formula:</strong> <span class="demo-underline">${v('nutriTFFormula')}</span></div>
+        <div>Method: <span class="demo-underline">${v('nutriTFMethod')}</span></div>
+        <div>Rate: <span class="demo-underline">${v('nutriTFRate')}</span> Amt: <span class="demo-underline">${v('nutriTFAmt')}</span></div>
+        <div>Frequency: <span class="demo-underline">${v('nutriTFFreq')}</span></div>
+      </td>
+      <td>
+        <div class="chk">${chk('nutriDysphagia')} <strong>Dysphagia</strong></div>
+        <div class="chk">${chk('nutriAspirationRisk')} Aspiration Risk</div>
+        <div class="chk">${chk('nutriSwallowingPrecautions')} <strong>Swallowing Precautions</strong></div>
+        <div>Body Frame/Build: <span class="demo-underline">${v('nutriBodyFrame')}</span></div>
+        <div>Weight: <span class="demo-underline">${v('nutriWeight')}</span></div>
+        <div><strong>Fluid Intake:</strong></div>
+        <div class="chk">${chk('nutriWaterBoluses')} Water Boluses:</div>
+        <div class="chk">${chk('nutriRestriction')} Restriction: <span class="demo-underline">${v('nutriRestrictionAmt')}</span> /day</div>
+        <div class="chk">${chk('nutriSxDehydration')} S/Sx dehydration</div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('nutriGERD')} GERD/Indigestion</span>
+          <span class="chk">${chk('nutriUlcer')} Ulcer:</span>
+          <span class="chk">${chk('nutriHxCancer')} Hx of cancer:</span>
+        </div>
+        <div><strong>Bowels:</strong></div>
+        <div><strong>Managed by</strong>: <span class="demo-underline">${v('nutriBowelsManagedBy')}</span></div>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('nutriConstipation')} Constipation:</span>
+          <span class="chk">${chk('nutriDiarrhea')} Diarrhea/loose stools</span>
+          <span class="chk">${chk('nutriIrritableBowel')} Irritable Bowel</span>
+          <span class="chk">${chk('nutriAutonomicDysreflexia')} Autonomic Dysreflexia</span>
+          <span class="chk">${chk('nutriOstomy')} Ostomy:</span>
+        </div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('nutriOther')}</div></td></tr>
+
+    <!-- GENITO-URINARY -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>GENITO-URINARY</strong></td>
+      <td colspan="2">
+        <div>
+          <span class="chk">${chk('guContinent')} Continent</span>
+          <span class="chk">${chk('guIncontinent')} <strong>Incontinent</strong></span>
+          <span class="chk">${chk('guNeedsAssist')} Needs assist</span>
+        </div>
+        <div><strong>Toileting Managed by:</strong> <span class="demo-underline">${v('guToiletingManagedBy')}</span></div>
+        <div>Equipment: <span class="demo-underline">${v('guEquipment')}</span> Urine: <span class="demo-underline">${v('guUrine')}</span></div>
+        <div>
+          <span class="chk">${chk('guBPH')} BPH</span>
+          <span class="chk">${chk('guProstateCancer')} hx Prostate Cancer</span>
+        </div>
+        <div>
+          <span class="chk">${chk('guBreastCancer')} Breast</span>
+          <span class="chk">${chk('guOvarianCancer')} Ovarian</span>
+          <span class="chk">${chk('guUterineCancer')} Uterine Cancer</span>
+        </div>
+        <div>Kidney Disease: Stage <span class="demo-underline">${v('guKidneyStage')}</span> <span class="chk">${chk('guAutonomicDysreflexia')} Autonomic Dysreflexia</span></div>
+      </td>
+      <td>
+        <div>History of <span class="chk">${chk('guUTI')} <strong>UTI</strong></span> <span class="chk">${chk('guFreqUTI')} Frequent UTI's</span></div>
+        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
+          <span class="chk">${chk('guBurning')} burning</span>
+          <span class="chk">${chk('guFrequency')} frequency</span>
+          <span class="chk">${chk('guHematuria')} Hematuria</span>
+          <span class="chk">${chk('guUrgency')} urgency</span>
+          <span class="chk">${chk('guBackPain')} back, abd pain w/ urination</span>
+          <span class="chk">${chk('guMentalStatusChanges')} Mental Status Changes</span>
+          <span class="chk">${chk('guMalodorous')} Malodorous</span>
+          <span class="chk">${chk('guRetention')} Retention, inability to urinate</span>
+        </div>
+        <div><strong>Fever</strong></div>
+        <div class="chk">${chk('guCurrentRx')} Current Rx</div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('guOther')}</div></td></tr>
+  </table>
+  ${pageFooter(3)}
+  </section>`;
+
+  // ══ PAGE 4 ══════════════════════════════════════════════════
+  const page4 = `<section>
+  ${pageHeader(4)}
+  <table class="form-table">
+    <!-- MUSCULO-SKELETAL -->
+    <tr>
+      <td class="section-label" rowspan="2"><strong>MUSCULO-SKELETAL</strong><br><br><span class="demo-underline">${v('mskCheckbox')}</span></td>
+      <td style="width:230px">
+        <div><span class="chk">${chk('mskFallPrecautions')} <strong>Fall Precautions</strong></span> <strong>Balance:</strong> <span class="demo-underline">${v('mskBalance')}</span></div>
+        <div>Wt bearing status: <span class="demo-underline">${v('mskWtBearingStatus')}</span></div>
+        <div class="chk-grid" style="grid-template-columns:1fr 1fr">
+          <span class="chk">${chk('mskWeakness')} Weakness</span>
+          <span class="chk">${chk('mskTremor')} Tremor</span>
+          <span class="chk">${chk('mskSpasticity')} Spasticity</span>
+          <span class="chk">${chk('mskRigidity')} Rigidity</span>
+          <span class="chk">${chk('mskNumbness')} Numbness</span>
+          <span class="chk">${chk('mskTingling')} Tingling</span>
+          <span class="chk">${chk('mskPain')} Pain</span>
+          <span class="chk">${chk('mskParalysis')} Paralysis</span>
+          <span class="chk">${chk('mskNeuropathy')} Neuropathy</span>
+        </div>
+        <div><strong>Assistive Devices:</strong> <span class="demo-underline">${v('mskAssistiveDevices')}</span></div>
+      </td>
+      <td>
+        <div>Hx fracture Location: <span class="demo-underline">${v('mskFractureLocation')}</span></div>
+        <div class="chk">${chk('mskBoneLoss')} Bone Loss:</div>
+        <div>Arthritis:</div>
+        <div><span class="chk">${chk('mskOsteoarthritis')} Osteoarthritis</span> <span class="chk">${chk('mskRheumatoid')} Rheumatoid</span></div>
+        <div class="chk">${chk('mskContracture')} Contracture</div>
+        <div class="chk">${chk('mskAmputation')} Amputation; Asymmetry</div>
+        <div class="chk">${chk('mskCongenitalAnomaly')} Congenital Anomaly</div>
+      </td>
+    </tr>
+    <tr><td colspan="2">Other: <div class="other-line">${v('mskOther')}</div></td></tr>
+  </table>
+
+  <div class="sub-header">FUNCTIONAL STATUS</div>
+
+  <table class="abilities-table">
+    <tr>
+      <td style="width:90px;font-weight:700;text-align:center">ABILITIES<br><br><span class="chk" style="justify-content:center">${chk('abilitiesTotalDependence')} total dependence</span></td>
+      <td style="width:180px;font-weight:700;text-align:center">Assistance Needed<br>(Indep, Cuing, Set-up Assist,<br>CGA/SBA, Min, Mod, Max, Total)</td>
+      <td style="width:80px;font-weight:700;text-align:center">Task</td>
+      <td>
+        <strong>Mobility Status: Risk for falls:<br>Ambulation/Assistive Devices:</strong><br>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;font-size:8pt">
+          <span class="chk">${chk('mobIndependent')} Independent</span>
+          <span class="chk">${chk('mobGaitBelt')} w/ Gait belt</span>
+          <span class="chk">${chk('mobStandByAssist')} w/Stand By Assist/CGA</span>
+          <span class="chk">${chk('mob2PersonAssist')} 1-2 Person assist</span>
+          <span class="chk">${chk('mobWalker')} w/Walker</span>
+          <span class="chk">${chk('mobSeatedWalker')} w/ seated-walker</span>
+          <span class="chk">${chk('mobWheeledWalker')} w/Wheeled walker</span>
+        </div>
+        Ramps/Stairs: <span class="demo-underline">${v('mobRampsStairs')}</span><br>
+        Wheel chair use: <span class="demo-underline">${v('mobWheelChair')}</span><br>
+        <div class="chk">${chk('mobNonAmbulatory')} <strong>Non-ambulatory/Bedbound/WC Bound</strong></div>
+        <div class="chk">${chk('mobRepositioning')} Repositioning/cuing needed Q <span class="demo-underline">${v('mobRepositioningHrs')}</span> hrs</div>
+        <strong>Transfers/Assistive Devices:</strong>
+        <div><span class="chk">${chk('mobMechLift')} <strong>Mechanical lift</strong></span> <span class="demo-underline">${v('mobMechLiftType')}</span></div>
+        <div><span class="chk">${chk('mobSlidingBoard')} Sliding board</span> <span class="chk">${chk('mobTransferPole')} Transfer pole</span></div>
+      </td>
+    </tr>
+    ${['Eating','Meal prep','Toileting','Transfers','Bed Mobility','Dress','Grooming','Bathing'].map((task, i) => `
+    <tr>
+      <td></td>
+      <td><div class="other-line">${v('abilities_' + task.toLowerCase().replace(/ /g,''))}</div></td>
+      <td class="task-cell">${task}</td>
+      <td></td>
+    </tr>`).join('')}
+    <tr>
+      <td colspan="4">Other: <div class="other-line">${v('abilitiesOther')}</div></td>
+    </tr>
+  </table>
+
+  <table class="form-table" style="margin-top:4px">
+    <tr>
+      <td style="font-size:8pt;line-height:1.55">
+        <strong>Guidelines to Avoid Falls:</strong><br>
+        • Coordinate with client regarding a plan of care to prevent falls. Remind client to:<br>
+        &nbsp;&nbsp;&nbsp;• Request assistance as needed, &amp; wear non-skid footwear.<br>
+        • Observe environment for potentially unsafe conditions.<br>
+        &nbsp;&nbsp;&nbsp;• Ensure the hallways &amp; pathway to other rooms are free of obstacles &amp; properly lit.<br>
+        &nbsp;&nbsp;&nbsp;• Place assistive devices such as walkers and canes within reach.<br>
+        &nbsp;&nbsp;&nbsp;• Evaluate chair and bed height.<br>
+        • Provide a night light<br>
+        • Trying to get to the toilet is a cause of many falls.<br>
+        &nbsp;&nbsp;&nbsp;• Take resident to the toilet routinely, at least every 4-5 hrs.<br>
+        &nbsp;&nbsp;&nbsp;• Ensure the bathroom is dry and clear of clutter, w/ enough clearance to maneauver any assistive devices.<br>
+        &nbsp;&nbsp;&nbsp;• Evaluate the need for rails that client can utilize, such as bathtub, toilet, and sink.
+      </td>
+    </tr>
+  </table>
+  ${pageFooter(4)}
+  </section>`;
+
+  // ══ PAGE 5 ══════════════════════════════════════════════════
+  const page5 = `<section>
+  ${pageHeader(5)}
+  <table class="form-table">
+    <tr>
+      <td style="font-size:8pt;line-height:1.55">
+        • Avoid overstimulation of light and noise. Remove sources of agitation.<br>
+        • Walk frequently with resident to increase/sustain stamina, endurance &amp; strength, and to decrease restlessness.<br>
+        • Medication effects can cause falls.<br>
+        &nbsp;&nbsp;&nbsp;• Consider peak effect for prescribed medications that affect level of consciousness, gait and elimination when planning activities.<br>
+        &nbsp;&nbsp;&nbsp;• Ask the MD to review the resident's medications with falls in mind.<br>
+        <strong><u>Always notify the Primary MD when a resident has fallen, even if there is no apparent injury.</u></strong>
+      </td>
+    </tr>
+
+    <!-- SAFETY / EMERGENCY -->
+    <tr>
+      <td class="section-label" style="font-weight:700;color:red"><strong>Safety/<br>Emergency<br>Assistance<br>Required</strong></td>
+      <td colspan="3" style="font-size:8.5pt">
+        The resident is considered independent if capable of getting out after one verbal cue.<br>
+        This resident <strong>IS NOT</strong> Physically &amp; mentally capable of safely getting out of the home without the assistance of another individual or the use of mobility aids. <strong>Correct</strong>
+        <div>Other: <div class="other-line">${v('safetyOther')}</div></div>
+      </td>
+    </tr>
+
+    <!-- TRANSPORTATION -->
+    <tr>
+      <td class="section-label"><strong>Transportation Needs</strong></td>
+      <td colspan="3">
+        <div style="font-weight:700;font-size:8.5pt">Requires special access transport</div>
+        <div>Other: <div class="other-line">${v('transportOther')}</div></div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="sub-header">SKIN/ INTEGUMENTARY</div>
+  <table class="form-table">
+    <tr>
+      <td class="section-label" rowspan="2"><strong>SKIN/<br>INTEGUMENTARY</strong><br><br><strong>Risk for Skin Breakdown</strong></td>
+      <td>
+        <div><strong>Appearance of Skin:</strong></div>
+        <div class="chk">${chk('skinIntactSupple')} <strong>Intact/supple</strong></div>
+        <div class="chk">${chk('skinAgeAppropriate')} Age-appropriate</div>
+        <div class="chk">${chk('skinThinFragile')} Thin/Fragile/Aged</div>
+        <div class="chk">${chk('skinDehydrated')} Dehydrated</div>
+        <div class="chk">${chk('skinDryFlakey')} Dry/Flakey</div>
+      </td>
+      <td>
+        <div><strong>Alterations</strong> (Note locations below)</div>
+        <div>Pigmentation: <span class="demo-underline">${v('skinPigmentation')}</span></div>
+        <div>Sensation: <span class="demo-underline">${v('skinSensation')}</span></div>
+        <div class="chk">${chk('skinMolesBirthMarks')} Moles/Birth Marks</div>
+        <div class="chk">${chk('skinScarsIncisions')} Scars/Incisions</div>
+        <div class="chk">${chk('skinDecubitusPressure')} Decubitus/Pressure Ulcer</div>
+      </td>
+      <td>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('skinRash')} Rash</span>
+          <span class="chk">${chk('skinBruises')} Bruises/Petechiae:</span>
+          <span class="chk">${chk('skinLaceration')} Laceration/Abrasion/Tear/Lesion</span>
+          <span class="chk">${chk('skinHxPressureUlcer')} Hx Pressure Ulcer</span>
+          <span class="chk">${chk('skinSpecialCare')} Special Skin Care/Mattress needed</span>
+        </div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('skinOther')}</div></td></tr>
+  </table>
+  ${pageFooter(5)}
+  </section>`;
+
+  // ══ PAGE 6 — BODY DIAGRAMS ════════════════════════════════════
+  const page6 = `<section>
+  ${pageHeader(6)}
+  <div class="body-figures">
+    <div class="body-figure">
+      <div class="body-rl"><span>Right</span><span>Left</span></div>
+      ${bodySvgAnterior}
+      <div class="fig-label">Anterior</div>
+    </div>
+    <div style="width:20px"></div>
+    <div class="body-figure">
+      <div class="body-rl" style="opacity:0">&nbsp;</div>
+      ${bodySvgPosterior}
+      <div class="fig-label">Posterior</div>
+    </div>
+    <div style="width:20px"></div>
+    <div class="body-figure">
+      <div class="body-rl"><span>Right</span><span>Left</span></div>
+      ${bodySvgAnterior}
+    </div>
+    <div style="width:20px"></div>
+    <div class="body-figure">
+      <div class="body-rl" style="opacity:0">&nbsp;</div>
+      ${bodySvgPosterior}
+    </div>
+  </div>
+
+  <div style="text-align:center;font-style:italic;font-size:10pt;margin:4px 0">Skin Issues Noted</div>
+  <div class="skin-issue-line"></div>
+
+  <div class="comments-line">Comments: <span class="demo-underline" style="flex:1;min-width:200px">${v('skinComments')}</span></div>
+
+  <table class="form-table" style="margin-top:6px">
+    <tr>
+      <td colspan="2" style="background:#a8c8d8;font-weight:700;text-align:center">Current Health Care Therapies &amp; Treatments Ordered or Recommended</td>
+    </tr>
+    <tr>
+      <td style="width:50%"><strong>Skilled Therapies (in-house/outside resource):</strong><br><div class="other-line">${v('therapiesSkilled')}</div></td>
+      <td><strong>Medical Treatments (in-house/outside resource):</strong><br><div class="other-line">${v('therapiesMedical')}</div></td>
+    </tr>
+    <tr><td colspan="2" style="background:#a8c8d8;font-weight:700;text-align:center">MEDICATIONS</td></tr>
+    <tr>
+      <td style="vertical-align:top">
+        <div class="chk">${chk('medSeeAttached')} See attached Med list</div>
+        <div class="chk">${chk('medSeeNsgTaskSheet')} See Nsg Task Sheet</div>
+      </td>
+      <td style="vertical-align:top;width:250px">
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <span class="chk">${chk('medNewAdmission')} New admission to AFH</span>
+          <span class="chk">${chk('medNewClient')} New Client for RN Delegation/Assumption</span>
+          <span class="chk">${chk('medRefusalPlan')} Refusal Plan</span>
+          <span class="chk">${chk('medSelfMedication')} <strong>Self-Medication Administration, MD order REQUIRED</strong></span>
+        </div>
+      </td>
+      <td style="vertical-align:top">
+        <div class="chk">${chk('medSystemInPlace')} <strong>Med System</strong> in place &amp; adequate</div>
+        <div class="chk">${chk('medMARReviewed')} MAR reviewed:</div>
+        <div class="chk">${chk('medRecordsAllDoses')} Records all doses</div>
+        <div class="chk">${chk('medRecordsAllPRNs')} Records all PRN's;</div>
+        <div class="chk">${chk('medNotesReasons')} Notes reasons &amp; results</div>
+        <div class="chk">${chk('medRecordsErrors')} Records errors/missed Rx's correctly</div>
+      </td>
+    </tr>
+    <tr><td colspan="3">Other: <div class="other-line">${v('medOther')}</div></td></tr>
+    <tr>
+      <td colspan="3" style="font-size:8pt">
+        <strong>Medication Assistance or Administration</strong> (See RCW 69.41.010 (11) &amp; RCW 69.41.085 for information about &amp; definition of medication administration): <strong>Med Administration/Nurse delegation</strong>
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:4px">
+    <table class="form-table">
+      <tr>
+        <td colspan="3" style="background:#a8c8d8">
+          <span class="chk">${chk('delegStable')} <strong>Client Condition is stable and predictable YES</strong></span>
+          &nbsp;&nbsp;&nbsp;
+          <span class="chk">${chk('delegNoNeed')} No delegation needs at present</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="4"><strong>Reason for Nurse Delegation:</strong> Limitations: <span class="chk">${chk('delegPhysical')} Physical</span> <span class="chk">${chk('delegCognitive')} Cognitive</span></td>
+      </tr>
+    </table>
+    <div class="deleg-grid">
+      <div class="deleg-cell"><span class="chk">${chk('delegOralMed')} Oral Med. Admin</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegTrachStoma')} Trach/stoma care</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegEnema')} Enema</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegBGM')} Blood Glucose Monitoring</span></div>
+
+      <div class="deleg-cell"><span class="chk">${chk('delegPillCrushing')} Pill Crushing (in food)</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegGTubeMeds')} G-Tube Meds</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegRectalMed')} Rectal Med. Admin.</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegInsulin')} Insulin Injections</span></div>
+
+      <div class="deleg-cell"><span class="chk">${chk('delegNebulizer')} Nebulizer</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegTubeFeeding')} Tube feeding</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegVaginalMed')} Vaginal Med. Admin</span></div>
+      <div class="deleg-cell"><span class="chk">${chk('delegColostomy')} Colostomy/Ileostomy Care</span></div>
+    </div>
+  </div>
+  ${pageFooter(6)}
+  </section>`;
+
+  // ══ PAGE 7 ════════════════════════════════════════════════════
+  const page7 = `<section>
+  ${pageHeader(7)}
+  <div class="deleg-grid" style="margin-bottom:4px">
+    <div class="deleg-cell"><span class="chk">${chk('delegInhalationMeds')} Inhalation Meds</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegStomaCare')} Stoma Care</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegBladderCath')} Bladder Catheterization</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegSimpleDressing')} Simple Dressing Change</span></div>
+
+    <div class="deleg-cell"><span class="chk">${chk('delegCPAP')} C-PAP /Bi-PAP Tx</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegOralSuctioning')} Oral Suctioning</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegBladderIrrigation')} Bladder Irrigation</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegEyeDrops')} Eye/Ocular Drops/Ointment</span></div>
+
+    <div class="deleg-cell">Oxygen Use <span class="demo-underline">${v('delegO2Rate')}</span> L/min</div>
+    <div class="deleg-cell"><span class="chk">${chk('delegEarDrops')} Ear drops</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegUrinaryCathCare')} Urinary Catheter Care</span></div>
+    <div class="deleg-cell"><span class="chk">${chk('delegTopicalMed')} Topical/Transdermal Med</span></div>
+  </div>
+  <div style="font-size:8.5pt">Other: <div class="other-line">${v('delegOther')}</div></div>
+
+  <table class="form-table" style="margin-top:4px">
+    <tr><td style="background:#a8c8d8;text-align:center;font-style:italic">Medication List</td></tr>
+    <tr><td style="min-height:50px"><div class="text-area-field" style="min-height:50px">${v('medicationList')}</div></td></tr>
+  </table>
+
+  <div style="margin:6px 0;font-size:9pt">
+    <div><strong>Is there any other issue or relevant information about this client?</strong> -</div>
+    <div style="margin-top:4px"><strong>Nursing Recommendation:</strong> It was a pleasure to meet and talk with <span class="demo-underline" style="min-width:100px">${v('nursingRecClientName')}</span> during this assessment.</div>
+    <div style="margin-top:6px"><strong>Strengths:</strong></div>
+    <div class="other-line">${v('strengths')}</div>
+    <div style="margin-top:6px"><strong>Current Needs:</strong></div>
+    <div class="other-line">${v('currentNeeds')}</div>
+    <div style="margin-top:6px"><strong>Comments:</strong></div>
+    <div class="other-line">${v('finalComments')}</div>
+  </div>
+
+  <div style="font-size:8pt;margin-top:80px;line-height:1.6;border-top:1px solid #ccc;padding-top:6px">
+    Information is current as of this date only. This assessment in no way contains any independent medical or mental diagnosis by the assessor. The information herein is a culmination of available information obtained from a variety of sources including the individual, the family, medical records, physical examination, therapists, social workers, nurses, caregivers, providers, or other professionals. The assessor will not be held liable for misinformation provided by the above sources or for any changes in the individual's condition after today, or for the lack of reporting of any changes.<br><br>
+    I completed this assessment and I meet the qualifications for an assessor stated in WAC 388-76-61050
+  </div>
+
+  <table class="sig-table" style="margin-top:6px">
+    <tr>
+      <td style="width:45%">
+        Printed Name: <div class="other-line">${v('sigPrintedName')}</div>
+        Signature: <div class="other-line">${v('sigSignature')}</div>
+      </td>
+      <td style="width:20%">
+        <strong>Date:</strong><br>
+        <div class="other-line">${v('sigDate')}</div>
+      </td>
+      <td>
+        <strong>Contact info:</strong><br>
+        Phone: <div class="other-line">${v('sigPhone')}</div>
+        Email: <div class="other-line">${v('sigEmail')}</div>
+      </td>
+    </tr>
+  </table>
+  ${pageFooter(7)}
+  </section>`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+  <title>RND Nursing Assessment — ${v('clientName') || 'New Assessment'}</title>
+  <style>${css}</style></head><body>
+  ${page1}${page2}${page3}${page4}${page5}${page6}${page7}
+  <script>window.onafterprint=function(){window.close();}<\/script>
+  </body></html>`;
+}
+
+// ── TAB NAVIGATION ────────────────────────────────────────────
+const RND_TABS = ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'];
+let _rndCurrentTab = 0;
+
+function rndTab(el, secId) {
+  document.querySelectorAll('#rndTabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  RND_TABS.forEach(id => {
+    const s = document.getElementById(id);
+    if (s) s.style.display = 'none';
+  });
+  const target = document.getElementById(secId);
+  if (target) target.style.display = 'block';
+  _rndCurrentTab = RND_TABS.indexOf(secId);
+  _rndUpdateNavBtns();
+}
+
+function rndNavNext() {
+  if (_rndCurrentTab < RND_TABS.length - 1) {
+    _rndCurrentTab++;
+    _rndGoToTab(_rndCurrentTab);
+  }
+}
+
+function rndNavPrev() {
+  if (_rndCurrentTab > 0) {
+    _rndCurrentTab--;
+    _rndGoToTab(_rndCurrentTab);
+  }
+}
+
+function _rndGoToTab(idx) {
+  const tabs = document.querySelectorAll('#rndTabs .tab');
+  if (tabs[idx]) {
+    tabs[idx].click();
+    tabs[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+}
+
+function _rndUpdateNavBtns() {
+  const prevBtn = document.getElementById('rndBtnPrev');
+  const nextBtn = document.getElementById('rndBtnNext');
+  const submitBtn = document.getElementById('rnd_submitBtn');
+  if (prevBtn) prevBtn.style.display = _rndCurrentTab > 0 ? 'inline-flex' : 'none';
+  if (nextBtn) nextBtn.style.display = _rndCurrentTab < RND_TABS.length - 1 ? 'inline-flex' : 'none';
+  if (submitBtn) submitBtn.style.display = _rndCurrentTab === RND_TABS.length - 1 ? 'inline-flex' : 'none';
+}
+  
  // ═══════════════════════════════════════════════════════════════
 // RND ASSESSMENT MODAL — fully JS-generated, no raw template literals in HTML
 // Call buildRndModal() once on page load to inject the modal into the DOM
