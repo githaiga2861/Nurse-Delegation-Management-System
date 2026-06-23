@@ -4175,6 +4175,16 @@ function openRndAssessmentModal(editDraftId) {
   }
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
+  // Force tab 1 visible, hide all others
+  _rndCurrentTab = 0;
+  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = i === 0 ? 'block' : 'none';
+  });
+  document.querySelectorAll('#rndTabs .tab').forEach((t,i) => {
+    t.classList.toggle('active', i === 0);
+  });
+  _rndUpdateNavBtns();
 }
 
 function closeRndModal() {
@@ -4279,6 +4289,16 @@ function editRndAssessmentDraft(d, fd) {
   window._rndDraftId = d.id;
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
+  // Initialise tabs — show tab 1, hide all others
+  _rndCurrentTab = 0;
+  ['rndSec1','rndSec2','rndSec3','rndSec4','rndSec5','rndSec6','rndSec7','rndSec8','rndSec9'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = i===0 ? 'block' : 'none';
+  });
+  document.querySelectorAll('#rndTabs .tab').forEach((t,i)=>{
+    t.classList.toggle('active', i===0);
+  });
+  _rndUpdateNavBtns();
   const btn = document.getElementById('rnd_submitBtn');
   if (btn) btn.textContent = 'Save Changes';
 }
