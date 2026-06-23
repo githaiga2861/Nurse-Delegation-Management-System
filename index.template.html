@@ -3692,28 +3692,100 @@ function _rndAutoFillClient(clientId){
   if(!clientId) return;
   const c = (window.clients||[]).find(x=>x.id===clientId);
   if(!c) return;
-  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val||''; };
+
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
+  const setChk = (id,val)=>{ const el=document.getElementById(id); if(el) el.checked=!!val; };
+  const setSel = (id,val)=>{ const el=document.getElementById(id); if(el&&val){
+    [...el.options].forEach(o=>{ if(o.value===val||o.text===val) el.value=o.value; });
+  }};
+
+  // ── Name (hidden field + display) ──────────────────────────
   const fullName = `${c.first||''} ${c.last||''}`.trim();
   set('rnd_clientName', fullName);
-  // Also update hidden field and dropdown label
-  const hiddenName = document.getElementById('rnd_clientName');
-  if(hiddenName) hiddenName.value = fullName;
-  set('rnd_dob',            c.dob||'');
-  set('rnd_address',        c.address||'');
+
+  // ── Demographics ────────────────────────────────────────────
+  // DOB — format as MM-DD-YYYY
+  if(c.dob){
+    let dob = c.dob;
+    // convert YYYY-MM-DD → MM-DD-YYYY if needed
+    if(/^\d{4}-\d{2}-\d{2}$/.test(dob)){
+      const [y,m,d] = dob.split('-');
+      dob = `${m}-${d}-${y}`;
+    }
+    set('rnd_dob', dob);
+
+    // Auto-calculate age from DOB
+    try {
+      const [mm,dd,yyyy] = dob.split('-').map(Number);
+      const birth = new Date(yyyy, mm-1, dd);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const mDiff = today.getMonth() - birth.getMonth();
+      if(mDiff < 0 || (mDiff===0 && today.getDate() < birth.getDate())) age--;
+      if(age > 0 && age < 130) set('rnd_age', String(age));
+    } catch(e){}
+  }
+
+  // Gender
+  if(c.gender){
+    const gMap = {
+      'm':'Male','male':'Male','f':'Female','female':'Female',
+      'nonbinary':'Non-binary','non-binary':'Non-binary',
+      'other':'Prefer not to say'
+    };
+    const g = gMap[c.gender.toLowerCase()] || c.gender;
+    setSel('rnd_gender', g);
+  }
+
+  // ── Contact & Location ───────────────────────────────────────
+  set('rnd_address',   c.address||c.street||'');
+  set('rnd_phone',     c.phone||c.clientPhone||'');
+
+  // ── Medical ──────────────────────────────────────────────────
   set('rnd_allergies',      c.allergies||'');
-  set('rnd_diagnoses',      c.diagnosis||'');
-  set('rnd_physician',      c.physician||'');
+  set('rnd_diagnoses',      c.diagnosis||c.diagnoses||'');
+  set('rnd_hospitalizations', c.hospitalizations||'');
+  set('rnd_medications',    c.medications||'');
+
+  // ── Providers ────────────────────────────────────────────────
+  set('rnd_physician',      c.physician||c.physicianName||'');
   set('rnd_physicianPhone', c.physicianPhone||'');
   set('rnd_physicianFax',   c.physicianFax||'');
-  set('rnd_pharmacy',       c.pharmacy||'');
+  set('rnd_physician2',     c.physician2||c.specialist||'');
+  set('rnd_physician2Phone',c.physician2Phone||'');
+  set('rnd_physician2Fax',  c.physician2Fax||'');
+  set('rnd_pharmacy',       c.pharmacy||c.pharmacyName||'');
   set('rnd_pharmacyPhone',  c.pharmacyPhone||'');
   set('rnd_pharmacyFax',    c.pharmacyFax||'');
-  set('rnd_medications',    c.medications||'');
-  // Auto-fill RN name from profile
+
+  // ── Clinical pre-fills ───────────────────────────────────────
+  set('rnd_icd10',          c.icd10||c.icdCode||'');
+  set('rnd_acesId',         c.acesId||c.dshsId||'');
+
+  // Facility / address from linked facility if available
+  if(!c.address && c.facilityId){
+    const fac = (window.facilities||[]).find(f=>f.id===c.facilityId);
+    if(fac) set('rnd_address', fac.address||'');
+  }
+
+  // ── Today's date ─────────────────────────────────────────────
+  const today = new Date().toLocaleDateString('en-US',{
+    timeZone: WA_TZ, month:'2-digit', day:'2-digit', year:'numeric'
+  }).replace(/\//g,'-');
+  set('rnd_todayDate', today);
+
+  // ── Nursing recommendation sentence pre-fill ──────────────────
+  set('rnd_nursingRecClientName', c.first||fullName);
+
+  // ── RN signature fields from current profile ─────────────────
   set('rnd_sigPrintedName', currentProfile?.full_name||'');
   set('rnd_sigPhone',       currentProfile?.phone||'');
-  set('rnd_sigEmail',       currentProfile?.email||'');
-}  
+  set('rnd_sigEmail',       currentProfile?.email||currentUser?.email||'');
+  const sigDate = new Date().toLocaleDateString('en-US',{
+    timeZone: WA_TZ, month:'2-digit', day:'2-digit', year:'numeric'
+  }).replace(/\//g,'-');
+  set('rnd_sigDate', sigDate);
+} 
 
 // ── SAVE TO DRAFTS ────────────────────────────────────────────
 async function submitRndAssessment() {
