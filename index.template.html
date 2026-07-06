@@ -3894,8 +3894,8 @@ function buildRndAssessmentPrintHtml(fd, draft) {
 
   const css = `
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000;background:#fff}
-    @page{size:letter portrait;margin:0.35in 0.35in 0.3in 0.35in}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000;background:#fff}
+    @page{size:letter portrait;margin:0.3in 0.3in 0.25in 0.3in}
     @media print{body{margin:0}.no-print{display:none!important}section{page-break-after:always}section:last-child{page-break-after:avoid}}
     section{width:100%;padding:0}
     table.form-table tr{page-break-inside:avoid}
@@ -3903,40 +3903,40 @@ function buildRndAssessmentPrintHtml(fd, draft) {
     .sub-header{page-break-after:avoid}
     .footer-bar{page-break-before:avoid}
     .pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;padding-bottom:5px;border-bottom:3px solid #c00}
-    .pg-header-logo{width:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .pg-header-logo img{width:68px;height:68px;object-fit:contain}
+    .pg-header-logo{width:140px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .pg-header-logo img{width:136px;height:136px;object-fit:contain}
     .pg-header-center{flex:1;text-align:center;padding:0 8px}
     .pg-header-center .delegation{font-size:22pt;color:#aaa;font-weight:300;letter-spacing:0.02em;line-height:1.1}
-    .pg-header-right{text-align:right;font-size:11pt;font-weight:700;line-height:1.4}
-    .demo-row{margin:6px 0;font-size:11pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+    .pg-header-right{text-align:right;font-size:13pt;font-weight:700;line-height:1.4}
+    .demo-row{margin:7px 0;font-size:13pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
     .demo-field{display:inline-flex;align-items:baseline;gap:3px}
-    .demo-field strong{white-space:nowrap;font-size:11pt}
-    .demo-underline{border-bottom:1px solid #000;min-width:55px;display:inline-block}
-    .blue-bar{background:#a8c8d8;padding:4px 7px;font-weight:700;font-size:11pt;text-align:center;margin:3px 0}
+    .demo-field strong{white-space:nowrap;font-size:13pt}
+    .demo-underline{border-bottom:1px solid #000;min-width:60px;display:inline-block}
+    .blue-bar{background:#a8c8d8;padding:4px 7px;font-weight:700;font-size:13pt;text-align:center;margin:3px 0}
     table.form-table{width:100%;border-collapse:collapse;margin-bottom:3px}
-    table.form-table td,table.form-table th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10.5pt}
-    table.form-table .section-label{font-weight:700;font-size:10.5pt;width:95px;min-width:95px;background:#fff}
-    .chk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:10.5pt}
-    .chk-grid{display:grid;gap:2px 6px;font-size:10.5pt}
-    .sub-header{background:#000;color:#fff;font-weight:700;font-size:11pt;padding:3px 7px;text-align:center;margin:3px 0}
+    table.form-table td,table.form-table th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:12pt}
+    table.form-table .section-label{font-weight:700;font-size:12pt;width:100px;min-width:100px;background:#fff}
+    .chk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:12pt}
+    .chk-grid{display:grid;gap:2px 6px;font-size:12pt}
+    .sub-header{background:#000;color:#fff;font-weight:700;font-size:13pt;padding:3px 7px;text-align:center;margin:3px 0}
     .abilities-table{width:100%;border-collapse:collapse}
-    .abilities-table td,.abilities-table th{border:1px solid #000;padding:3px 5px;font-size:10pt;vertical-align:middle}
-    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:10.5pt}
+    .abilities-table td,.abilities-table th{border:1px solid #000;padding:3px 5px;font-size:11.5pt;vertical-align:middle}
+    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:12pt}
     .body-figures{display:flex;justify-content:center;gap:0;margin:8px 0}
     .body-figure{display:flex;flex-direction:column;align-items:center;gap:2px}
     .body-figure svg{width:120px;height:220px}
-    .body-figure .fig-label{font-size:10pt;font-style:italic}
-    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:10pt;font-weight:700}
-    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:16px}
-    .comments-line{display:flex;align-items:baseline;gap:4px;margin:4px 0;font-size:11pt}
-    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:5px;padding-top:3px;font-size:10pt}
+    .body-figure .fig-label{font-size:11.5pt;font-style:italic}
+    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:11.5pt;font-weight:700}
+    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:18px}
+    .comments-line{display:flex;align-items:baseline;gap:4px;margin:4px 0;font-size:13pt}
+    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:5px;padding-top:3px;font-size:11.5pt}
     .deleg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;margin:3px 0}
-    .deleg-cell{border:1px solid #000;padding:3px 5px;font-size:10pt}
+    .deleg-cell{border:1px solid #000;padding:3px 5px;font-size:11.5pt}
     .sig-table{width:100%;border-collapse:collapse}
-    .sig-table td{border:1px solid #000;padding:5px 7px;vertical-align:top;font-size:11pt;min-height:44px}
-    .text-area-field{width:100%;min-height:30px;font-size:10.5pt;word-wrap:break-word;white-space:pre-wrap}
-    .other-line{color:#555;font-size:10pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:16px;padding-left:4px}
-    .fl{font-size:10.5pt}`;
+    .sig-table td{border:1px solid #000;padding:5px 7px;vertical-align:top;font-size:13pt;min-height:46px}
+    .text-area-field{width:100%;min-height:32px;font-size:12pt;word-wrap:break-word;white-space:pre-wrap}
+    .other-line{color:#555;font-size:11.5pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:18px;padding-left:4px}
+    .fl{font-size:12pt}`;
 
   // Human body SVG — anterior (front)
   const bodySvgAnterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
