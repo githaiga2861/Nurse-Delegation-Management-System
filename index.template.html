@@ -42,10 +42,10 @@
 
 <link rel="manifest" href="manifest.json">
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>" type="image/svg+xml">
-<link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>" type="image/svg+xml">
+<link rel="icon" href="images/logo.png" type="image/png">
+<link rel="shortcut icon" href="images/logo.png" type="image/png">
 
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b7ff5'/><text x='16' y='22' text-anchor='middle' font-family='Arial' font-size='16' font-weight='700' fill='white'>GY</text></svg>">
+<link rel="apple-touch-icon" href="images/logo.png">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -659,7 +659,7 @@ if('serviceWorker' in navigator){
       display:'standalone',
       background_color:'#080a0f',
       theme_color:'#080a0f',
-      icons:[{src:'data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 192 192\'><rect width=\'192\' height=\'192\' rx=\'32\' fill=\'%233b7ff5\'/><text x=\'96\' y=\'128\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'80\' font-weight=\'700\' fill=\'white\'>GY</text></svg>',sizes:'192x192',type:'image/svg+xml'}]
+      icons:[{src:window.location.origin+'/icon1.png',sizes:'512x512',type:'image/png',purpose:'any maskable'},{src:window.location.origin+'/images/logo.png',sizes:'1024x1024',type:'image/png'}]
     };
     const blob=new Blob([JSON.stringify(manifestData)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -680,7 +680,7 @@ if('serviceWorker' in navigator){
 
   <nav>
     <div class="nav-logo">
-      <div class="mark">GY</div>
+      <img class="mark" src="images/logo.png" alt="Golden Years" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
       <div class="name">Golden Years <span>RN Mgmt</span></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -724,7 +724,7 @@ if('serviceWorker' in navigator){
 
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div class="mark" style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">GY</div>
+        <img class="mark" src="images/logo.png" alt="Golden Years" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
         <div style="font-size:13px;font-weight:600;letter-spacing:-0.01em">Golden Years <span style="color:var(--blue)">RN Mgmt</span></div>
       </div>
       <div class="sidebar-section">
@@ -2175,7 +2175,7 @@ if('serviceWorker' in navigator){
 <div class="overlay" id="pwaInstallModal">
   <div class="modal" style="width:min(420px,92vw);border-radius:var(--radius-xl)">
     <div class="modal-body" style="padding:32px 28px 24px;text-align:center">
-      <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;font-weight:700;color:#fff">GY</div>
+      <img src=\"images/logo.png\" alt=\"Golden Years\" style=\"width:64px;height:64px;object-fit:contain;margin:0 auto 20px;display:block\">
       <h3 style="font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-0.01em">Install Golden Years RN</h3>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px">Get the full app experience — works offline, loads instantly, and sits on your home screen or taskbar.</p>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;text-align:left;padding:14px 16px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)">
@@ -2219,7 +2219,7 @@ if('serviceWorker' in navigator){
     <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:4px;position:relative">
       <button onclick="closeModal('signInModal')" style="position:absolute;top:0;right:0;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px" title="Close">&times;</button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <div class="mark" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">GY</div>
+        <img class="mark" src="images/logo.png" alt="Golden Years" style="width:32px;height:32px;object-fit:contain">
         <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em">Golden Years <span style="color:var(--blue)">RN Management</span></span>
       </div>
       <h4 style="margin:0">Sign in to your workspace</h4>
