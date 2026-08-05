@@ -10955,7 +10955,7 @@ function printDraft(id){
   html=injectSignatures(html,d);
   html=_convertDatesInHtml(html);
 
-  const PRINT_ZOOM = 1.25;
+  const PRINT_ZOOM = 1.5;
   html = html.replace('</head>',
     `<style>body{zoom:${PRINT_ZOOM}}@media print{body{zoom:${PRINT_ZOOM}}}</style></head>`);
 
