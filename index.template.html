@@ -3913,8 +3913,8 @@ function buildRndAssessmentPrintHtml(fd, draft) {
 
   const css = `
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:18.7pt;color:#000;background:#fff}
-    @page{size:letter portrait;margin:0.2in 0.2in 0.18in 0.2in}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff}
+    @page{size:letter portrait;margin:0.4in 0.4in 0.35in 0.4in}
     @media print{body{margin:0}.no-print{display:none!important}section{page-break-after:always}section:last-child{page-break-after:avoid}}
     section{width:100%;padding:0}
     table.form-table tr{page-break-inside:avoid}
@@ -3922,40 +3922,40 @@ function buildRndAssessmentPrintHtml(fd, draft) {
     .sub-header{page-break-after:avoid}
     .footer-bar{page-break-before:avoid}
     .pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;padding-bottom:5px;border-bottom:3px solid #c00}
-    .pg-header-logo{width:140px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .pg-header-logo img{width:136px;height:136px;object-fit:contain}
+    .pg-header-logo{width:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .pg-header-logo img{width:66px;height:66px;object-fit:contain}
     .pg-header-center{flex:1;text-align:center;padding:0 8px}
     .pg-header-center .delegation{font-size:22pt;color:#aaa;font-weight:300;letter-spacing:0.02em;line-height:1.1}
-    .pg-header-right{text-align:right;font-size:18.7pt;font-weight:700;line-height:1.4}
-    .demo-row{margin:7px 0;font-size:18.7pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+    .pg-header-right{text-align:right;font-size:10pt;font-weight:700;line-height:1.4}
+    .demo-row{margin:6px 0;font-size:9pt;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
     .demo-field{display:inline-flex;align-items:baseline;gap:3px}
-    .demo-field strong{white-space:nowrap;font-size:18.7pt}
-    .demo-underline{border-bottom:1px solid #000;min-width:70px;display:inline-block;color:#000;font-weight:600}
-    .blue-bar{background:#a8c8d8;padding:4px 7px;font-weight:700;font-size:18.7pt;text-align:center;margin:3px 0}
+    .demo-field strong{white-space:nowrap;font-size:9pt}
+    .demo-underline{border-bottom:1px solid #000;min-width:50px;display:inline-block;color:#000;font-weight:600}
+    .blue-bar{background:#a8c8d8;padding:3px 6px;font-weight:700;font-size:9pt;text-align:center;margin:3px 0}
     table.form-table{width:100%;border-collapse:collapse;margin-bottom:3px}
-    table.form-table td,table.form-table th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:17.3pt}
-    table.form-table .section-label{font-weight:700;font-size:17.3pt;width:115px;min-width:115px;background:#fff}
-    .chk{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:17.3pt}
-    .chk-grid{display:grid;gap:2px 6px;font-size:17.3pt}
-    .sub-header{background:#000;color:#fff;font-weight:700;font-size:18.7pt;padding:3px 7px;text-align:center;margin:3px 0}
+    table.form-table td,table.form-table th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt}
+    table.form-table .section-label{font-weight:700;font-size:8.5pt;width:90px;min-width:90px;background:#fff}
+    .chk{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;font-size:8.5pt}
+    .chk-grid{display:grid;gap:1px 6px;font-size:8.5pt}
+    .sub-header{background:#000;color:#fff;font-weight:700;font-size:9pt;padding:2px 6px;text-align:center;margin:2px 0}
     .abilities-table{width:100%;border-collapse:collapse}
-    .abilities-table td,.abilities-table th{border:1px solid #000;padding:3px 5px;font-size:16.6pt;vertical-align:middle}
-    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:17.3pt}
+    .abilities-table td,.abilities-table th{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle}
+    .abilities-table .task-cell{text-align:center;font-weight:700;font-size:8.5pt}
     .body-figures{display:flex;justify-content:center;gap:0;margin:8px 0}
     .body-figure{display:flex;flex-direction:column;align-items:center;gap:2px}
     .body-figure svg{width:120px;height:220px}
-    .body-figure .fig-label{font-size:16.6pt;font-style:italic}
-    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:16.6pt;font-weight:700}
-    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:22px}
-    .comments-line{display:flex;align-items:baseline;gap:4px;margin:4px 0;font-size:18.7pt}
-    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:5px;padding-top:3px;font-size:16.6pt}
-    .deleg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;margin:3px 0}
-    .deleg-cell{border:1px solid #000;padding:3px 5px;font-size:16.6pt}
+    .body-figure .fig-label{font-size:8.5pt;font-style:italic}
+    .body-rl{display:flex;justify-content:space-between;width:100%;padding:0 10px;font-size:8pt;font-weight:700}
+    .skin-issue-line{border-bottom:1px solid #000;margin:4px 0;height:14px}
+    .comments-line{display:flex;align-items:baseline;gap:4px;margin:3px 0;font-size:9pt}
+    .footer-bar{display:flex;justify-content:space-between;border-top:2px solid #000;margin-top:4px;padding-top:2px;font-size:8pt}
+    .deleg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;margin:2px 0}
+    .deleg-cell{border:1px solid #000;padding:2px 4px;font-size:8pt}
     .sig-table{width:100%;border-collapse:collapse}
-    .sig-table td{border:1px solid #000;padding:5px 7px;vertical-align:top;font-size:18.7pt;min-height:54px}
-    .text-area-field{width:100%;min-height:36px;font-size:17.3pt;word-wrap:break-word;white-space:pre-wrap;color:#000;font-weight:600}
-    .other-line{color:#000;font-weight:600;font-size:16.6pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:22px;padding-left:4px}
-    .fl{font-size:17.3pt}`;
+    .sig-table td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:9pt;min-height:40px}
+    .text-area-field{width:100%;min-height:28px;font-size:8.5pt;word-wrap:break-word;white-space:pre-wrap;color:#000;font-weight:600}
+    .other-line{color:#000;font-weight:600;font-size:8pt;border-bottom:1px solid #ccc;margin-top:2px;min-height:14px;padding-left:4px}
+    .fl{font-size:8.5pt}`;
 
   // Human body SVG — anterior (front)
   const bodySvgAnterior = `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000" stroke-width="1.2">
