@@ -10955,6 +10955,18 @@ function printDraft(id){
   html=injectSignatures(html,d);
   html=_convertDatesInHtml(html);
   // Auto-close after printing to prevent PHI lingering in browser history
+  // ── Global print magnification (applies to every form) ──────
+  // zoom scales text, borders, tables and images together, so the
+  // layout is identical — only larger. Adjust PRINT_ZOOM to taste.
+  const PRINT_ZOOM = 1.25;   // 1.25 = 25% bigger, 1.4 = 40% bigger
+  const zoomCss = `<style>
+    @media print{
+      body{ zoom:${PRINT_ZOOM}; }
+    }
+    body{ zoom:${PRINT_ZOOM}; }
+  </style>`;
+  html = html.replace('</head>', zoomCss + '</head>');
+
   html=html.replace('</body>','<script>window.onafterprint=function(){window.close();}<\/script></body>');
   printWin.document.write(html);
   printWin.document.close();
