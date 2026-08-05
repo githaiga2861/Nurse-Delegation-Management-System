@@ -11009,34 +11009,34 @@ function build14484PrintHtml(fd,draft){
 
   const sharedCSS=`
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000;background:#fff}
-@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}
+body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000;background:#fff}
+@page{size:letter portrait;margin:0.39in 0.39in 0.35in 0.39in}
 @media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}
 section{padding:0;width:100%}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}
 .page-header-logo{width:88px;flex-shrink:0}
 .page-header-logo img{width:88px}
 .page-header-title{flex:1;text-align:center}
-.form-title{font-size:13pt;font-weight:bold;line-height:1.2;margin-bottom:2px}
-.form-subtitle{font-size:9.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}
-.form-number{font-size:8.5pt;color:#333;margin-top:2px}
-.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:8pt;color:#555}
+.form-title{font-size:16.9pt;font-weight:bold;line-height:1.2;margin-bottom:2px}
+.form-subtitle{font-size:12.3pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}
+.form-number{font-size:11.1pt;color:#333;margin-top:2px}
+.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:10.4pt;color:#555}
 table{width:100%;border-collapse:collapse;margin-bottom:4px}
-td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word;overflow-wrap:break-word}
-th{background:#d9d9d9;font-weight:bold;font-size:9pt;text-align:center;text-transform:uppercase}
-.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.08em;line-height:1.3}
-.fv{font-size:10pt;min-height:14px;display:block;word-wrap:break-word;white-space:pre-wrap}
-.fv-inline{font-size:10pt;word-wrap:break-word}
-.sig-row td{height:42px;vertical-align:bottom}
-.sig-line{border-bottom:1px solid #000;display:block;height:26px;width:100%}
-.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9.5pt;padding:3px 6px;letter-spacing:0.03em}
-.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}
+td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:13pt;word-wrap:break-word;overflow-wrap:break-word}
+th{background:#d9d9d9;font-weight:bold;font-size:11.7pt;text-align:center;text-transform:uppercase}
+.fl{font-size:9.8pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.08em;line-height:1.3}
+.fv{font-size:13pt;min-height:18px;display:block;word-wrap:break-word;white-space:pre-wrap}
+.fv-inline{font-size:13pt;word-wrap:break-word}
+.sig-row td{height:55px;vertical-align:bottom}
+.sig-line{border-bottom:1px solid #000;display:block;height:34px;width:100%}
+.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:12.3pt;padding:3px 6px;letter-spacing:0.03em}
+.instructions{border:1px solid #000;padding:7px 9px;font-size:11.1pt;line-height:1.6;margin-top:5px}
 .instructions ol{margin-left:15px;margin-top:3px}
 .instructions li{margin-bottom:2px}
-.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}
-.ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 6px;font-size:8.5pt;padding:3px 5px;line-height:1.9}
+.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:5px;font-size:10.4pt;border-top:1px solid #000;padding-top:3px}
+.ros-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 6px;font-size:11.1pt;padding:3px 5px;line-height:1.9}
 .ros-item{display:flex;align-items:center;gap:3px;white-space:nowrap}
-.check-row{font-size:9.5pt;line-height:2;padding:3px 5px}
+.check-row{font-size:12.3pt;line-height:2;padding:3px 5px}
 .check-row span{margin-right:10px}
 .two-col td{width:50%}
 .three-col td{width:33.33%}`;
@@ -11062,13 +11062,13 @@ th{background:#d9d9d9;font-weight:bold;font-size:9pt;text-align:center;text-tran
   <td style="text-align:center;vertical-align:middle">${esc(r.recordRev)}</td>
   <td><span class="fv">${esc(r.training)}</span></td>
   <td><span class="fv">${esc(r.other)}</span></td>
-  <td style="text-align:center;font-size:7.5pt">${r.activeCred==='Yes'?'☑ Yes ☐ No':r.activeCred==='No'?'☐ Yes ☑ No':'☐ Yes ☐ No'}</td>
+  <td style="text-align:center;font-size:9.8pt">${r.activeCred==='Yes'?'☑ Yes ☐ No':r.activeCred==='No'?'☐ Yes ☑ No':'☐ Yes ☐ No'}</td>
 </tr>`).join('');
     const empty=Array.from({length:blanks},(_,i)=>`
 <tr>
-  <td style="height:18px"><span class="fl">${startNum+(rows||[]).length+i})</span></td>
+  <td style="height:23px"><span class="fl">${startNum+(rows||[]).length+i})</span></td>
   <td></td><td></td><td></td><td></td><td></td>
-  <td style="text-align:center;font-size:7.5pt">☐ Yes ☐ No</td>
+  <td style="text-align:center;font-size:9.8pt">☐ Yes ☐ No</td>
 </tr>`).join('');
     return filled+empty;
   };
@@ -11086,7 +11086,7 @@ ${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','
     <td style="width:18%"><span class="fl">2. ACES ID Number</span><span class="fv">${esc(fd.acesId)}</span></td>
     <td style="width:18%"><span class="fl">3. Date of Birth</span><span class="fv">${esc(_fmtPrintDate(fd.dob))}</span></td>
     <td style="width:36%"><span class="fl">4. Setting</span>
-      <span class="fv" style="font-size:7.5pt">
+      <span class="fv" style="font-size:9.8pt">
         ${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}
       </span>
     </td>
@@ -11109,7 +11109,7 @@ ${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','
       <div class="ros-item">${rosChecked.find(x=>x.startsWith('Other:'))?'☑ '+esc(rosChecked.find(x=>x.startsWith('Other:'))):'☐ Other: ____________'}</div>
     </div>
   </td></tr>
-  <tr><td colspan="4"><span class="fl">8. Notes</span><span class="fv" style="min-height:50px">${esc(fd.notes)}</span></td></tr>
+  <tr><td colspan="4"><span class="fl">8. Notes</span><span class="fv" style="min-height:65px">${esc(fd.notes)}</span></td></tr>
 </table>
 
 <table>
@@ -11127,13 +11127,13 @@ ${pageHeader('Nurse Delegation: Nursing Visit','','DSHS 14-484 (REV. 07/2023)','
 </table>
 
 <table>
-  <tr><td colspan="3" style="font-size:7.5pt;padding:3px 5px">
+  <tr><td colspan="3" style="font-size:9.8pt;padding:3px 5px">
     ${chk(fd.hasPg2Notes)} <strong>10.</strong> Check here if additional notes / LTCW name on page 2. &nbsp;&nbsp;
     ${chk(fd.clientStable)} <strong>11.</strong> Client stable and predictable &nbsp;
     ${chk(fd.continueDelegation)} Continue delegation &nbsp;
     ${chk(fd.seeRescind)} See rescind form
   </td></tr>
-  <tr><td colspan="3" style="font-size:7pt;padding:3px 5px;font-style:italic">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given the information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.</td></tr>
+  <tr><td colspan="3" style="font-size:9.1pt;padding:3px 5px;font-style:italic">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated. The LTCW(s) has been given the information on how to contact the delegating RN if they are no longer able or willing to do the listed task(s), client's health care orders change, and/or client's condition changes.</td></tr>
   <tr class="sig-row">
     <td style="width:50%"><span class="fl">12. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
     <td style="width:20%"><span class="fl">13. Date</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.visitDate))}</span></td>
@@ -11155,10 +11155,10 @@ ${pageHeader('Nurse Delegation: Nursing Visit — Page 2','','DSHS 14-484 (REV. 
     <td style="width:38%"><span class="fl">15. Client Name</span><span class="fv">${esc(fd.clientName)}</span></td>
     <td style="width:20%"><span class="fl">16. Date of Birth</span><span class="fv">${esc(fd.dob)}</span></td>
     <td style="width:42%"><span class="fl">17. Setting</span>
-      <span class="fv" style="font-size:7.5pt">${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}</span>
+      <span class="fv" style="font-size:9.8pt">${['AFH','DDA','In-home','ALF','Other'].map(s=>`${(fd.setting||'').startsWith(s)?'☑':'☐'} ${s}`).join('  ')}</span>
     </td>
   </tr>
-  <tr><td colspan="3"><span class="fl">18. Notes</span><span class="fv" style="min-height:60px">${esc(fd.pg2Notes)}</span></td></tr>
+  <tr><td colspan="3"><span class="fl">18. Notes</span><span class="fv" style="min-height:78px">${esc(fd.pg2Notes)}</span></td></tr>
 </table>
 <table>
   <tr><td colspan="7" class="section-hdr">19. Long Term Care Worker (LTCW) Training / Competency — Check or date all that apply</td></tr>
@@ -11171,7 +11171,7 @@ ${pageHeader('Nurse Delegation: Nursing Visit — Page 2','','DSHS 14-484 (REV. 
   ${ltcwTableRows(fd.ltcwRowsPg2,6)}
 </table>
 <table>
-  <tr><td colspan="3" style="font-size:7pt;font-style:italic;padding:3px 5px">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated.</td></tr>
+  <tr><td colspan="3" style="font-size:9.1pt;font-style:italic;padding:3px 5px">I have verified, informed, taught and instructed the LTCW(s) to perform the delegated task(s). The LTCW(s) verified responsibility for performing the listed task as delegated.</td></tr>
   <tr class="sig-row">
     <td style="width:50%"><span class="fl">20. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig2)}</span></td>
     <td style="width:20%"><span class="fl">21. Date</span><span class="fv sig-line">${esc(_fmtPrintDate(fd.visitDate2))}</span></td>
@@ -11190,7 +11190,7 @@ ${pageHeader('Nurse Delegation: Nursing Visit — Page 2','','DSHS 14-484 (REV. 
 function build13678aPrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const sharedCSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-subtitle{font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:7pt;color:#555}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const sharedCSS=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:11.1pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:15pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-subtitle{font-size:10.4pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em}.form-number{font-size:9.8pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:9.1pt;color:#555}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:11.1pt;min-height:17px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:47px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:29px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:10.4pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:9.8pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}`;
   const pageHeader=(title,sub,num,pg)=>`<div class="page-header"><div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div><div class="page-header-title"><div class="form-title">${title}</div>${sub?`<div class="form-subtitle">${sub}</div>`:''}<div class="form-number">${num}</div></div><div class="page-header-right">${pg||''}</div></div>`;
   const orders=fd.orders||[];
   while(orders.length<3)orders.push({});
@@ -11207,8 +11207,8 @@ function build13678aPrintHtml(fd,draft){
     <td colspan="2"><span class="fl">9. Not to Exceed</span><span class="fv">${esc(o.notExceed)}</span></td>
     <td colspan="2"><span class="fl">10. Reason for Medication</span><span class="fv">${esc(o.reason)}</span></td>
   </tr>
-  <tr><td colspan="4"><span class="fl">11. Symptoms for Administration and Amount to Be Given</span><span class="fv" style="min-height:30px">${esc(o.symptoms)}</span></td></tr>
-  <tr><td colspan="4"><span class="fl">12. Notes</span><span class="fv" style="min-height:22px">${esc(o.notes)}</span></td></tr>
+  <tr><td colspan="4"><span class="fl">11. Symptoms for Administration and Amount to Be Given</span><span class="fv" style="min-height:39px">${esc(o.symptoms)}</span></td></tr>
+  <tr><td colspan="4"><span class="fl">12. Notes</span><span class="fv" style="min-height:29px">${esc(o.notes)}</span></td></tr>
   <tr class="sig-row">
     <td colspan="3"><span class="fl">13. RN Delegator Signature</span><span class="fv sig-line"></span></td>
     <td><span class="fl">14. Date</span><span class="fv sig-line"></span></td>
@@ -11276,35 +11276,35 @@ function build06200PrintHtml(fd, draft){
 
   const css=`
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,Helvetica,sans-serif;font-size:7pt;color:#000;background:#fff}
-    @page{size:letter landscape;margin:0.3in 0.3in 0.28in 0.3in}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:8.3pt;color:#000;background:#fff}
+    @page{size:letter landscape;margin:0.23in 0.23in 0.22in 0.23in}
     @media print{body{margin:0}}
     .page{width:100%;margin-bottom:0}
     .form-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #000}
     .logo-area{display:flex;align-items:center;gap:8px;width:160px;flex-shrink:0}
-    .logo-area img{height:40px;max-width:140px}
-    .logo-area .logo-fallback{font-size:9pt;font-weight:700;color:#1a3d6b;line-height:1.3}
+    .logo-area img{height:47px;max-width:140px}
+    .logo-area .logo-fallback{font-size:10.6pt;font-weight:700;color:#1a3d6b;line-height:1.3}
     .title-area{flex:1;text-align:center;padding:0 10px}
-    .form-title{font-size:12pt;font-weight:bold;color:#1a3d6b;line-height:1.25}
-    .form-sub{font-size:7pt;color:#333;margin-top:3px}
+    .form-title{font-size:14.2pt;font-weight:bold;color:#1a3d6b;line-height:1.25}
+    .form-sub{font-size:8.3pt;color:#333;margin-top:3px}
     .meta-area{width:180px;flex-shrink:0;text-align:right}
     .meta-area table{width:100%;border:none}
-    .meta-area td{border:none;padding:1px 3px;font-size:7pt;text-align:left}
+    .meta-area td{border:none;padding:1px 3px;font-size:8.3pt;text-align:left}
     .meta-area .meta-lbl{font-weight:700;text-align:right;white-space:nowrap;padding-right:4px}
     .meta-area .meta-val{border-bottom:1px solid #000;min-width:80px}
     table.billing{width:100%;border-collapse:collapse}
-    table.billing th,table.billing td{border:1px solid #000;padding:1px 2px;vertical-align:middle;font-size:6pt}
-    table.billing th{background:#d0d8e8;font-weight:700;text-align:center;font-size:5.5pt;text-transform:uppercase;letter-spacing:0.02em}
-    table.billing th.day-hdr{background:#c0ccdd;min-width:15px;width:15px;font-size:5pt}
-    table.billing th.tot-hdr{background:#a8b8cc;min-width:28px;font-size:6pt}
-    table.billing td.cat-lbl{background:#e8edf5;font-weight:700;font-size:5.8pt;text-transform:uppercase;letter-spacing:0.03em;padding:2px 4px;white-space:nowrap;width:110px;min-width:110px}
-    table.billing td.day-cell{text-align:center;padding:1px;width:15px;min-width:15px;font-size:6pt}
+    table.billing th,table.billing td{border:1px solid #000;padding:1px 2px;vertical-align:middle;font-size:7.1pt}
+    table.billing th{background:#d0d8e8;font-weight:700;text-align:center;font-size:6.5pt;text-transform:uppercase;letter-spacing:0.02em}
+    table.billing th.day-hdr{background:#c0ccdd;min-width:15px;width:15px;font-size:6.5pt}
+    table.billing th.tot-hdr{background:#a8b8cc;min-width:28px;font-size:7.1pt}
+    table.billing td.cat-lbl{background:#e8edf5;font-weight:700;font-size:6.8pt;text-transform:uppercase;letter-spacing:0.03em;padding:2px 4px;white-space:nowrap;width:110px;min-width:110px}
+    table.billing td.day-cell{text-align:center;padding:1px;width:15px;min-width:15px;font-size:7.1pt}
     table.billing td.day-cell.has-val{background:#f5f9ff;font-weight:600}
-    table.billing td.tot-cell{text-align:center;font-weight:700;background:#e0ead0;font-size:6.5pt;padding:1px 3px}
-    table.billing td.tot-empty{text-align:center;background:#f5f5f5;color:#aaa;font-size:6pt}
-    table.billing tr.client-hdr td{background:#c8ddf0;font-weight:700;font-size:6.5pt;padding:2px 4px;border-bottom:1.5px solid #2355a0}
-    table.billing tr.spacer td{height:4px;background:#f0f4f8;border:none}
-    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:6.5pt;border-top:1.5px solid #000;padding-top:3px}
+    table.billing td.tot-cell{text-align:center;font-weight:700;background:#e0ead0;font-size:7.7pt;padding:1px 3px}
+    table.billing td.tot-empty{text-align:center;background:#f5f5f5;color:#aaa;font-size:7.1pt}
+    table.billing tr.client-hdr td{background:#c8ddf0;font-weight:700;font-size:7.7pt;padding:2px 4px;border-bottom:1.5px solid #2355a0}
+    table.billing tr.spacer td{height:5px;background:#f0f4f8;border:none}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:7.7pt;border-top:1.5px solid #000;padding-top:3px}
     .page-break{page-break-before:always}`;
 
   const dayHdrs=days.map(d=>`<th class="day-hdr">${d}</th>`).join('');
@@ -11314,13 +11314,13 @@ function build06200PrintHtml(fd, draft){
     pageRows.forEach((r,ri)=>{
       // Client header
       tbody+=`<tr class="client-hdr">
-        <td colspan="2" style="font-size:6.5pt">
+        <td colspan="2" style="font-size:7.7pt">
           CLIENT'S NAME: <strong>${esc(r.clientName||'')}</strong>
         </td>
-        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:6pt">
+        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:7.1pt">
           DATE OF BIRTH: ${esc(r.dob||'')}
         </td>
-        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:6pt">
+        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:7.1pt">
           ICD-10 CODE: ${esc(r.icd10||'')}
           ${r.acesId?` &nbsp; ACES ID: ${esc(r.acesId)}`:''}
         </td>
@@ -11350,9 +11350,9 @@ function build06200PrintHtml(fd, draft){
     // Pad to 4 clients
     for(let i=pageRows.length;i<4;i++){
       tbody+=`<tr class="client-hdr">
-        <td colspan="2" style="font-size:6.5pt">CLIENT'S NAME:</td>
-        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:6pt">DATE OF BIRTH:</td>
-        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:6pt">ICD-10 CODE:</td>
+        <td colspan="2" style="font-size:7.7pt">CLIENT'S NAME:</td>
+        <td colspan="${Math.floor(daysInMonth/2)-1}" style="font-size:7.1pt">DATE OF BIRTH:</td>
+        <td colspan="${daysInMonth - Math.floor(daysInMonth/2)+1}" style="font-size:7.1pt">ICD-10 CODE:</td>
         <td class="tot-cell" style="background:#c8ddf0"></td>
       </tr>`;
       ['ASSESSMENT /\nTRAINING','COLLATERAL\nCONTACT','TRAVEL TIME','DOCUMENTATION','BILLING'].forEach(label=>{
@@ -11400,7 +11400,7 @@ function build06200PrintHtml(fd, draft){
 
       <div class="footer">
         <span>DSHS 06-200 (05/2023)</span>
-        <span style="font-size:6pt;color:#555">DISTRIBUTION: Copy in client chart and in RND file</span>
+        <span style="font-size:7.1pt;color:#555">DISTRIBUTION: Copy in client chart and in RND file</span>
         <span>Page ${pageNum+1} of ${totalPages}</span>
       </div>
     </div>`;
@@ -11423,7 +11423,7 @@ function build06200PrintHtml(fd, draft){
 function build13678PrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.footer-note{border:1px solid #000;padding:5px 7px;font-size:7.5pt;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000;background:#fff}@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}@media print{body{margin:0}}section{padding:0;width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:15pt;font-weight:bold;line-height:1.2;margin-bottom:1px}.form-number{font-size:9.8pt;color:#333;margin-top:2px}.page-header-right{width:88px;flex-shrink:0;font-size:9.1pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:11.1pt;min-height:17px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:47px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:29px}.footer-note{border:1px solid #000;padding:5px 7px;font-size:9.8pt;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
 <section>
@@ -11440,10 +11440,10 @@ function build13678PrintHtml(fd, draft){
     <td style="width:20%"><span class="fl">4. ID / Setting (Optional)</span><span class="fv">${esc(fd.idSetting)}</span></td>
     <td style="width:20%"><span class="fl">5. Date Task Delegated</span><span class="fv">${esc(_fmtPrintDate(fd.dateDelegated))}</span></td>
   </tr>
-  <tr><td colspan="5"><span class="fl">6. Delegated Task and Expected Outcome</span><span class="fv" style="min-height:20px">${esc(fd.delegatedTask)}${fd.expectedOutcome?'\nExpected Outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
-  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-style:italic;padding:2px 5px"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
+  <tr><td colspan="5"><span class="fl">6. Delegated Task and Expected Outcome</span><span class="fv" style="min-height:26px">${esc(fd.delegatedTask)}${fd.expectedOutcome?'\nExpected Outcome: '+esc(fd.expectedOutcome):''}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:9.8pt;font-style:italic;padding:2px 5px"><strong>Complete 6 and 7 only if medication(s) delegated:</strong></td></tr>
   <tr>
-    <td colspan="3"><span class="fl">7. List Specific Medication(s), Dosages and Frequency Delegated on This Date</span><span class="fv" style="min-height:22px">${esc(fd.medications)||' '}</span></td>
+    <td colspan="3"><span class="fl">7. List Specific Medication(s), Dosages and Frequency Delegated on This Date</span><span class="fv" style="min-height:29px">${esc(fd.medications)||' '}</span></td>
     <td colspan="2">
       <span class="fl">8. Verification of Delegated Medication</span>
       <span class="fv"><strong>Date:</strong> ${esc(fd.verifDate)}</span>
@@ -11451,20 +11451,20 @@ function build13678PrintHtml(fd, draft){
       <span class="fv"><strong>Method:</strong> ${esc(fd.verifMethod)}</span>
     </td>
   </tr>
-  <tr><td colspan="5"><span class="fl">9. Steps to Perform the Task: ☐ Check here if additional teaching aide(s) attached.</span><span class="fv" style="min-height:70px">${esc(fd.steps)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">9. Steps to Perform the Task: ☐ Check here if additional teaching aide(s) attached.</span><span class="fv" style="min-height:91px">${esc(fd.steps)}</span></td></tr>
 </table>
 <table>
   <tr>
     <td style="width:50%"><span class="fl">10. RND Name (Print)</span><span class="fv">${esc(fd.rndName)}</span></td>
     <td style="width:50%"><span class="fl">11. Telephone Number</span><span class="fv">${esc(fd.rndPhone)}</span></td>
   </tr>
-  <tr><td colspan="2"><span class="fl">12. What to Report to RND</span><span class="fv" style="min-height:22px">${esc(fd.whatRnd)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">12. What to Report to RND</span><span class="fv" style="min-height:29px">${esc(fd.whatRnd)}</span></td></tr>
   <tr>
     <td><span class="fl">13. Health Care Provider Name</span><span class="fv">${esc(fd.hcpName)}</span></td>
     <td><span class="fl">14. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
-  <tr><td colspan="2"><span class="fl">15. What to Report to Health Care Provider</span><span class="fv" style="min-height:22px">${esc(fd.whatHcp)}</span></td></tr>
-  <tr><td colspan="2"><span class="fl">16. What to Report to 911</span><span class="fv" style="min-height:22px">${esc(fd.whatEmergency)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">15. What to Report to Health Care Provider</span><span class="fv" style="min-height:29px">${esc(fd.whatHcp)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">16. What to Report to 911</span><span class="fv" style="min-height:29px">${esc(fd.whatEmergency)}</span></td></tr>
   <tr class="sig-row">
     <td><span class="fl">17. RND Signature</span><span class="fv sig-line"></span></td>
     <td><span class="fl">18. Date</span><span class="fv sig-line"></span></td>
@@ -11486,7 +11486,7 @@ function build13678PrintHtml(fd, draft){
 function build13680PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:9pt;padding:3px 5px;line-height:1.9}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000}@page{size:letter portrait;margin:0.39in 0.39in 0.35in 0.39in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:16.9pt;font-weight:bold;line-height:1.2}.form-number{font-size:11.1pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:10.4pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:13pt;word-wrap:break-word}.fl{font-size:9.8pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:13pt;min-height:18px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:55px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:34px}.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:11.7pt;padding:3px 5px;line-height:1.9}.instructions{border:1px solid #000;padding:7px 9px;font-size:11.1pt;line-height:1.6;margin-top:5px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:10.4pt;border-top:1px solid #000;padding-top:3px}`;
   const reasons=fd.reasons||[];
   const cgs=fd.caregivers||[];
   const rows=Array.from({length:10},(_,i)=>cgs[i]||{num:i+1,name:'',med:'',notes:''});
@@ -11521,21 +11521,21 @@ function build13680PrintHtml(fd,draft){
     <div class="reason-grid">
       ${reasonPairs.map(([a,b])=>`<div>${reasons.some(r=>r.startsWith(a.charAt(0)))?'☑':'☐'} ${esc(a)}</div><div>${reasons.some(r=>r.startsWith(b.charAt(0)))?'☑':'☐'} ${esc(b)}</div>`).join('')}
     </div>
-    <div style="margin-top:3px;font-size:8pt">${reasons.some(r=>r.startsWith('K.'))?'☑':'☐'} K. Other: <span style="border-bottom:1px solid #000;display:inline-block;min-width:260px">${esc((reasons.find(r=>r.startsWith('K.'))||'').replace('K. Other: ',''))}</span></div>
+    <div style="margin-top:3px;font-size:10.4pt">${reasons.some(r=>r.startsWith('K.'))?'☑':'☐'} K. Other: <span style="border-bottom:1px solid #000;display:inline-block;min-width:260px">${esc((reasons.find(r=>r.startsWith('K.'))||'').replace('K. Other: ',''))}</span></div>
   </td></tr>
   <tr>
     <td style="width:5%;background:#d9d9d9"></td>
-    <td style="width:28%;background:#d9d9d9;font-weight:bold;font-size:8pt">8. Names of Caregivers</td>
-    <td colspan="2" style="background:#d9d9d9;font-weight:bold;font-size:8pt">9. Medications and Treatments Rescinded</td>
-    <td style="background:#d9d9d9;font-weight:bold;font-size:8pt">10. Notes</td>
+    <td style="width:28%;background:#d9d9d9;font-weight:bold;font-size:10.4pt">8. Names of Caregivers</td>
+    <td colspan="2" style="background:#d9d9d9;font-weight:bold;font-size:10.4pt">9. Medications and Treatments Rescinded</td>
+    <td style="background:#d9d9d9;font-weight:bold;font-size:10.4pt">10. Notes</td>
   </tr>
-  ${rows.map((r,i)=>`<tr><td style="font-size:8pt;text-align:right;color:#555">${i+1})</td><td style="min-height:16px"><span class="fv">${esc(r.name)}</span></td><td colspan="2"><span class="fv">${esc(r.med)}</span></td><td><span class="fv">${esc(r.notes)}</span></td></tr>`).join('')}
+  ${rows.map((r,i)=>`<tr><td style="font-size:10.4pt;text-align:right;color:#555">${i+1})</td><td style="min-height:21px"><span class="fv">${esc(r.name)}</span></td><td colspan="2"><span class="fv">${esc(r.med)}</span></td><td><span class="fv">${esc(r.notes)}</span></td></tr>`).join('')}
   <tr>
     <td colspan="3"><span class="fl">11. Name of Case Manager Notified</span><span class="fv">${esc(fd.caseManager)}</span></td>
-    <td><span class="fl">12. Method of Notification</span><span class="fv" style="font-size:8pt">${fd.notifyMethod==='Telephone'?'☑':'☐'} Telephone &nbsp; ${fd.notifyMethod==='Email'?'☑':'☐'} Email</span></td>
+    <td><span class="fl">12. Method of Notification</span><span class="fv" style="font-size:10.4pt">${fd.notifyMethod==='Telephone'?'☑':'☐'} Telephone &nbsp; ${fd.notifyMethod==='Email'?'☑':'☐'} Email</span></td>
     <td><span class="fl">13. Date</span><span class="fv">${esc(fd.notifyDate)}</span></td>
   </tr>
-  <tr><td colspan="5"><span class="fl">14. Alternative Plan for Continuing the Task</span><span class="fv" style="min-height:32px">${esc(fd.altPlan)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">14. Alternative Plan for Continuing the Task</span><span class="fv" style="min-height:42px">${esc(fd.altPlan)}</span></td></tr>
   <tr class="sig-row">
     <td colspan="3"><span class="fl">15. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
     <td colspan="2"><span class="fl">16. Date</span><span class="fv sig-line">${esc(fd.rescindDate)}</span></td>
@@ -11556,7 +11556,7 @@ function build13681PrintHtml(fd,draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000}@page{size:letter portrait;margin:0.39in 0.39in 0.35in 0.39in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:16.9pt;font-weight:bold;line-height:1.2}.form-number{font-size:11.1pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:10.4pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:13pt;word-wrap:break-word}.fl{font-size:9.8pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:13pt;min-height:18px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:55px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:34px}.instructions{border:1px solid #000;padding:7px 9px;font-size:11.1pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:10.4pt;border-top:1px solid #000;padding-top:3px}`;
   const oc=fd.orderChanges||{};
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-681 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
@@ -11576,15 +11576,15 @@ function build13681PrintHtml(fd,draft){
   <tr>
     <td colspan="2"><span class="fl">5. Date RND Was Notified</span><span class="fv">${esc(fd.notifyDate)}</span></td>
     <td colspan="2"><span class="fl">6. By Whom</span><span class="fv">${esc(fd.byWhom)}</span></td>
-    <td><span class="fl">7. Changes in Order(s)</span><span class="fv" style="font-size:7.5pt;line-height:1.8">${chk(oc.newMed)} New med.&nbsp; ${chk(oc.changeMed)} Change in delegated med<br>${chk(oc.newTask)} New task&nbsp; ${chk(oc.changeTask)} Change in nursing task</span></td>
+    <td><span class="fl">7. Changes in Order(s)</span><span class="fv" style="font-size:9.8pt;line-height:1.8">${chk(oc.newMed)} New med.&nbsp; ${chk(oc.changeMed)} Change in delegated med<br>${chk(oc.newTask)} New task&nbsp; ${chk(oc.changeTask)} Change in nursing task</span></td>
   </tr>
   <tr>
-    <td colspan="3"><span class="fl">8. How Was the Change Received?</span><span class="fv" style="font-size:8pt">${chk(fd.receivedMethod==='Written')} Written &nbsp; ${chk(fd.receivedMethod==='Faxed')} Faxed &nbsp; ${chk(fd.receivedMethod==='Verbal')} Verbal</span></td>
+    <td colspan="3"><span class="fl">8. How Was the Change Received?</span><span class="fv" style="font-size:10.4pt">${chk(fd.receivedMethod==='Written')} Written &nbsp; ${chk(fd.receivedMethod==='Faxed')} Faxed &nbsp; ${chk(fd.receivedMethod==='Verbal')} Verbal</span></td>
     <td colspan="2"><span class="fl">9. Effective Date of Change</span><span class="fv">${esc(fd.effectiveDate)}</span></td>
   </tr>
-  <tr><td colspan="5"><span class="fl">10. Only Complete if Number 7 Was a Verbal Order</span><span class="fv" style="font-size:8pt">Name: ${esc(fd.verifyName)} &nbsp;&nbsp; Title: ${esc(fd.verifyTitle)} &nbsp;&nbsp; Date: ${esc(fd.verifyDate)}</span></td></tr>
-  <tr><td colspan="5"><span class="fl">11. Nursing Task(s)</span><span class="fv" style="font-size:8pt;line-height:1.8">${chk(fd.taskNewSheet)} New task sheet required &nbsp; ${chk(fd.taskUpdated)} Current task sheet updated &nbsp; ${chk(fd.taskNoChange)} No change to task sheet</span><span class="fv" style="margin-top:4px">${esc(fd.taskOrder)}</span></td></tr>
-  <tr><td colspan="5"><span class="fl">12. This Medication Is:</span><span class="fv" style="font-size:8pt">${chk(fd.medIs==='New')} New &nbsp;&nbsp; ${chk(fd.medIs==='Changed')} Changed</span></td></tr>
+  <tr><td colspan="5"><span class="fl">10. Only Complete if Number 7 Was a Verbal Order</span><span class="fv" style="font-size:10.4pt">Name: ${esc(fd.verifyName)} &nbsp;&nbsp; Title: ${esc(fd.verifyTitle)} &nbsp;&nbsp; Date: ${esc(fd.verifyDate)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">11. Nursing Task(s)</span><span class="fv" style="font-size:10.4pt;line-height:1.8">${chk(fd.taskNewSheet)} New task sheet required &nbsp; ${chk(fd.taskUpdated)} Current task sheet updated &nbsp; ${chk(fd.taskNoChange)} No change to task sheet</span><span class="fv" style="margin-top:4px">${esc(fd.taskOrder)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">12. This Medication Is:</span><span class="fv" style="font-size:10.4pt">${chk(fd.medIs==='New')} New &nbsp;&nbsp; ${chk(fd.medIs==='Changed')} Changed</span></td></tr>
   <tr>
     <td><span class="fl">13. Date Ordered</span><span class="fv">${esc(fd.dateOrdered)}</span></td>
     <td><span class="fl">14. Name of Medication</span><span class="fv">${esc(fd.medName)}</span></td>
@@ -11598,22 +11598,22 @@ function build13681PrintHtml(fd,draft){
     <td colspan="2"><span class="fl">20. Not to Exceed</span><span class="fv">${esc(fd.notExceed)}</span></td>
   </tr>
   <tr><td colspan="5"><span class="fl">21. Reason for Medication</span><span class="fv">${esc(fd.medReason)}</span></td></tr>
-  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Optional Task Sheet (Fields 22–30)</td></tr>
-  <tr><td colspan="5"><span class="fl">22. Steps to Perform the New Task &nbsp; ${chk(fd.teachingAid)} Teaching Aid Attached</span><span class="fv" style="min-height:30px">${esc(fd.steps)}</span></td></tr>
-  <tr><td colspan="5"><span class="fl">23. Expected Outcome of Delegated Task</span><span class="fv" style="min-height:22px">${esc(fd.expectedOutcome)}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:9.8pt;font-weight:bold;padding:2px 5px">Optional Task Sheet (Fields 22–30)</td></tr>
+  <tr><td colspan="5"><span class="fl">22. Steps to Perform the New Task &nbsp; ${chk(fd.teachingAid)} Teaching Aid Attached</span><span class="fv" style="min-height:39px">${esc(fd.steps)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">23. Expected Outcome of Delegated Task</span><span class="fv" style="min-height:29px">${esc(fd.expectedOutcome)}</span></td></tr>
   <tr>
     <td colspan="3"><span class="fl">24. RND Name (Print)</span><span class="fv">${esc(fd.rndName)}</span></td>
     <td colspan="2"><span class="fl">25. Telephone Number</span><span class="fv">${esc(fd.rndPhone)}</span></td>
   </tr>
-  <tr><td colspan="5"><span class="fl">26. What to Report to RND</span><span class="fv" style="min-height:20px">${esc(fd.whatRnd)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">26. What to Report to RND</span><span class="fv" style="min-height:26px">${esc(fd.whatRnd)}</span></td></tr>
   <tr>
     <td colspan="3"><span class="fl">27. Health Care Provider</span><span class="fv">${esc(fd.hcpName)}</span></td>
     <td colspan="2"><span class="fl">28. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
-  <tr><td colspan="5"><span class="fl">29. What to Report to Health Care Provider</span><span class="fv" style="min-height:20px">${esc(fd.whatHcp)}</span></td></tr>
-  <tr><td colspan="5"><span class="fl">30. What to Report to Emergency Services (911)</span><span class="fv" style="min-height:20px">${esc(fd.whatEmergency)}</span></td></tr>
-  <tr><td colspan="5" style="background:#f0f0f0;font-size:7.5pt;font-weight:bold;padding:2px 5px">Select Only One of the Following</td></tr>
-  <tr><td colspan="5" style="font-size:8pt;line-height:1.75;padding:5px 6px">
+  <tr><td colspan="5"><span class="fl">29. What to Report to Health Care Provider</span><span class="fv" style="min-height:26px">${esc(fd.whatHcp)}</span></td></tr>
+  <tr><td colspan="5"><span class="fl">30. What to Report to Emergency Services (911)</span><span class="fv" style="min-height:26px">${esc(fd.whatEmergency)}</span></td></tr>
+  <tr><td colspan="5" style="background:#f0f0f0;font-size:9.8pt;font-weight:bold;padding:2px 5px">Select Only One of the Following</td></tr>
+  <tr><td colspan="5" style="font-size:10.4pt;line-height:1.75;padding:5px 6px">
     ${chk(fd.delegateImmediately)} <strong>31. Delegate immediately. No site visit required.</strong> The above order and instructions have been communicated to the delegated LTCW(s) and this form should be added to the client's chart.<br><br>
     <strong>OR</strong><br><br>
     ${chk(fd.siteVisitRequired)} <strong>32. A site visit is required</strong> for training or assessment prior to delegation. The LTCW(s) may not perform the task until the site visit is completed.
@@ -11632,7 +11632,7 @@ function build13681PrintHtml(fd,draft){
 function build13678ConsentPrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.5in 0.5in 0.45in 0.5in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:13pt;font-weight:bold;line-height:1.2}.form-number{font-size:8.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:8pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10pt;word-wrap:break-word}.fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:10pt;min-height:14px;display:block;word-wrap:break-word}.sig-row td{height:42px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:26px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9.5pt;padding:3px 7px}.instructions{border:1px solid #000;padding:7px 9px;font-size:8.5pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:8pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000}@page{size:letter portrait;margin:0.39in 0.39in 0.35in 0.39in}@media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:16.9pt;font-weight:bold;line-height:1.2}.form-number{font-size:11.1pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:10.4pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:4px}td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:13pt;word-wrap:break-word}.fl{font-size:9.8pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:13pt;min-height:18px;display:block;word-wrap:break-word}.sig-row td{height:55px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:34px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:12.3pt;padding:3px 7px}.instructions{border:1px solid #000;padding:7px 9px;font-size:11.1pt;line-height:1.6;margin-top:5px}.instructions ol{margin-left:15px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:10.4pt;border-top:1px solid #000;padding-top:3px}`;
   const settings=['DSHS Certified Community Residential Program for Developmentally Disabled','Licensed Adult Family Home','Licensed Assisted Living Facilities','Private Home'];
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678 Consent — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
@@ -11664,7 +11664,7 @@ function build13678ConsentPrintHtml(fd, draft){
   </tr>
   <tr><td colspan="3" style="padding:4px 6px">
     <span class="fl" style="margin-bottom:4px">12. Setting</span>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:8pt;line-height:1.9">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:10.4pt;line-height:1.9">
       ${settings.map(s=>`<div>${fd.setting===s?'☑':'☐'} ${s}</div>`).join('')}
     </div>
   </td></tr>
@@ -11673,7 +11673,7 @@ function build13678ConsentPrintHtml(fd, draft){
     <td><span class="fl">14. Telephone Number</span><span class="fv">${esc(fd.hcpPhone)}</span></td>
   </tr>
   <tr><td colspan="3" class="section-hdr">Consent for the Delegation Process</td></tr>
-  <tr><td colspan="3" style="padding:5px 7px;font-size:8pt;line-height:1.65">
+  <tr><td colspan="3" style="padding:5px 7px;font-size:10.4pt;line-height:1.65">
     I have been informed the delegating Registered Nurse (RN) will only delegate to Long Term Care Workers (LTCW) who are capable and willing to properly perform the delegated nursing task(s). The LTCW must have an active Nursing Assistant or Home Care Aide - Certified credential. Nurse delegation will only occur after the delegating RN has assessed the ability of the Nursing Assistant or Home Care Aide to competently perform the delegated nursing task in the absence of direct or immediate nurse supervision and has completed required Department of Social and Health Services training per <u>RCW 18.79.260</u> and <u>WAC 246-840-930.</u><br><br>
     I further understand that the following task(s) may never be delegated per <u>WAC 246-840-910</u>:
     <ul style="margin:4px 0 4px 16px;line-height:1.7">
@@ -11692,7 +11692,7 @@ function build13678ConsentPrintHtml(fd, draft){
     <td><span class="fl">19. Relationship to Client</span><span class="fv sig-line">${esc(fd.verbalRel)}</span></td>
     <td><span class="fl">20. Date</span><span class="fv sig-line">${esc(fd.verbalDate)}</span></td>
   </tr>
-  <tr><td colspan="3" style="font-size:8pt;font-style:italic;padding:5px 7px;line-height:1.6">My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.</td></tr>
+  <tr><td colspan="3" style="font-size:10.4pt;font-style:italic;padding:5px 7px;line-height:1.6">My signature below indicates that I have assessed this client and found his/her condition to be stable and predictable. I agree to provide nurse delegation per RCW 18.79 and WAC 246-840-910 through 970.</td></tr>
   <tr>
     <td colspan="2"><span class="fl">21. Delegation RN Name — Print</span><span class="fv">${esc(fd.rnName)}</span></td>
     <td><span class="fl">22. Telephone Number</span><span class="fv">${esc(fd.rnPhone)}</span></td>
@@ -11726,7 +11726,7 @@ function build13678ConsentPrintHtml(fd, draft){
 function build13678bPrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000}@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:15pt;font-weight:bold;line-height:1.2}.form-number{font-size:9.8pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:9.1pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:11.1pt;min-height:17px;display:block;white-space:pre-wrap;word-wrap:break-word}.sig-row td{height:47px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:29px}.instructions{border:1px solid #000;padding:6px 8px;font-size:9.8pt;line-height:1.55;margin-top:4px}.instructions ol{margin-left:14px;margin-top:3px}.instructions li{margin-bottom:2px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-678B — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
 <section>
@@ -11746,8 +11746,8 @@ function build13678bPrintHtml(fd, draft){
     <td colspan="3"><span class="fl">5. Facility or Program Name (Optional)</span><span class="fv">${esc(fd.facilityName)}</span></td>
     <td><span class="fl">6. Telephone Number (Optional)</span><span class="fv">${esc(fd.facilityPhone)}</span></td>
   </tr>
-  <tr><td colspan="4" style="font-size:8pt;font-style:italic;padding:5px 7px;line-height:1.65">I agree that I know the client through my assessment, the plan of care, the skills of the Long Term Care Worker(s) (LTCW), and the delegated task(s). I agree to assume responsibility and accountability for the delegated task(s) and to perform the nursing supervision. I have informed the client and/or authorized representative of this change. I have informed the LTCW, case manager, and client of this change.</td></tr>
-  <tr><td colspan="4"><span class="fl">7. Reason for Assuming Delegation (including reason other RND rescinded and date assuming responsibility)</span><span class="fv" style="min-height:50px">${esc(fd.reason)}</span></td></tr>
+  <tr><td colspan="4" style="font-size:10.4pt;font-style:italic;padding:5px 7px;line-height:1.65">I agree that I know the client through my assessment, the plan of care, the skills of the Long Term Care Worker(s) (LTCW), and the delegated task(s). I agree to assume responsibility and accountability for the delegated task(s) and to perform the nursing supervision. I have informed the client and/or authorized representative of this change. I have informed the LTCW, case manager, and client of this change.</td></tr>
+  <tr><td colspan="4"><span class="fl">7. Reason for Assuming Delegation (including reason other RND rescinded and date assuming responsibility)</span><span class="fv" style="min-height:65px">${esc(fd.reason)}</span></td></tr>
   <tr class="sig-row">
     <td colspan="3"><span class="fl">8. RND Signature</span><span class="fv sig-line">${esc(fd.rndSig)}</span></td>
     <td><span class="fl">9. Date</span><span class="fv sig-line">${esc(fd.signDate)}</span></td>
@@ -11774,8 +11774,8 @@ function build10217PrintHtml(fd, draft){
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const chk=v=>v?'☑':'☐';
   const LOGO='assets/logo.png';
-  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#000}@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}.form-number{font-size:7.5pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:7pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:8.5pt;min-height:13px;display:block;word-wrap:break-word}.sig-row td{height:36px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:22px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
-  const dateLine=(label,date,checked)=>`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:8pt">${chk(checked)} ${label} — Date: <span style="border-bottom:1px solid #000;flex:1;display:inline-block;min-width:70px">${esc(date)}</span></div>`;
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000}@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}@media print{body{margin:0}}section{width:100%}.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}.page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}.page-header-title{flex:1;text-align:center}.form-title{font-size:15pt;font-weight:bold;line-height:1.2}.form-number{font-size:9.8pt;color:#333;margin-top:2px}.page-header-right{width:88px;font-size:9.1pt;color:#555;text-align:right}table{width:100%;border-collapse:collapse;margin-bottom:3px}td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}.fv{font-size:11.1pt;min-height:17px;display:block;word-wrap:break-word}.sig-row td{height:47px;vertical-align:bottom}.sig-line{border-bottom:1px solid #000;display:block;height:29px}.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:10.4pt;padding:2px 5px}.instructions{border:1px solid #000;padding:6px 8px;font-size:9.8pt;line-height:1.55;margin-top:4px}.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}`;
+  const dateLine=(label,date,checked)=>`<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:10.4pt">${chk(checked)} ${label} — Date: <span style="border-bottom:1px solid #000;flex:1;display:inline-block;min-width:70px">${esc(date)}</span></div>`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 10-217 — ${esc(draft.caregiver_name)}</title><style>${css}</style></head><body>
 <section>
@@ -11789,27 +11789,27 @@ function build10217PrintHtml(fd, draft){
   <tr><td colspan="3">
     <span class="fl">Long-Term Care Worker's (LTCW's) Name (print)</span>
     <span class="fv">${esc(fd.ltcwName)}</span>
-    <div style="margin-top:5px;font-size:8pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch" style="color:#000">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
-    <div style="margin-top:6px;font-size:8pt"><strong>Provide the Washington State Credential Information:</strong></div>
-    <div style="margin-top:5px;font-size:8.5pt;line-height:2">
+    <div style="margin-top:5px;font-size:10.4pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch" style="color:#000">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
+    <div style="margin-top:6px;font-size:10.4pt"><strong>Provide the Washington State Credential Information:</strong></div>
+    <div style="margin-top:5px;font-size:11.1pt;line-height:2">
       ${chk(fd.credType==='NAR')} Nursing Assistant Registered (NAR) &nbsp;&nbsp;
       ${chk(fd.credType==='NAC')} Nursing Assistant Certified (NAC) &nbsp;&nbsp;
       ${chk(fd.credType==='HCA-C')} Home Care Aide Certified (HCA-C)
     </div>
-    <div style="margin-top:5px;font-size:8.5pt;display:flex;gap:30px">
+    <div style="margin-top:5px;font-size:11.1pt;display:flex;gap:30px">
       <span><strong>Credential Number:</strong> ${esc(fd.credNum)||'________________________'}</span>
       <span><strong>Expiration Date:</strong> ${esc(fd.credExpiry)||'________________________'}</span>
     </div>
   </td></tr>
   <tr><td colspan="3" class="section-hdr">Required LTCW Nurse Delegation Training Verification — Must Attach Copy of Verification</td></tr>
   <tr><td colspan="3" style="padding:5px 7px">
-    <div style="font-size:8pt;margin-bottom:5px"><strong>Before accepting nurse delegation all LTCWs must complete:</strong></div>
+    <div style="font-size:10.4pt;margin-bottom:5px"><strong>Before accepting nurse delegation all LTCWs must complete:</strong></div>
     ${dateLine('9-hour Nurse Delegation Core Training for Nursing Assistants',fd.coreTrainingDate,!!fd.coreTrainingDate)}
     ${dateLine('3-hour Nurse Delegation Special Focus on Diabetes (insulin delegation only)',fd.diabetesTrainingDate,!!fd.diabetesTrainingDate)}
   </td></tr>
   <tr><td colspan="3" class="section-hdr">Basic Training Verification for Nursing Assistant Registered (NAR) — DDA Setting Only</td></tr>
   <tr><td colspan="3" style="padding:5px 7px">
-    <div style="font-size:8pt;margin-bottom:5px">An NAR employed by a community residential service business (WAC 246-980-025) is exempt from HCA certification. Must have active NAR credential and meet one of the requirements below.</div>
+    <div style="font-size:10.4pt;margin-bottom:5px">An NAR employed by a community residential service business (WAC 246-980-025) is exempt from HCA certification. Must have active NAR credential and meet one of the requirements below.</div>
     ${dateLine('Basic Training (Core Competency) Certificate',fd.basicCoreDateVal,fd.basicCoreComp)}
     ${dateLine('75 Hours DSHS Approved HCA Basic Training',fd.basic75hrDate,fd.basic75hr)}
     ${dateLine('Fundamentals of Care (FOC)',fd.basicFocDate,fd.basicFoc)}
@@ -11818,11 +11818,11 @@ function build10217PrintHtml(fd, draft){
   </td></tr>
   <tr><td colspan="3" class="section-hdr">Exempt Long-Term Care Workers</td></tr>
   <tr><td colspan="3" style="padding:5px 7px">
-    <div style="font-size:8pt;margin-bottom:5px">The HCS LTCW employed between January 1, 2011 and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer stating they completed the basic training requirements in effect on the date of their hire.</div>
-    <div style="font-size:8.5pt">${chk(fd.exemptLetter)} Letter of Employment Verification Attached &nbsp;&nbsp; <strong>Date of RND Verification:</strong> ${esc(fd.exemptDate)||'__________________'}</div>
+    <div style="font-size:10.4pt;margin-bottom:5px">The HCS LTCW employed between January 1, 2011 and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer stating they completed the basic training requirements in effect on the date of their hire.</div>
+    <div style="font-size:11.1pt">${chk(fd.exemptLetter)} Letter of Employment Verification Attached &nbsp;&nbsp; <strong>Date of RND Verification:</strong> ${esc(fd.exemptDate)||'__________________'}</div>
   </td></tr>
   <tr><td colspan="3" class="section-hdr">RN Delegator Signature</td></tr>
-  <tr><td colspan="3" style="font-size:8pt;font-style:italic;padding:4px 7px">RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.</td></tr>
+  <tr><td colspan="3" style="font-size:10.4pt;font-style:italic;padding:4px 7px">RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.</td></tr>
   <tr class="sig-row">
     <td style="width:36%"><span class="fl">RN Signature</span><span class="fv sig-line">${esc(fd.rnSig)}</span></td>
     <td style="width:36%"><span class="fl">RN Printed Name</span><span class="fv sig-line">${esc(fd.rnName)}</span></td>
@@ -12218,19 +12218,19 @@ function build13678bPrintHtml(fd, draft){
 <title>DSHS 13-678B — ${esc(draft.client_name)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
-  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:6px}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:11.7pt;color:#000;background:#fff;padding:0.5in}
+  .doc-title{font-size:15.6pt;font-weight:bold;text-align:center;margin-bottom:6px}
   table{width:100%;border-collapse:collapse}
-  td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8.5pt}
-  .fl{font-size:7pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
-  .fv{font-size:9pt;min-height:14px;display:block}
-  .sig-row td{height:42px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:26px}
-  .stmt-cell{padding:10px 8px;font-size:8.5pt;line-height:1.65;font-style:normal}
-  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:7.5pt;line-height:1.6}
+  td,th{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:11.1pt}
+  .fl{font-size:9.1pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
+  .fv{font-size:11.7pt;min-height:18px;display:block}
+  .sig-row td{height:55px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:34px}
+  .stmt-cell{padding:10px 8px;font-size:11.1pt;line-height:1.65;font-style:normal}
+  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:9.8pt;line-height:1.6}
   .instructions-box ol{margin-left:16px;margin-top:3px}
   .instructions-box li{margin-bottom:2px}
-  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:7.5pt}
+  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:9.8pt}
   @media print{body{padding:0.4in} @page{size:letter portrait;margin:0}}
 </style>
 </head><body>
@@ -12252,7 +12252,7 @@ function build13678bPrintHtml(fd, draft){
   </tr>
   <!-- Field 7 heading -->
   <tr>
-    <td colspan="4"><span class="fl">7. Reason for Assuming Delegation</span><span class="fv" style="white-space:pre-wrap;min-height:40px">${esc(fd.reason)}</span></td>
+    <td colspan="4"><span class="fl">7. Reason for Assuming Delegation</span><span class="fv" style="white-space:pre-wrap;min-height:52px">${esc(fd.reason)}</span></td>
   </tr>
   <!-- Consent statement -->
   <tr>
@@ -12285,7 +12285,7 @@ function build13678bPrintHtml(fd, draft){
   <span><strong>To register concerns or complaints about Nurse Delegation, please call 1-800-562-6078</strong></span>
   <span><strong>DISTRIBUTION:</strong> Copy in client chart and in RND file</span>
 </div>
-<div style="display:flex;justify-content:space-between;margin-top:3px;font-size:7.5pt">
+<div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9.8pt">
   <span><strong>DSHS 13-678B (REV. 09/2021)</strong></span>
   <span><strong>NURSE DELEGATION: ASSUMPTION OF DELEGATION</strong></span>
 </div>
@@ -12393,7 +12393,7 @@ function build10217PrintHtml(fd, draft){
     <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">
       <span>${chk(checked)} ${label}</span>
       <span style="border-bottom:1px solid #000;flex:1;min-width:80px;display:inline-block"></span>
-      <span style="font-size:8pt">Date: ${esc(date)||'____________'}</span>
+      <span style="font-size:10.4pt">Date: ${esc(date)||'____________'}</span>
     </div>`;
 
   return `<!DOCTYPE html>
@@ -12401,18 +12401,18 @@ function build10217PrintHtml(fd, draft){
 <title>DSHS 10-217 — ${esc(draft.caregiver_name)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#000;background:#fff;padding:0.5in}
-  .doc-title{font-size:12pt;font-weight:bold;text-align:center;margin-bottom:1px}
-  .doc-sub{font-size:10pt;font-weight:bold;text-align:center;margin-bottom:6px}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:11.7pt;color:#000;background:#fff;padding:0.5in}
+  .doc-title{font-size:15.6pt;font-weight:bold;text-align:center;margin-bottom:1px}
+  .doc-sub{font-size:13pt;font-weight:bold;text-align:center;margin-bottom:6px}
   table{width:100%;border-collapse:collapse}
-  td{border:1px solid #000;padding:5px 8px;vertical-align:top;font-size:8.5pt}
-  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:3px 8px;letter-spacing:0.02em}
-  .fl{font-size:7.5pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
-  .fv{font-size:9pt;min-height:14px;display:block}
-  .sig-row td{height:44px;vertical-align:bottom}
-  .sig-line{border-bottom:1px solid #000;display:block;height:28px}
-  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:7.5pt;line-height:1.6}
-  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:7.5pt}
+  td{border:1px solid #000;padding:5px 8px;vertical-align:top;font-size:11.1pt}
+  .section-hdr{background:#000;color:#fff;font-weight:bold;font-size:11.7pt;padding:3px 8px;letter-spacing:0.02em}
+  .fl{font-size:9.8pt;font-weight:bold;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em}
+  .fv{font-size:11.7pt;min-height:18px;display:block}
+  .sig-row td{height:57px;vertical-align:bottom}
+  .sig-line{border-bottom:1px solid #000;display:block;height:36px}
+  .instructions-box{border:1px solid #000;padding:8px 10px;margin-top:6px;font-size:9.8pt;line-height:1.6}
+  .footer-area{display:flex;justify-content:space-between;margin-top:6px;font-size:9.8pt}
   a{color:#000;text-decoration:underline}
   @media print{body{padding:0.4in} @page{size:letter portrait;margin:0}}
 </style>
@@ -12429,14 +12429,14 @@ function build10217PrintHtml(fd, draft){
     <td colspan="3">
       <span class="fl">Long-Term Care Worker's (LTCW's) Name (print)</span>
       <span class="fv">${esc(fd.ltcwName)}</span>
-      <div style="margin-top:6px;font-size:8pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
-      <div style="margin-top:8px;font-size:8pt;font-weight:bold">Provide the Washington State Credential Information:</div>
-      <div style="margin-top:6px;display:flex;gap:20px;font-size:8.5pt;line-height:1.9;flex-wrap:wrap">
+      <div style="margin-top:6px;font-size:10.4pt">Internet Provider Credential Search: <a href="http://www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch">www.doh.wa.gov/LicensesPermitsandCertificates/ProviderCredentialSearch</a></div>
+      <div style="margin-top:8px;font-size:10.4pt;font-weight:bold">Provide the Washington State Credential Information:</div>
+      <div style="margin-top:6px;display:flex;gap:20px;font-size:11.1pt;line-height:1.9;flex-wrap:wrap">
         ${chk(fd.credType==='NAR')} Nursing Assistant Registered (NAR) &nbsp;&nbsp;
         ${chk(fd.credType==='NAC')} Nursing Assistant Certified (NAC) &nbsp;&nbsp;
         ${chk(fd.credType==='HCA-C')} Home Care Aide Certified (HCA-C)
       </div>
-      <div style="margin-top:6px;display:flex;gap:30px;font-size:8.5pt">
+      <div style="margin-top:6px;display:flex;gap:30px;font-size:11.1pt">
         <span><strong>Credential Number:</strong> ${esc(fd.credNum)||'________________________'}</span>
         <span><strong>Expiration Date:</strong> ${esc(fd.credExpiry)||'________________________'}</span>
       </div>
@@ -12447,7 +12447,7 @@ function build10217PrintHtml(fd, draft){
   <tr><td colspan="3" class="section-hdr">Required LTCW Nurse Delegation Training Verification. Must attach copy of verification.</td></tr>
   <tr>
     <td colspan="3">
-      <div style="font-size:8.5pt;line-height:1.9">
+      <div style="font-size:11.1pt;line-height:1.9">
         Before accepting nurse delegation <strong>all LTCWs must complete:</strong><br>
         ${dateLine('9-hour Nurse Delegation Core Training for Nursing Assistants', fd.coreTrainingDate, !!fd.coreTrainingDate)}
         ${dateLine('3-hour Nurse Delegation Special Focus on Diabetes for insulin administration', fd.diabetesTrainingDate, !!fd.diabetesTrainingDate)}
@@ -12459,8 +12459,8 @@ function build10217PrintHtml(fd, draft){
   <tr><td colspan="3" class="section-hdr">Basic Training Verification for Nursing Assistant Registered (NAR) before Delegation</td></tr>
   <tr>
     <td colspan="3">
-      <div style="font-size:8pt;margin-bottom:6px;line-height:1.55"><strong>DDA Setting Only:</strong> An NAR employed by a community residential service business defined by WAC Chapter 246-980-025 are exempt from obtaining HCA certification. They must have an active NAR credential and meet one of the training requirements as listed below.</div>
-      <div style="font-size:8.5pt;line-height:2">
+      <div style="font-size:10.4pt;margin-bottom:6px;line-height:1.55"><strong>DDA Setting Only:</strong> An NAR employed by a community residential service business defined by WAC Chapter 246-980-025 are exempt from obtaining HCA certification. They must have an active NAR credential and meet one of the training requirements as listed below.</div>
+      <div style="font-size:11.1pt;line-height:2">
         ${dateLine('Basic Training (Core Competency) Certificate or Transcript of Completion', fd.basicCoreDateVal, fd.basicCoreComp)}
         ${dateLine('75 Hours of DSHS Approved HCA Basic Training certificate or transcript', fd.basic75hrDate, fd.basic75hr)}
         ${dateLine('Fundamentals of Care (FOC)', fd.basicFocDate, fd.basicFoc)}
@@ -12474,10 +12474,10 @@ function build10217PrintHtml(fd, draft){
   <tr><td colspan="3" class="section-hdr">Exempt Long-Term Care Workers</td></tr>
   <tr>
     <td colspan="3">
-      <div style="font-size:8.5pt;line-height:1.6;margin-bottom:6px">
+      <div style="font-size:11.1pt;line-height:1.6;margin-bottom:6px">
         The HCS LTCW employed between January 1, 2011, and January 6, 2012, and the DDA LTCW employed before January 1, 2016 is required to have a letter from the employer who employed them stating they have completed the basic training requirements in effect on the date of their hire.
       </div>
-      <div style="font-size:8.5pt">
+      <div style="font-size:11.1pt">
         ${chk(fd.exemptLetter)} Letter of employment verification attached &nbsp;&nbsp;
         <strong>Date of RND Verification:</strong> ${esc(fd.exemptDate)||'__________________'}
       </div>
@@ -12487,7 +12487,7 @@ function build10217PrintHtml(fd, draft){
   <!-- RN Delegator Signature -->
   <tr><td colspan="3" class="section-hdr">RN Delegator Signature</td></tr>
   <tr>
-    <td colspan="3" style="font-size:8.5pt;padding:5px 8px;font-style:italic">
+    <td colspan="3" style="font-size:11.1pt;padding:5px 8px;font-style:italic">
       RN Delegator has verified the LTCW has an active credential in Washington state and is in good standing without restriction.
     </td>
   </tr>
@@ -14351,37 +14351,37 @@ function build01212PrintHtml(fd,draft){
   const chk=v=>v?'☑':'☐';
   const LOGO='assets/logo.png';
   const css=`*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}
-@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11.1pt;color:#000;background:#fff}
+@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}
 @media print{body{margin:0}section{page-break-after:always}section:last-child{page-break-after:avoid}}
 section{width:100%;padding:0}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;gap:12px}
 .page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}
 .page-header-title{flex:1;text-align:center}
-.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}
-.form-subtitle{font-size:9pt;font-weight:bold}
-.form-number{font-size:7.5pt;color:#333;margin-top:2px}
-.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:7pt;color:#555}
-.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 6px;letter-spacing:0.02em}
+.form-title{font-size:15pt;font-weight:bold;line-height:1.2}
+.form-subtitle{font-size:11.7pt;font-weight:bold}
+.form-number{font-size:9.8pt;color:#333;margin-top:2px}
+.page-header-right{width:88px;flex-shrink:0;text-align:right;font-size:9.1pt;color:#555}
+.section-hdr{background:#000;color:#fff;font-weight:bold;font-size:11.1pt;padding:2px 6px;letter-spacing:0.02em}
 table{width:100%;border-collapse:collapse;margin-bottom:2px}
-td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-wrap:break-word}
-.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}
-.fv{font-size:8.5pt;min-height:13px;display:block;white-space:pre-wrap;word-wrap:break-word}
-.sig-row td{height:36px;vertical-align:bottom}
-.sig-line{border-bottom:1px solid #000;display:block;height:22px}
-.check-row{font-size:8pt;line-height:2;padding:2px 4px}
+td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}
+.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}
+.fv{font-size:11.1pt;min-height:17px;display:block;white-space:pre-wrap;word-wrap:break-word}
+.sig-row td{height:47px;vertical-align:bottom}
+.sig-line{border-bottom:1px solid #000;display:block;height:29px}
+.check-row{font-size:10.4pt;line-height:2;padding:2px 4px}
 .check-row span{margin-right:10px}
-.to-from{font-size:9pt;font-weight:bold;padding:3px 5px;background:#e8e8e8;border:1px solid #000;border-right:none;white-space:nowrap}
-.instructions{border:1px solid #000;padding:6px 8px;font-size:7.5pt;line-height:1.5;margin-top:4px}
+.to-from{font-size:11.7pt;font-weight:bold;padding:3px 5px;background:#e8e8e8;border:1px solid #000;border-right:none;white-space:nowrap}
+.instructions{border:1px solid #000;padding:6px 8px;font-size:9.8pt;line-height:1.5;margin-top:4px}
 .instructions ol{margin-left:14px;margin-top:2px}
 .instructions li{margin-bottom:1px}
-.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:7pt;border-top:1px solid #000;padding-top:3px}`;
+.footer{display:flex;justify-content:space-between;margin-top:4px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}`;
 
   const pageHeader=(subtitle,pg)=>`
 <div class="page-header">
   <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
   <div class="page-header-title">
-    <div style="font-size:9pt;font-weight:bold">AGING AND LONG-TERM SUPPORT ADMINISTRATION (ALTSA)</div>
+    <div style="font-size:11.7pt;font-weight:bold">AGING AND LONG-TERM SUPPORT ADMINISTRATION (ALTSA)</div>
     <div class="form-title">Nurse Delegation: Referral and Communication</div>
     <div class="form-subtitle">${subtitle}</div>
     <div class="form-number">DSHS 01-212 (REV. 09/2021)</div>
@@ -14393,7 +14393,7 @@ td{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8pt;word-w
   const page1=`
 <section>
 ${pageHeader("Case / Resource Manager's Request",'Page 1 of 3')}
-<div style="background:#000;color:#fff;font-weight:bold;font-size:8.5pt;padding:2px 6px;margin-bottom:2px">Case / Resource Manager's Request</div>
+<div style="background:#000;color:#fff;font-weight:bold;font-size:11.1pt;padding:2px 6px;margin-bottom:2px">Case / Resource Manager's Request</div>
 <table>
   <tr>
     <td style="width:34%">
@@ -14481,11 +14481,11 @@ ${pageHeader("Case / Resource Manager's Request",'Page 1 of 3')}
     </div>
   </td></tr>
   <tr><td colspan="3"><span class="fl">26. Primary Diagnosis Related to Delegation</span><span class="fv">${esc(fd.diagnosis)}</span></td></tr>
-  <tr><td colspan="3"><span class="fl">27. Reason for RND Referral</span><span class="fv" style="min-height:30px">${esc(fd.reasonReferral)}</span></td></tr>
+  <tr><td colspan="3"><span class="fl">27. Reason for RND Referral</span><span class="fv" style="min-height:39px">${esc(fd.reasonReferral)}</span></td></tr>
 </table>
 <div class="section-hdr" style="margin-bottom:2px">Communicating with RND</div>
 <table>
-  <tr><td colspan="2" style="font-size:8pt;font-style:italic;padding:4px 6px">
+  <tr><td colspan="2" style="font-size:10.4pt;font-style:italic;padding:4px 6px">
     <strong>C/RM will OPEN Nurse Delegation Authorization prior to sending referral.</strong> &nbsp; <strong>C/RM may cancel authorization if form is not returned by RND.</strong>
   </td></tr>
   <tr class="sig-row">
@@ -14506,7 +14506,7 @@ ${pageHeader("Case / Resource Manager's Request",'Page 1 of 3')}
     </td>
   </tr>
   <tr><td><span class="fl">Printed Name</span><span class="fv">${esc(fd.receiptPrintedName)}</span></td><td></td></tr>
-  <tr><td colspan="2"><span class="fl">Additional Comments</span><span class="fv" style="min-height:18px">${esc(fd.additionalComments)}</span></td></tr>
+  <tr><td colspan="2"><span class="fl">Additional Comments</span><span class="fv" style="min-height:23px">${esc(fd.additionalComments)}</span></td></tr>
   <tr class="sig-row">
     <td><span class="fl">Signature</span><span class="fv sig-line"></span></td>
     <td style="display:flex"><span style="flex:1"><span class="fl">Telephone Number</span><span class="fv"></span></span><span style="flex:1"><span class="fl">Email Address</span><span class="fv"></span></span></td>
@@ -14564,16 +14564,16 @@ ${pageHeader("Delegating Nurse's Response",'Page 2 of 3')}
 </table>
 <div class="section-hdr" style="margin-bottom:2px;margin-top:4px">Follow Up Information</div>
 <table>
-  <tr><td><span class="fl">43. List the tasks that were delegated:</span><span class="fv" style="min-height:40px">${esc(fd.tasksDetail)}</span></td></tr>
+  <tr><td><span class="fl">43. List the tasks that were delegated:</span><span class="fv" style="min-height:52px">${esc(fd.tasksDetail)}</span></td></tr>
   <tr><td>
     <span class="fl">${chk(fd.notImplemented)} 44. Nurse Delegation was not implemented. Indicate the reason and any other action taken:</span>
-    <span class="fv" style="min-height:36px">${esc(fd.notImplementedDetail)}</span>
+    <span class="fv" style="min-height:47px">${esc(fd.notImplementedDetail)}</span>
   </td></tr>
   <tr><td>
     <span class="fl">${chk(fd.otherOptions)} 45. RND suggests these other options for care:</span>
-    <span class="fv" style="min-height:36px">${esc(fd.otherOptionsDetail)}</span>
+    <span class="fv" style="min-height:47px">${esc(fd.otherOptionsDetail)}</span>
   </td></tr>
-  <tr><td><span class="fl">46. RND Additional Comments</span><span class="fv" style="min-height:22px">${esc(fd.rndComments)}</span></td></tr>
+  <tr><td><span class="fl">46. RND Additional Comments</span><span class="fv" style="min-height:29px">${esc(fd.rndComments)}</span></td></tr>
   <tr class="sig-row">
     <td style="display:flex">
       <span style="flex:2"><span class="fl">47. Nurse Delegator's Signature</span><span class="fv sig-line"></span></span>
@@ -14743,35 +14743,35 @@ function build13893PrintHtml(fd,draft){
   const chk=v=>v?'☑':'☐';
   const LOGO='assets/logo.png';
   const css=`*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;background:#fff}
-@page{size:letter portrait;margin:0.45in 0.45in 0.4in 0.45in}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11.1pt;color:#000;background:#fff}
+@page{size:letter portrait;margin:0.35in 0.35in 0.31in 0.35in}
 @media print{body{margin:0}}
 section{width:100%}
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px}
 .page-header-logo{width:88px;flex-shrink:0}.page-header-logo img{width:88px}
 .page-header-title{flex:1;text-align:center}
-.form-title{font-size:11.5pt;font-weight:bold;line-height:1.2}
-.form-subtitle{font-size:9pt;font-weight:bold}
-.form-number{font-size:7.5pt;color:#333;margin-top:2px}
+.form-title{font-size:15pt;font-weight:bold;line-height:1.2}
+.form-subtitle{font-size:11.7pt;font-weight:bold}
+.form-number{font-size:9.8pt;color:#333;margin-top:2px}
 table{width:100%;border-collapse:collapse;margin-bottom:3px}
-td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8pt;word-wrap:break-word}
-.fl{font-size:6.5pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}
-.fv{font-size:8.5pt;min-height:14px;display:block;white-space:pre-wrap;word-wrap:break-word}
-.sig-row td{height:40px;vertical-align:bottom}
-.sig-line{border-bottom:1px solid #000;display:block;height:26px}
-.check-row{font-size:8pt;line-height:1.9;padding:2px 4px}
+td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:10.4pt;word-wrap:break-word}
+.fl{font-size:9pt;font-weight:bold;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:0.05em}
+.fv{font-size:11.1pt;min-height:18px;display:block;white-space:pre-wrap;word-wrap:break-word}
+.sig-row td{height:52px;vertical-align:bottom}
+.sig-line{border-bottom:1px solid #000;display:block;height:34px}
+.check-row{font-size:10.4pt;line-height:1.9;padding:2px 4px}
 .check-row span{margin-right:8px}
-.note-box{border:1.5px solid #000;background:#f5f5f5;padding:6px 10px;font-size:8pt;margin-top:4px;line-height:1.7}
-.instructions{border:1px solid #000;padding:6px 10px;font-size:7.5pt;line-height:1.55;margin-top:5px}
-.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:7pt;border-top:1px solid #000;padding-top:3px}
-.email-banner{border:1px solid #000;padding:5px 8px;font-size:8.5pt;font-weight:bold;text-align:center;margin-top:4px;background:#f9f9f9}`;
+.note-box{border:1.5px solid #000;background:#f5f5f5;padding:6px 10px;font-size:10.4pt;margin-top:4px;line-height:1.7}
+.instructions{border:1px solid #000;padding:6px 10px;font-size:9.8pt;line-height:1.55;margin-top:5px}
+.footer{display:flex;justify-content:space-between;margin-top:5px;font-size:9.1pt;border-top:1px solid #000;padding-top:3px}
+.email-banner{border:1px solid #000;padding:5px 8px;font-size:11.1pt;font-weight:bold;text-align:center;margin-top:4px;background:#f9f9f9}`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DSHS 13-893 — ${esc(draft.client_name)}</title><style>${css}</style></head><body>
 <section>
 <div class="page-header">
   <div class="page-header-logo"><img src="${LOGO}" alt="WA DSHS" onerror="this.style.display='none'"></div>
   <div class="page-header-title">
-    <div style="font-size:9pt;font-weight:bold">AGING AND LONG-TERM SUPPORT ADMINISTRATION</div>
+    <div style="font-size:11.7pt;font-weight:bold">AGING AND LONG-TERM SUPPORT ADMINISTRATION</div>
     <div class="form-title">Nurse Delegation: Request For Additional Units</div>
     <div class="form-subtitle">To be completed by Delegating Nurse</div>
     <div class="form-number">DSHS 13-893 (REV. 11/2024)</div>
@@ -14797,10 +14797,10 @@ td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8pt;word-w
   </tr>
   <tr><td colspan="3" style="padding:6px 7px">
     <span class="fl" style="margin-bottom:3px">10. Additional Units Requested &amp; 11. Reason</span>
-    <div style="font-size:8.5pt;line-height:1.9">
+    <div style="font-size:11.1pt;line-height:1.9">
       I will need <span style="font-weight:bold;border-bottom:1px solid #000;display:inline-block;min-width:40px;text-align:center">${esc(fd.unitsNeeded)}</span> more units in addition to the 100 units already authorized for the month of <span style="font-weight:bold;border-bottom:1px solid #000;display:inline-block;min-width:80px;text-align:center">${esc(fd.month)}</span>. &nbsp; This will allow me to bill for a total of <span style="font-weight:bold;border-bottom:1px solid #000;display:inline-block;min-width:40px;text-align:center">${esc(fd.monthTotal)}</span> units for the month of <span style="font-weight:bold;border-bottom:1px solid #000;display:inline-block;min-width:80px;text-align:center">${esc(fd.monthTotal2)}</span>.
     </div>
-    <div style="margin-top:6px"><span class="fl" style="text-transform:none;letter-spacing:0">11. Reason Additional Units Requested — Comments:</span><span class="fv" style="min-height:30px;margin-top:3px">${esc(fd.comments)}</span></div>
+    <div style="margin-top:6px"><span class="fl" style="text-transform:none;letter-spacing:0">11. Reason Additional Units Requested — Comments:</span><span class="fv" style="min-height:39px;margin-top:3px">${esc(fd.comments)}</span></div>
   </td></tr>
   <tr><td colspan="3">
     <span class="fl">12. Supporting Documents Include (check all applicable)</span>
@@ -14815,7 +14815,7 @@ td{border:1px solid #000;padding:4px 6px;vertical-align:top;font-size:8pt;word-w
       <span>${chk(fd.attachments?.billing)} Billing Tracker for the month of request</span>
       <span>${chk(fd.attachments?.other)} All other supporting documents to support time</span>
     </div>
-    <div style="font-size:8pt;font-weight:bold;margin-top:4px">* All attachments must have Client Name, date, and which form it is attached to.</div>
+    <div style="font-size:10.4pt;font-weight:bold;margin-top:4px">* All attachments must have Client Name, date, and which form it is attached to.</div>
   </td></tr>
   <tr class="sig-row">
     <td><span class="fl">13. Date Requested</span><span class="fv sig-line">${esc(fd.dateRequested)}</span></td>
