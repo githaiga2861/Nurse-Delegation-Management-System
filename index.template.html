@@ -10962,11 +10962,24 @@ function printDraft(id){
   // Child closes itself whether the user prints OR cancels
   const closer = `<script>
     (function(){
-      var done=false;
-      function bye(){ if(done)return; done=true; setTimeout(function(){ try{window.close();}catch(e){} },150); }
-      window.onafterprint=bye;
-      window.addEventListener('focus',bye);
-      window.onload=function(){ setTimeout(function(){ window.focus(); window.print(); bye; },400); };
+      var printed=false, done=false;
+      function bye(){
+        if(done) return; done=true;
+        setTimeout(function(){ try{ window.close(); }catch(e){} }, 200);
+      }
+      window.onafterprint = bye;
+      function go(){
+        window.focus();
+        window.print();
+        printed = true;
+        // Only listen for focus AFTER the dialog has been raised, so a
+        // cancel (which returns focus to this window) still closes it.
+        setTimeout(function(){
+          window.addEventListener('focus', function(){ if(printed) bye(); });
+        }, 800);
+      }
+      if(document.readyState === 'complete') setTimeout(go, 500);
+      else window.addEventListener('load', function(){ setTimeout(go, 500); });
     })();
   <\/script>`;
   html = html.replace('</body>', closer + '</body>');
