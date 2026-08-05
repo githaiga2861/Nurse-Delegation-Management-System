@@ -10950,28 +10950,42 @@ function _convertDatesInHtml(html){
 function printDraft(id){
   const d=(window.formDrafts||[]).find(x=>x.id===id);
   if(!d){alert('Draft not found.');return;}
-  const printWin=window.open('','_blank','width=850,height=1100');
+
   let html=_buildDraftPrintHtml(d);
   html=injectSignatures(html,d);
   html=_convertDatesInHtml(html);
-  // Auto-close after printing to prevent PHI lingering in browser history
-  // ── Global print magnification (applies to every form) ──────
-  // zoom scales text, borders, tables and images together, so the
-  // layout is identical — only larger. Adjust PRINT_ZOOM to taste.
-  const PRINT_ZOOM = 1.25;   // 1.25 = 25% bigger, 1.4 = 40% bigger
-  const zoomCss = `<style>
-    @media print{
-      body{ zoom:${PRINT_ZOOM}; }
-    }
-    body{ zoom:${PRINT_ZOOM}; }
-  </style>`;
-  html = html.replace('</head>', zoomCss + '</head>');
 
-  html=html.replace('</body>','<script>window.onafterprint=function(){window.close();}<\/script></body>');
+  const PRINT_ZOOM = 1.25;
+  html = html.replace('</head>',
+    `<style>body{zoom:${PRINT_ZOOM}}@media print{body{zoom:${PRINT_ZOOM}}}</style></head>`);
+
+  // Child closes itself whether the user prints OR cancels
+  const closer = `<script>
+    (function(){
+      var done=false;
+      function bye(){ if(done)return; done=true; setTimeout(function(){ try{window.close();}catch(e){} },150); }
+      window.onafterprint=bye;
+      window.addEventListener('focus',bye);
+      window.onload=function(){ setTimeout(function(){ window.focus(); window.print(); bye; },400); };
+    })();
+  <\/script>`;
+  html = html.replace('</body>', closer + '</body>');
+
+  const printWin = window.open('','_blank','width=850,height=1100');
+  if(!printWin){ alert('Popup blocked. Allow popups for this site to print.'); return; }
   printWin.document.write(html);
   printWin.document.close();
-  printWin.focus();
-  setTimeout(()=>printWin.print(),600);
+
+  // Parent cleanup — runs regardless of what the child does
+  setTimeout(()=>{
+    document.querySelectorAll('.overlay').forEach(el=>{
+      el.style.display='none'; el.classList.remove('open');
+    });
+    document.body.style.overflow='';
+    document.body.style.pointerEvents='';
+    try{ window.focus(); }catch(e){}
+  }, 800);
+
   AuditLog.log('document.printed',{draft_id:id,form_name:d.form_name,client_name:d.client_name});
 }
 
