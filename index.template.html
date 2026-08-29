@@ -8110,7 +8110,7 @@ function getVisitTypesChecked(){
   return checked;
 }
 
-async function submitGenerate14484(){
+async function submitGenerate14484(clientChangeMode){
   const clientId=document.getElementById('nv_client').value;
   if(!clientId){alert('Please select a client.');return;}
   const visitDate=document.getElementById('nv_visitDate').value;
@@ -8119,6 +8119,14 @@ async function submitGenerate14484(){
   const cl=window.clients.find(x=>x.id===clientId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
+
+  const existingDraftId0=window._editing14484DraftId||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate14484(mode));
+    if(stopped) return;
+  }
 
   const hasPg2=document.getElementById('nv_pg2_notes').checked;
 
@@ -8154,10 +8162,11 @@ async function submitGenerate14484(){
   btn.textContent='Generating…';btn.disabled=true;
 
   const now=new Date().toISOString();
-  const existingDraftId = window._editing14484DraftId || null;
-  window._editing14484DraftId = null;
+  window._editing14484DraftId=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
   const draft={
-    id: existingDraftId || Date.now().toString(),
+    id: saveTargetId || Date.now().toString(),
     user_id: currentUser?.id,
     form_id: 'form-14484',
     form_name: '14-484, Nurse Delegation: Nursing Visit',
@@ -8174,7 +8183,7 @@ async function submitGenerate14484(){
 
   initSupa();
   if(supa&&currentUser){
-    if(existingDraftId){
+    if(saveTargetId){
       // Overwrite existing draft
       const {error}=await supa.from('form_drafts').update({
         form_data: draft.form_data,
@@ -8182,7 +8191,7 @@ async function submitGenerate14484(){
         caregiver_id: draft.caregiver_id, caregiver_name: draft.caregiver_name,
         facility_id: draft.facility_id, facility_name: draft.facility_name,
         updated_at: now
-      }).eq('id', existingDraftId);
+      }).eq('id', saveTargetId);
       if(error)console.error(error);
     } else {
       const {error}=await supa.from('form_drafts').insert(draft);
@@ -8190,8 +8199,8 @@ async function submitGenerate14484(){
     }
   }
   window.formDrafts=window.formDrafts||[];
-  if(existingDraftId){
-    const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);
+  if(saveTargetId){
+    const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);
     if(idx>-1) window.formDrafts[idx]={...window.formDrafts[idx],...draft};
     else window.formDrafts.unshift(draft);
   } else {
@@ -8203,15 +8212,22 @@ async function submitGenerate14484(){
   // Auto-derive / enrich delegation case from nursing visit form
   await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-14484', formData});
 
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate14484Modal');
   clearModalDraft('generate14484Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 14-484 ${existingDraftId?'updated':'saved to Drafts'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert(`✅ 14-484 ${saveTargetId?'updated':'saved to Drafts'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  }
 }
 
-// ── 13-678A PRN MEDICATION FORM ───────────────────
 function open13678aModal(){
   // populate client select
   const cs=document.getElementById('prn_client');
@@ -8264,9 +8280,16 @@ function onPrnClientChange(sel){
   }
 }
 
-async function submitGenerate13678a(){
+async function submitGenerate13678a(clientChangeMode){
   const clientId=document.getElementById('prn_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const order1Med=document.getElementById('prn1_medName').value.trim();
   if(!order1Med){alert('At least one PRN medication (Order 1) is required.');return;}
 
@@ -8304,10 +8327,18 @@ async function submitGenerate13678a(){
   btn.textContent='Generating…';btn.disabled=true;
 
   const now=new Date().toISOString();
-  const existingDraftId = window._editing13678aDraftId || null;
-  window._editing13678aDraftId = null;
+  const existingDraftId0=window._editing13678aDraftId||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13678a(mode));
+    if(stopped) return;
+  }
+  window._editing13678aDraftId=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
   const draft={
-    id: existingDraftId || Date.now().toString(),
+    id: saveTargetId || Date.now().toString(),
     user_id: currentUser?.id,
     form_id: 'form-13678a',
     form_name: '13-678A, Nurse Delegation: PRN Medication',
@@ -8324,26 +8355,27 @@ async function submitGenerate13678a(){
 
   initSupa();
   if(supa&&currentUser){
-    if(existingDraftId){
-      await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,facility_id:draft.facility_id,facility_name:draft.facility_name,updated_at:now}).eq('id',existingDraftId);
+    if(saveTargetId){
+      await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,facility_id:draft.facility_id,facility_name:draft.facility_name,updated_at:now}).eq('id',saveTargetId);
     } else {
       const {error}=await supa.from('form_drafts').insert(draft);
       if(error)console.error(error);
     }
   }
   window.formDrafts=window.formDrafts||[];
-  if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}
+  if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}
   else window.formDrafts.unshift(draft);
 
   // Auto-derive / enrich delegation case from PRN medication form
   await upsertCaseFromForm({clientId, caregiverId: cl?.caregiverId||null, formId:'form-13678a', formData});
 
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678aModal');
   clearModalDraft('generate13678aModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-678A ${existingDraftId?'updated':'saved to Drafts'} with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  alert(`✅ 13-678A ${saveTargetId?'updated':'saved to Drafts'} with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  }
 }
 
 async function loadCasesFromSupabase(){
@@ -12365,7 +12397,7 @@ function onAsmpClientChange(sel){
   }
 }
 
-async function submitGenerate13678b(){
+async function submitGenerate13678b(clientChangeMode){
   const clientId=document.getElementById('asmp_client').value;
   if(!clientId){alert('Please select a client.');return;}
   const reason=document.getElementById('asmp_reason').value.trim();
@@ -12377,6 +12409,13 @@ async function submitGenerate13678b(){
   const cl=window.clients.find(x=>x.id===clientId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
+  const existingDraftId0=window._editingDraftId_13678b||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13678b(mode));
+    if(stopped) return;
+  }
   const formData={
     clientName: cl?`${cl.last}, ${cl.first}`:'',
     acesId: document.getElementById('asmp_acesId').value||cl?.acesId||cl?.dshsId||'',
@@ -12390,8 +12429,10 @@ async function submitGenerate13678b(){
   const btn=document.getElementById('asmp_submitBtn');
   btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_13678b||null;window._editingDraftId_13678b=null;
-  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+  window._editingDraftId_13678b=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
+  const draft={id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-13678b',
     form_name: '13-678B, Nurse Delegation: Assumption of Delegation',
     client_id: clientId,
@@ -12405,19 +12446,24 @@ async function submitGenerate13678b(){
     created_at: now, updated_at: now
   };
   initSupa();
-  if(supa&&currentUser){const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}
-  window.formDrafts=window.formDrafts||[];
-  window.formDrafts.unshift(draft);
-  btn.textContent='Generate & Save to Drafts';btn.disabled=false;
-  initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  // A pre-existing duplicate insert-then-update sequence was here; consolidated
+  // into a single correct update-or-insert below.
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678bModal');
   clearModalDraft('generate13678bModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 13-678B Assumption of Delegation saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 13-678B Assumption of Delegation saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  }
 }
 
 function build13678bPrintHtml(fd, draft){
@@ -12534,7 +12580,7 @@ function onCtvCaregiverChange(sel){
   else if(ct.includes('HCA'))document.getElementById('ctv_hca').checked=true;
 }
 
-async function submitGenerate10217(){
+async function submitGenerate10217(clientChangeMode){
   const caregiverId=document.getElementById('ctv_caregiver').value;
   if(!caregiverId){alert('Please select a caregiver.');return;}
   const credType=document.querySelector('input[name="ctv_credType"]:checked')?.value||'';
@@ -12549,6 +12595,15 @@ async function submitGenerate10217(){
   const cg=window.caregivers.find(x=>x.id===caregiverId);
   const chk=id=>document.getElementById(id)?.checked||false;
   const val=id=>document.getElementById(id)?.value||'';
+
+  // This form has no client — only the caregiver identity is tracked.
+  const existingDraftId0=window._editingDraftId_10217||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {caregiverId, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate10217(mode));
+    if(stopped) return;
+  }
 
   const formData={
     ltcwName: cg?`${cg.first} ${cg.last}`:'',
@@ -12570,9 +12625,11 @@ async function submitGenerate10217(){
   const btn=document.getElementById('ctv_submitBtn');
   btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_10217||null;window._editingDraftId_10217=null;
+  window._editingDraftId_10217=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
   const draft={
-    id: existingDraftId||Date.now().toString(), user_id: currentUser?.id,
+    id: saveTargetId||Date.now().toString(), user_id: currentUser?.id,
     form_id: 'form-10-217',
     form_name: '10-217, Nurse Delegation: Credentials and Training Verification',
     client_id: null, client_name: '—',
@@ -12585,14 +12642,22 @@ async function submitGenerate10217(){
     created_at: now, updated_at: now
   };
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,caregiver_id:draft.caregiver_id,caregiver_name:draft.caregiver_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate10217Modal');
   clearModalDraft('generate10217Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 10-217 Credentials and Training Verification saved to Drafts.\n\nRemember to attach a copy of the training verification before filing.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved for <strong>${esc(cg?`${cg.first} ${cg.last}`:'')}</strong>.`
+               :`<strong>${esc(draft.form_name)}</strong> now belongs to <strong>${esc(cg?`${cg.first} ${cg.last}`:'')}</strong>.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 10-217 Credentials and Training Verification saved to Drafts.\n\nRemember to attach a copy of the training verification before filing.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  }
 }
 
 function build10217PrintHtml(fd, draft){
@@ -12760,9 +12825,16 @@ function onConClientChange(sel){
   }
 }
 
-async function submitGenerate13678Consent(){
+async function submitGenerate13678Consent(clientChangeMode){
   const clientId=document.getElementById('con_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const cl=window.clients.find(x=>x.id===clientId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
@@ -12795,18 +12867,28 @@ async function submitGenerate13678Consent(){
   };
   const btn=document.getElementById('con_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_13678con||null;window._editingDraftId_13678con=null;
-  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13678-consent',form_name:'13-678, Consent for Delegation Process',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  const existingDraftId0=window._editingDraftId_13678con||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13678Consent(mode));
+    if(stopped) return;
+  }
+  window._editingDraftId_13678con=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
+  const draft={id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13678-consent',form_name:'13-678, Consent for Delegation Process',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13678-consent',formData});
   updateAlertsBadge();
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13678ConsentModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert('✅ Consent for Delegation Process saved to Drafts.\n\nDelegation case consent status updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  }
 }
 
 function open13680Modal(){
@@ -12855,9 +12937,16 @@ function addRscCaregiverRow(){
   </div>`);
 }
 
-async function submitGenerate13680(){
+async function submitGenerate13680(clientChangeMode){
   const clientId=document.getElementById('rsc_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const altPlan=document.getElementById('rsc_altPlan').value.trim();
   if(!altPlan){alert('Alternative Plan (Field 14) is required.');return;}
   const rndSig=document.getElementById('rsc_rndSig').value.trim();
@@ -12888,19 +12977,29 @@ async function submitGenerate13680(){
   };
   const btn=document.getElementById('rsc_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_13680||null;window._editingDraftId_13680=null;
-  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+  const existingDraftId0=window._editingDraftId_13680||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13680(mode));
+    if(stopped) return;
+  }
+  window._editingDraftId_13680=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
+  const draft={id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-13680',form_name:'13-680, Nurse Delegation: Rescinding Delegation',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13680',formData});
   updateAlertsBadge();
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13680Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert('✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case has been closed and all active tasks archived.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  }
 }
 
 function open13681Modal(){
@@ -12940,9 +13039,16 @@ function onChgVerbalToggle(){
   document.getElementById('chg_verbalSection').style.display=verbal?'block':'none';
 }
 
-async function submitGenerate13681(){
+async function submitGenerate13681(clientChangeMode){
   const clientId=document.getElementById('chg_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const notifyDate=document.getElementById('chg_notifyDate').value;
   if(!notifyDate){alert('Date RND Was Notified (Field 5) is required.');return;}
   const rndSig=document.getElementById('chg_rndSig').value.trim();
@@ -12995,18 +13101,28 @@ async function submitGenerate13681(){
   };
   const btn=document.getElementById('chg_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_13681||null;window._editingDraftId_13681=null;
-  const draft={id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13681',form_name:'13-681, Nurse Delegation: Change in Medical / Treatment Orders',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
+  const existingDraftId0=window._editingDraftId_13681||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13681(mode));
+    if(stopped) return;
+  }
+  window._editingDraftId_13681=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
+  const draft={id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,form_id:'form-13681',form_name:'13-681, Nurse Delegation: Change in Medical / Treatment Orders',client_id:clientId,client_name:cl?`${cl.first} ${cl.last}`:'—',caregiver_id:cl?.caregiverId||null,caregiver_name:cg?`${cg.first} ${cg.last}`:'—',facility_id:cl?.facilityId||null,facility_name:fac?.name||'—',form_data:formData,status:'Draft — Printed, Awaiting Signature',created_at:now,updated_at:now};
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   await upsertCaseFromForm({clientId,caregiverId:cl?.caregiverId||null,formId:'form-13681',formData});
   updateAlertsBadge();
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13681Modal');
   showPage('documents');
   setTimeout(()=>{ docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert('✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case tasks updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  }
 }
 
 // ── 06-200 BILLING FORM — IN-SYSTEM SPREADSHEET ──
@@ -14485,9 +14601,16 @@ function onRef01212ClientChange(sel){
   if(cg)s('ref_ltcwName',`${cg.first} ${cg.last}`);
 }
 
-async function submitGenerate01212(){
+async function submitGenerate01212(clientChangeMode){
   const clientId=document.getElementById('ref_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const cl=window.clients.find(x=>x.id===clientId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
@@ -14529,9 +14652,18 @@ async function submitGenerate01212(){
   };
   const btn=document.getElementById('ref_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_01212||null;window._editingDraftId_01212=null;
+  const existingDraftId0=window._editingDraftId_01212||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate01212(mode));
+    if(stopped) return;
+  }
+  window._editingDraftId_01212=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
   const draft={
-    id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+    id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-01-212',
     form_name:'01-212, Nurse Delegation: Referral and Communication',
     client_id:clientId,
@@ -14545,14 +14677,15 @@ async function submitGenerate01212(){
     created_at:now,updated_at:now
   };
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   updateAlertsBadge();
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate01212Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert('✅ 01-212 Referral and Communication saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  }
 }
 
 function build01212PrintHtml(fd,draft){
@@ -14892,9 +15025,16 @@ function onRau13893ClientChange(sel){
   s('rau_dob',cl.dob||'');
 }
 
-async function submitGenerate13893(){
+async function submitGenerate13893(clientChangeMode){
   const clientId=document.getElementById('rau_client').value;
-  if(!clientId){alert('Please select a client.');return;}
+  if(!clientId){if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('Please select a client.');return;}
   const unitsNeeded=document.getElementById('rau_unitsNeeded').value.trim();
   if(!unitsNeeded){alert('Number of additional units needed (Field 10) is required.');return;}
   const month=document.getElementById('rau_month').value.trim();
@@ -14921,9 +15061,18 @@ async function submitGenerate13893(){
   };
   const btn=document.getElementById('rau_submitBtn');btn.textContent='Generating…';btn.disabled=true;
   const now=new Date().toISOString();
-  const existingDraftId=window._editingDraftId_13893||null;window._editingDraftId_13893=null;
+  const existingDraftId0=window._editingDraftId_13893||null;
+  if(!clientChangeMode){
+    const stopped=_guardIdentityChangeOnSave(existingDraftId0,
+      {clientId, clientName:cl?`${cl.first} ${cl.last}`:'', caregiverId:cl?.caregiverId||null, caregiverName:cg?`${cg.first} ${cg.last}`:''},
+      (mode)=>submitGenerate13893(mode));
+    if(stopped) return;
+  }
+  window._editingDraftId_13893=null;
+  const branching=clientChangeMode==='branch';
+  const saveTargetId=branching?null:existingDraftId0;
   const draft={
-    id:existingDraftId||Date.now().toString(),user_id:currentUser?.id,
+    id:saveTargetId||Date.now().toString(),user_id:currentUser?.id,
     form_id:'form-13-893',
     form_name:'13-893, Nurse Delegation: Request For Additional Unit',
     client_id:clientId,
@@ -14937,14 +15086,15 @@ async function submitGenerate13893(){
     created_at:now,updated_at:now
   };
   initSupa();
-  if(supa&&currentUser){if(existingDraftId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',existingDraftId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
-  window.formDrafts=window.formDrafts||[];if(existingDraftId){const idx=window.formDrafts.findIndex(x=>x.id===existingDraftId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
+  if(supa&&currentUser){if(saveTargetId){await supa.from('form_drafts').update({form_data:draft.form_data,client_id:draft.client_id,client_name:draft.client_name,updated_at:now}).eq('id',saveTargetId);}else{const {error}=await supa.from('form_drafts').insert(draft);if(error)console.error(error);}}
+  window.formDrafts=window.formDrafts||[];if(saveTargetId){const idx=window.formDrafts.findIndex(x=>x.id===saveTargetId);if(idx>-1)window.formDrafts[idx]={...window.formDrafts[idx],...draft};else window.formDrafts.unshift(draft);}else window.formDrafts.unshift(draft);
   updateAlertsBadge();
-  btn.textContent=existingDraftId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
+  btn.textContent=saveTargetId?'Save Changes':'Generate & Save to Drafts';btn.disabled=false;
   closeModal('generate13893Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
   alert('✅ 13-893 Request For Additional Unit saved to Drafts.\n\nScan and email to nursedelegation@dshs.wa.gov with all required attachments.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  }
 }
 
 function build13893PrintHtml(fd,draft){
@@ -15393,25 +15543,51 @@ function openAboutFormModal(draftId){
 // for the new client. Only fires when the client actually changed.
 window._pendingClientChange=null;
 
-function _guardClientChangeOnSave(editingDraftId, selectedClientId, selectedClientName, proceed){
+// sel = {clientId, clientName, caregiverId, caregiverName}. Any field the
+// caller doesn't track for a given form can simply be omitted/undefined —
+// only fields actually passed in are compared.
+function _identityFieldChanged(d, sel, kind){
+  const idKey=kind+'_id', nameKey=kind+'_name';
+  const selId = kind==='client'?sel.clientId:sel.caregiverId;
+  const selName = kind==='client'?sel.clientName:sel.caregiverName;
+  if(selName===undefined) return false; // this form doesn't track this field
+  const oldName=(d[nameKey]||'').trim().toLowerCase();
+  const newName=(selName||'').trim().toLowerCase();
+  if(!newName) return false; // nothing selected yet — don't force a choice
+  const same=(selId && d[idKey]) ? selId===d[idKey] : oldName===newName;
+  return !same;
+}
+
+function _guardIdentityChangeOnSave(editingDraftId, sel, proceed){
   if(!editingDraftId) return false; // creating new — nothing to guard
   const d=(window.formDrafts||[]).find(x=>x.id===editingDraftId);
   if(!d) return false;
-  const oldName=(d.client_name||'').trim().toLowerCase();
-  const newName=(selectedClientName||'').trim().toLowerCase();
-  const same=(selectedClientId && d.client_id)
-    ? selectedClientId===d.client_id
-    : oldName===newName;
-  if(same || !newName) return false; // unchanged — save normally right now
 
-  window._pendingClientChange={
-    draftId:editingDraftId, formName:d.form_name,
-    oldName:d.client_name||'—', newName:selectedClientName, proceed};
-  document.getElementById('renameChoiceOld').textContent=d.client_name||'—';
-  document.getElementById('renameChoiceNew').textContent=selectedClientName;
+  const clientChanged = _identityFieldChanged(d, sel, 'client');
+  const caregiverChanged = _identityFieldChanged(d, sel, 'caregiver');
+  if(!clientChanged && !caregiverChanged) return false; // unchanged — save normally
+
+  const changes=[];
+  if(clientChanged) changes.push({label:'Client', from:d.client_name||'—', to:sel.clientName});
+  if(caregiverChanged) changes.push({label:'Caregiver', from:d.caregiver_name||'—', to:sel.caregiverName});
+
+  window._pendingClientChange={draftId:editingDraftId, formName:d.form_name, changes, proceed};
   document.getElementById('renameChoiceFormName').textContent=d.form_name||'';
+  document.getElementById('renameChoiceList').innerHTML=changes.map(c=>`
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;font-size:13px;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;min-width:70px;text-align:right">${c.label}</span>
+      <span style="color:var(--text2)">${esc(c.from)}</span>
+      <svg width="16" height="12" viewBox="0 0 18 14" fill="none"><path d="M1 7h15M11 1l6 6-6 6" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <strong style="color:var(--text)">${esc(c.to)}</strong>
+    </div>`).join('');
   openModal('renameChoiceModal');
   return true; // caller must stop; proceed() is invoked after the choice
+}
+
+// Backward-compatible alias used by the two forms wired before caregivers
+// were added to the guard.
+function _guardClientChangeOnSave(editingDraftId, selectedClientId, selectedClientName, proceed){
+  return _guardIdentityChangeOnSave(editingDraftId, {clientId:selectedClientId, clientName:selectedClientName}, proceed);
 }
 
 function _runRenameChoice(mode){
@@ -15459,17 +15635,13 @@ function injectSignatures(html,draft){
   <div class="modal" style="width:min(560px,92vw)">
     <div class="modal-header">
       <div>
-        <h4 style="font-size:15px">This form's client was changed</h4>
+        <h4 style="font-size:15px">This form was changed</h4>
         <p style="font-size:11.5px;color:var(--text3);margin:2px 0 0" id="renameChoiceFormName"></p>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('renameChoiceModal')">&times;</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:22px;font-size:13px">
-        <span style="color:var(--text2)" id="renameChoiceOld"></span>
-        <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M1 7h15M11 1l6 6-6 6" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <strong style="color:var(--text)" id="renameChoiceNew"></strong>
-      </div>
+      <div id="renameChoiceList" style="margin-bottom:22px"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div style="border:1px solid var(--border2);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color 0.15s"
              onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)'"
