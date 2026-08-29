@@ -1151,6 +1151,10 @@ if('serviceWorker' in navigator){
     </div>
     <div class="modal-body">
       <input type="hidden" id="editDraftId">
+      <div class="form-group">
+        <label class="form-label">Client</label>
+        <select class="form-input form-select" id="editDraftClientSelect"></select>
+      </div>
       <div class="form-group"><label class="form-label">Delegated Task</label><input class="form-input" id="editDelegatedTask"></div>
       <div class="form-group"><label class="form-label">Expected Outcome</label><input class="form-input" id="editExpectedOutcome"></div>
       <div class="form-group"><label class="form-label">Medications (if applicable)</label><textarea class="form-input" id="editMedications" rows="2"></textarea></div>
@@ -3707,6 +3711,11 @@ function _rndBuildClientDropdown(){
   }
 }
 
+function _rndSelectedClientId(){
+  const sel=document.getElementById('rnd_clientSelect');
+  return sel&&sel.value ? sel.value : null;
+}
+
 function _rndAutoFillClient(clientId){
   if(!clientId) return;
   const c = (window.clients||[]).find(x=>x.id===clientId);
@@ -3807,7 +3816,7 @@ function _rndAutoFillClient(clientId){
 } 
 
 // ── SAVE TO DRAFTS ────────────────────────────────────────────
-async function submitRndAssessment() {
+async function submitRndAssessment(clientChangeMode){
   // Get client name from hidden field or dropdown label
   const clientNameEl = document.getElementById('rnd_clientName');
   const selectEl = document.getElementById('rnd_clientSelect');
@@ -3817,6 +3826,18 @@ async function submitRndAssessment() {
     clientName = opt ? opt.text.trim() : '';
   }
   if(!clientName){ alert('Please select a client first.'); return; }
+  const clientId=_rndSelectedClientId();
+
+  // If editing an existing draft and the client changed, ask how to save —
+  // unless a choice has already been made (clientChangeMode set) or we're
+  // resuming after that choice.
+  const editIdCheck = window._rndDraftId;
+  if(!clientChangeMode){
+    const stopped=_guardClientChangeOnSave(editIdCheck, clientId, clientName, (mode)=>{
+      submitRndAssessment(mode);
+    });
+    if(stopped) return;
+  }
 
   const btn = document.getElementById('rnd_submitBtn');
   if(btn){ btn.textContent = 'Saving…'; btn.disabled = true; }
@@ -3824,7 +3845,10 @@ async function submitRndAssessment() {
   try {
     const formData = _rndCollectData();
     const now = new Date().toISOString();
-    const editId = window._rndDraftId;
+    // 'branch' means: leave the original draft untouched and save this
+    // edited version as a brand new draft for the new client.
+    const branching = clientChangeMode==='branch';
+    const editId = branching ? null : window._rndDraftId;
     const existing = editId ? (window.formDrafts || []).find(x => x.id === editId) : null;
 
     const draft = {
@@ -3832,7 +3856,7 @@ async function submitRndAssessment() {
       user_id:       currentUser?.id || null,
       form_id:       'form-rnd-assessment',
       form_name:     'Delegation — Nursing Assessment and Initial Care Plan',
-      client_id:     null,
+      client_id:     clientId,
       client_name:   clientName,
       caregiver_id:  null,
       caregiver_name:'—',
@@ -3848,7 +3872,7 @@ async function submitRndAssessment() {
     if(supa && currentUser){
       if(existing){
         const { error: updErr } = await supa.from('form_drafts')
-          .update({ form_data: formData, client_name: clientName, updated_at: now })
+          .update({ form_data: formData, client_id: clientId, client_name: clientName, updated_at: now })
           .eq('id', draft.id);
         if(updErr) console.warn('RND update error:', updErr.message);
       } else {
@@ -3865,6 +3889,23 @@ async function submitRndAssessment() {
       else window.formDrafts.unshift(draft);
     } else {
       window.formDrafts.unshift(draft);
+    }
+
+    if(clientChangeMode){
+      window._rndDraftId=null;
+      closeRndModal();
+      renderDraftsTable(window.formDrafts);
+      if(branching){
+        _showRenameResultModal('New version created',
+          `A separate copy of <strong>${esc(draft.form_name)}</strong> was created for <strong>${esc(clientName)}</strong>.`,
+          `The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.`);
+      } else {
+        _showRenameResultModal('Draft updated',
+          `<strong>${esc(draft.form_name)}</strong> now belongs to <strong>${esc(clientName)}</strong>.`,
+          `The existing draft was updated in place — no new copy was created.`);
+      }
+      if(btn){ btn.textContent = 'Generate & Save to Drafts'; btn.disabled = false; }
+      return;
     }
 
     closeRndModal();
@@ -3885,6 +3926,7 @@ async function submitRndAssessment() {
 function editRndAssessmentDraft(d, fd) {
   _rndRestoreFormData(fd);
   window._rndDraftId = d.id;
+  _rndBuildClientDropdown(); // populate & pre-select the client list for editing
   document.getElementById('rndAssessmentModal').classList.add('open');
   document.getElementById('rndAssessmentModal').style.display = 'flex';
   _rndCurrentTab = 0;
@@ -10178,6 +10220,19 @@ function editDraft(id){
   // Fallback: generic 13-678 task-sheet editor
   document.getElementById('editDraftId').value=id;
   document.getElementById('editDraftFormName').textContent=d.form_name;
+  {
+    const cs=document.getElementById('editDraftClientSelect');
+    if(cs){
+      const clients=(window.clients||[]).filter(c=>c.status==='Active');
+      cs.innerHTML='<option value="">— Select client —</option>'+
+        clients.map(c=>`<option value="${c.id}">${c.first} ${c.last}</option>`).join('');
+      if(d.client_id) cs.value=d.client_id;
+      else {
+        const m=clients.find(c=>`${c.first} ${c.last}`===d.client_name);
+        if(m) cs.value=m.id;
+      }
+    }
+  }
   const s=(elId,val)=>{const el=document.getElementById(elId);if(el)el.value=val||'';};
   s('editDelegatedTask',fd.delegatedTask||'');s('editExpectedOutcome',fd.expectedOutcome||'');
   s('editMedications',fd.medications||'');s('editVerifDate',fd.verifDate||'');
@@ -10651,11 +10706,24 @@ function edit13893Draft(d,fd){
   },250);
 }
 
-async function saveEditedDraft(){
+async function saveEditedDraft(clientChangeMode){
   const id=document.getElementById('editDraftId').value;
   const d=(window.formDrafts||[]).find(x=>x.id===id);if(!d)return;
   const g=elId=>document.getElementById(elId)?.value||'';
-  d.form_data={...d.form_data,
+
+  const cs=document.getElementById('editDraftClientSelect');
+  const newClientId=cs&&cs.value?cs.value:null;
+  const newClientObj=newClientId?(window.clients||[]).find(c=>c.id===newClientId):null;
+  const newClientName=newClientObj?`${newClientObj.first} ${newClientObj.last}`:d.client_name;
+
+  if(!clientChangeMode){
+    const stopped=_guardClientChangeOnSave(id, newClientId, newClientName, (mode)=>{
+      saveEditedDraft(mode);
+    });
+    if(stopped) return;
+  }
+
+  const formData={...d.form_data,
     delegatedTask:g('editDelegatedTask'),expectedOutcome:g('editExpectedOutcome'),
     medications:g('editMedications'),verifDate:g('editVerifDate'),
     verifName:g('editVerifName'),verifMethod:g('editVerifMethod'),
@@ -10664,12 +10732,47 @@ async function saveEditedDraft(){
     whatHcp:g('editWhatHcp'),whatEmergency:g('editWhatEmergency'),
     ipName:g('editIpName'),providerOne:g('editProviderOne'),
   };
-  d.updated_at=new Date().toISOString();
+  const now=new Date().toISOString();
   initSupa();
-  if(supa&&currentUser)await supa.from('form_drafts').update({form_data:d.form_data,updated_at:d.updated_at}).eq('id',id);
+
+  if(clientChangeMode==='branch'){
+    const copy={...d, id:Date.now().toString(), client_id:newClientId,
+      client_name:newClientName, form_data:formData,
+      created_at:now, updated_at:now};
+    window.formDrafts=window.formDrafts||[];
+    window.formDrafts.unshift(copy);
+    if(supa&&currentUser){
+      const {error}=await supa.from('form_drafts').insert(copy);
+      if(error) console.warn('Branch insert error:',error.message);
+    }
+    closeModal('editDraftModal');
+    renderDraftsTable(window.formDrafts);
+    _showRenameResultModal('New version created',
+      `A separate copy of <strong>${esc(d.form_name)}</strong> was created for <strong>${esc(newClientName)}</strong>.`,
+      `The original draft for <strong>${esc(d.client_name||'the previous client')}</strong> was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.`);
+    return;
+  }
+
+  // Default path, and 'replace' path — update this same draft in place
+  d.form_data=formData;
+  d.client_id=newClientId;
+  d.client_name=newClientName;
+  d.updated_at=now;
+  if(supa&&currentUser){
+    const {error}=await supa.from('form_drafts').update({
+      form_data:d.form_data, client_id:d.client_id, client_name:d.client_name, updated_at:d.updated_at
+    }).eq('id',id);
+    if(error) console.warn('Draft update error:',error.message);
+  }
   closeModal('editDraftModal');
   renderDraftsTable(window.formDrafts);
-  alert('✅ Draft updated.');
+  if(clientChangeMode==='replace'){
+    _showRenameResultModal('Draft updated',
+      `<strong>${esc(d.form_name)}</strong> now belongs to <strong>${esc(newClientName)}</strong>.`,
+      `The existing draft was updated in place — no new copy was created.`);
+  } else {
+    alert('✅ Draft updated.');
+  }
 }
 
 async function deleteDraft(id){
@@ -15283,6 +15386,49 @@ function openAboutFormModal(draftId){
 }
 
 // Fix saved signatures onto the matching sig-line of the print HTML
+// ── CLIENT CHANGE ON EDIT ───────────────────────────────────────
+// When editing a saved draft and the client selection is changed, this
+// asks whether to update the existing draft in place, or keep the
+// original untouched and save the edited version as a separate draft
+// for the new client. Only fires when the client actually changed.
+window._pendingClientChange=null;
+
+function _guardClientChangeOnSave(editingDraftId, selectedClientId, selectedClientName, proceed){
+  if(!editingDraftId) return false; // creating new — nothing to guard
+  const d=(window.formDrafts||[]).find(x=>x.id===editingDraftId);
+  if(!d) return false;
+  const oldName=(d.client_name||'').trim().toLowerCase();
+  const newName=(selectedClientName||'').trim().toLowerCase();
+  const same=(selectedClientId && d.client_id)
+    ? selectedClientId===d.client_id
+    : oldName===newName;
+  if(same || !newName) return false; // unchanged — save normally right now
+
+  window._pendingClientChange={
+    draftId:editingDraftId, formName:d.form_name,
+    oldName:d.client_name||'—', newName:selectedClientName, proceed};
+  document.getElementById('renameChoiceOld').textContent=d.client_name||'—';
+  document.getElementById('renameChoiceNew').textContent=selectedClientName;
+  document.getElementById('renameChoiceFormName').textContent=d.form_name||'';
+  openModal('renameChoiceModal');
+  return true; // caller must stop; proceed() is invoked after the choice
+}
+
+function _runRenameChoice(mode){
+  const p=window._pendingClientChange;
+  closeModal('renameChoiceModal');
+  if(!p||typeof p.proceed!=='function') return;
+  p.proceed(mode);
+}
+
+function _showRenameResultModal(title,line1,line2){
+  document.getElementById('renameResultTitle').textContent=title;
+  document.getElementById('renameResultBody').innerHTML=
+    `<p style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${line1}</p>
+     <p style="font-size:12.5px;color:var(--text3);line-height:1.6">${line2}</p>`;
+  openModal('renameResultModal');
+}
+
 function injectSignatures(html,draft){
   const sigs=(draft.form_data&&draft.form_data._signatures)||{};
   if(!sigs||!Object.keys(sigs).length) return html;
@@ -15309,6 +15455,65 @@ function injectSignatures(html,draft){
   return '<!DOCTYPE html>'+doc.documentElement.outerHTML;
 }
 </script>
+<div class="overlay" id="renameChoiceModal">
+  <div class="modal" style="width:min(560px,92vw)">
+    <div class="modal-header">
+      <div>
+        <h4 style="font-size:15px">This form's client was changed</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin:2px 0 0" id="renameChoiceFormName"></p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('renameChoiceModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:22px;font-size:13px">
+        <span style="color:var(--text2)" id="renameChoiceOld"></span>
+        <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M1 7h15M11 1l6 6-6 6" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <strong style="color:var(--text)" id="renameChoiceNew"></strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="border:1px solid var(--border2);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color 0.15s"
+             onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)'"
+             onclick="_runRenameChoice('branch')">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Create a new version</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.6">
+            Keeps the original draft exactly as it was, and saves your edits as a separate
+            new draft for the new client. Both appear in Drafts.
+          </div>
+        </div>
+        <div style="border:1px solid var(--border2);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color 0.15s"
+             onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border2)'"
+             onclick="_runRenameChoice('replace')">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Replace on this draft</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.6">
+            Updates this same draft with your edits and the new client.
+            The previous client is not kept.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('renameChoiceModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="renameResultModal">
+  <div class="modal" style="width:min(460px,92vw)">
+    <div class="modal-header">
+      <div>
+        <h4 style="font-size:15px" id="renameResultTitle">Saved</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin:2px 0 0">Documents &rarr; Drafts</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('renameResultModal')">&times;</button>
+    </div>
+    <div class="modal-body" id="renameResultBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('renameResultModal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('renameResultModal');showPage('documents');setTimeout(()=>docsShowTab('Drafts'),100)">View in Drafts</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="aboutFormModal">
   <div class="modal" style="width:min(520px,92vw)">
     <div class="modal-header">
