@@ -10999,6 +10999,7 @@ function renderDraftsTable(list){
         <div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;justify-content:flex-start">
           ${d.form_id!=='form-06-200'?`<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:var(--blue-dim)" onclick="openSignModal('${d.id}')">✍ Sign</button>`:''}
           <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
+          <button class="btn btn-ghost btn-sm" title="Created, edited and signed times" onclick="openAboutFormModal('${d.id}')">About</button>
           <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:#2dba7a30" onclick="goUploadSigned('${d.id}')">↑ Upload Signed</button>
           <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
           <button class="btn btn-ghost btn-sm" onclick="deleteDraft('${d.id}')" style="color:var(--red)">Delete</button>
@@ -11025,7 +11026,8 @@ function _fmtPrintDate(val){
 }
 
 function _buildDraftPrintHtml(d){
-  const fd=d.form_data||{};
+  // Signature date takes precedence over the auto-seeded creation date
+  const fd=_applySignedDate(d.form_data||{}, d);
   if(d.form_id==='form-06-200')        return build06200PrintHtml(fd,d);
   if(d.form_id==='form-rnd-assessment') return buildRndAssessmentPrintHtml(fd,d);
   if(d.form_id==='form-13678-consent') return build13678ConsentPrintHtml(fd,d);
@@ -15193,6 +15195,93 @@ function viewElectronicSigned(recId){
   AuditLog.log('document.viewed',{signed_doc_id:recId,form_name:rec.form_name,client_name:rec.client_name});
 }
 
+// ── SIGNATURE DATE AUTHORITY ───────────────────────────────────
+// The date Rose enters when signing is the document's true date.
+// Modal date fields are auto-seeded with "today" when a draft is first
+// created, so on any draft signed later they print a stale date.
+// These keys are RN SIGNATURE dates and are overridden on print.
+// Clinical dates (visitDate, dateVerified, dateOrdered, startDate,
+// notifyDate, etc.) record when an event happened and are NEVER touched.
+const RN_SIGNATURE_DATE_KEYS=['rnDate','signDate','sigDate','rescindDate','sigDate2'];
+
+// Earliest signature date on the draft = the date the document was executed.
+function _draftSignedDate(d){
+  const sigs=(d&&d.form_data&&d.form_data._signatures)||{};
+  const dates=Object.values(sigs).map(x=>x&&x.signedDate).filter(Boolean).sort();
+  return dates.length?dates[0]:null;
+}
+
+// Return a copy of form_data with RN signature dates set to the signed date.
+function _applySignedDate(fd,d){
+  const sd=_draftSignedDate(d);
+  if(!sd) return fd;
+  const out=Object.assign({},fd);
+  RN_SIGNATURE_DATE_KEYS.forEach(k=>{ if(k in out) out[k]=sd; });
+  return out;
+}
+
+// ── ABOUT THIS FORM ────────────────────────────────────────────
+// Full Washington-time stamp, e.g. "Aug 5, 2026 at 2:41 PM PDT"
+function waStamp(v){
+  if(!v) return '—';
+  let dt;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())){
+    const [y,m,dd]=String(v).trim().split('-').map(Number);
+    return new Date(Date.UTC(y,m-1,dd)).toLocaleDateString('en-US',
+      {timeZone:'UTC',month:'short',day:'numeric',year:'numeric'});
+  }
+  dt=new Date(v);
+  if(isNaN(dt)) return String(v);
+  const date=dt.toLocaleDateString('en-US',{timeZone:WA_TZ,month:'short',day:'numeric',year:'numeric'});
+  const time=dt.toLocaleTimeString('en-US',{timeZone:WA_TZ,hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+  return date+' at '+time;
+}
+
+function openAboutFormModal(draftId){
+  const d=(window.formDrafts||[]).find(x=>x.id===draftId);
+  if(!d){alert('Draft not found.');return;}
+  const sigs=(d.form_data&&d.form_data._signatures)||{};
+  const keys=Object.keys(sigs);
+  const signedDate=_draftSignedDate(d);
+
+  const row=(label,value,note)=>`
+    <div style="display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text3);white-space:nowrap">${label}</div>
+      <div style="text-align:right">
+        <div style="font-size:13px;color:var(--text);font-weight:500">${value}</div>
+        ${note?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${note}</div>`:''}
+      </div>
+    </div>`;
+
+  const sigRows=keys.length?keys.map(k=>{
+    const g=sigs[k]||{};
+    return row(esc(k),
+      g.signedDate?waStamp(g.signedDate):'—',
+      (g.signedBy?'by '+esc(g.signedBy):'')+
+      (g.signedAt?(g.signedBy?' · ':'')+'captured '+waStamp(g.signedAt):''));
+  }).join(''):
+   '<div style="font-size:12px;color:var(--text3);padding:11px 0">Not signed yet.</div>';
+
+  document.getElementById('aboutFormBody').innerHTML=`
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">${esc(d.form_name||'')}</div>
+      <div style="font-size:12px;color:var(--text3)">${esc(d.client_name||'—')}</div>
+    </div>
+    <div class="label" style="margin-bottom:2px">Timeline</div>
+    ${row('Created',waStamp(d.created_at))}
+    ${row('Last edited',waStamp(d.updated_at||d.created_at))}
+    ${row('Signed',signedDate?waStamp(signedDate):'—',
+          signedDate?'This date prints on the form':'')}
+    ${row('Status',esc(d.status||'—'))}
+    <div class="label" style="margin:20px 0 2px">Signatures</div>
+    ${sigRows}
+    <div style="margin-top:20px;padding:11px 13px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11.5px;color:var(--text3);line-height:1.6">
+      All times shown in Washington State time (${WA_TZ.split('/')[1].replace('_',' ')}).
+      Only the signed date appears on the printed document.
+    </div>`;
+  openModal('aboutFormModal');
+}
+
 // Fix saved signatures onto the matching sig-line of the print HTML
 function injectSignatures(html,draft){
   const sigs=(draft.form_data&&draft.form_data._signatures)||{};
@@ -15220,6 +15309,22 @@ function injectSignatures(html,draft){
   return '<!DOCTYPE html>'+doc.documentElement.outerHTML;
 }
 </script>
+<div class="overlay" id="aboutFormModal">
+  <div class="modal" style="width:min(520px,92vw)">
+    <div class="modal-header">
+      <div>
+        <h4 style="font-size:15px">About this form</h4>
+        <p style="font-size:11.5px;color:var(--text3);margin:2px 0 0">Document history &middot; Washington State time</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('aboutFormModal')">&times;</button>
+    </div>
+    <div class="modal-body" id="aboutFormBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('aboutFormModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="sidebar-drawer-overlay" id="sidebarOverlay"></div>
 <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Open navigation">
   <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
