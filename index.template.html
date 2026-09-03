@@ -8282,14 +8282,7 @@ function onPrnClientChange(sel){
 
 async function submitGenerate13678a(clientChangeMode){
   const clientId=document.getElementById('prn_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const order1Med=document.getElementById('prn1_medName').value.trim();
   if(!order1Med){alert('At least one PRN medication (Order 1) is required.');return;}
 
@@ -8374,7 +8367,14 @@ async function submitGenerate13678a(clientChangeMode){
   clearModalDraft('generate13678aModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert(`✅ 13-678A ${saveTargetId?'updated':'saved to Drafts'} with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert(`✅ 13-678A ${saveTargetId?'updated':'saved to Drafts'} with ${orders.length} PRN medication order${orders.length===1?'':'s'}.\n\nDelegation case auto-updated — check the Delegation Cases page.\n\nPrint from the Drafts tab, then upload the signed copy.`);
   }
 }
 
@@ -12827,14 +12827,7 @@ function onConClientChange(sel){
 
 async function submitGenerate13678Consent(clientChangeMode){
   const clientId=document.getElementById('con_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const cl=window.clients.find(x=>x.id===clientId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
@@ -12887,7 +12880,14 @@ async function submitGenerate13678Consent(clientChangeMode){
   closeModal('generate13678ConsentModal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ Consent for Delegation Process saved to Drafts.\n\nDelegation case consent status updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ Consent for Delegation Process saved to Drafts.\n\nDelegation case consent status updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
   }
 }
 
@@ -12939,14 +12939,7 @@ function addRscCaregiverRow(){
 
 async function submitGenerate13680(clientChangeMode){
   const clientId=document.getElementById('rsc_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const altPlan=document.getElementById('rsc_altPlan').value.trim();
   if(!altPlan){alert('Alternative Plan (Field 14) is required.');return;}
   const rndSig=document.getElementById('rsc_rndSig').value.trim();
@@ -12998,7 +12991,14 @@ async function submitGenerate13680(clientChangeMode){
   closeModal('generate13680Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case has been closed and all active tasks archived.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 13-680 Rescinding Delegation saved to Drafts.\n\nDelegation case has been closed and all active tasks archived.\n\nPrint from the Drafts tab, then upload the signed copy.');
   }
 }
 
@@ -13041,14 +13041,7 @@ function onChgVerbalToggle(){
 
 async function submitGenerate13681(clientChangeMode){
   const clientId=document.getElementById('chg_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const notifyDate=document.getElementById('chg_notifyDate').value;
   if(!notifyDate){alert('Date RND Was Notified (Field 5) is required.');return;}
   const rndSig=document.getElementById('chg_rndSig').value.trim();
@@ -13121,7 +13114,14 @@ async function submitGenerate13681(clientChangeMode){
   closeModal('generate13681Modal');
   showPage('documents');
   setTimeout(()=>{ docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case tasks updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 13-681 Change in Medical Orders saved to Drafts.\n\nDelegation case tasks updated.\n\nPrint from the Drafts tab, then upload the signed copy.');
   }
 }
 
@@ -14603,14 +14603,7 @@ function onRef01212ClientChange(sel){
 
 async function submitGenerate01212(clientChangeMode){
   const clientId=document.getElementById('ref_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const cl=window.clients.find(x=>x.id===clientId);
   const fac=window.facilities.find(x=>x.id===cl?.facilityId);
   const cg=window.caregivers.find(x=>x.id===cl?.caregiverId);
@@ -14684,7 +14677,14 @@ async function submitGenerate01212(clientChangeMode){
   closeModal('generate01212Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 01-212 Referral and Communication saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 01-212 Referral and Communication saved to Drafts.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
   }
 }
 
@@ -15027,14 +15027,7 @@ function onRau13893ClientChange(sel){
 
 async function submitGenerate13893(clientChangeMode){
   const clientId=document.getElementById('rau_client').value;
-  if(!clientId){if(clientChangeMode){
-    _showRenameResultModal(branching?'New version created':'Draft updated',
-      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
-               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
-      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
-               :'No new copy was created.');
-  } else {
-    alert('Please select a client.');return;}
+  if(!clientId){alert('Please select a client.');return;}
   const unitsNeeded=document.getElementById('rau_unitsNeeded').value.trim();
   if(!unitsNeeded){alert('Number of additional units needed (Field 10) is required.');return;}
   const month=document.getElementById('rau_month').value.trim();
@@ -15093,7 +15086,14 @@ async function submitGenerate13893(clientChangeMode){
   closeModal('generate13893Modal');
   showPage('documents');
   setTimeout(()=>{docsShowTab('Drafts');renderDraftsTable(window.formDrafts);},100);
-  alert('✅ 13-893 Request For Additional Unit saved to Drafts.\n\nScan and email to nursedelegation@dshs.wa.gov with all required attachments.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
+  if(clientChangeMode){
+    _showRenameResultModal(branching?'New version created':'Draft updated',
+      branching?`A separate copy of <strong>${esc(draft.form_name)}</strong> was saved with the updated client/caregiver.`
+               :`<strong>${esc(draft.form_name)}</strong> was updated in place with the new client/caregiver.`,
+      branching?'The original draft was left unchanged. Both now appear in <strong>Documents &rarr; Drafts</strong>.'
+               :'No new copy was created.');
+  } else {
+    alert('✅ 13-893 Request For Additional Unit saved to Drafts.\n\nScan and email to nursedelegation@dshs.wa.gov with all required attachments.\n\nPrint from the Drafts tab, then upload the signed copy in Signed Documents.');
   }
 }
 
