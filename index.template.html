@@ -3275,8 +3275,12 @@ function openModal(id){
       let hasMeaningfulData=false;
       try{
         const parsed=JSON.parse(raw||'{}');
+        // A draft saved while a DIFFERENT record was open (or with no record
+        // context at all, from older versions) must not be restored here.
+        if((parsed.__draftCtx||null)!==_modalEditCtx(el)) throw new Error('draft belongs to another record');
         // Ignore hidden inputs (editId, caseId etc) and empty strings
         hasMeaningfulData=Object.entries(parsed).some(([k,v])=>{
+          if(k==='__draftCtx')return false;
           if(!v||v===''||v==='false')return false;
           // Skip internal ID fields
           if(k.toLowerCase().includes('editid')||k.toLowerCase().includes('caseid')||k.toLowerCase().includes('editId'))return false;
@@ -14402,17 +14406,37 @@ async function submitPasswordChange(){
 const PERSISTENT_MODALS=['generateModal','generate14484Modal','generate13678aModal','generate13680Modal','generate13681Modal','generate13678ConsentModal','generate13678bModal','generate10217Modal','newCaseModal','facilityModal','caregiverModal','clientModal','medDelegationModal'];
 function _pageKey(){return 'gy_page_'+(currentUser?.id||'anon');}
 function _draftKey(modalId){return 'gy_draft_'+modalId+'_'+(currentUser?.id||'anon');}
+// Hidden fields that identify WHICH record is being edited (clEditId, cgEditId,
+// facilityEditId, ncEditId, medDelEditId, *CaseId, editDraftId ...). These must never
+// be saved into or restored from a draft: restoring one made "Add Client" /
+// "Add Caregiver" silently overwrite the last record that was opened for editing.
+function _isRecordIdField(f){
+  return !!f && f.type==='hidden' && /(edit|case|draft)id$/i.test(f.id||'');
+}
+// Identity of the record currently open in a modal ('' parts = new record).
+function _modalEditCtx(el){
+  try{
+    const ids=[...el.querySelectorAll('input[type=hidden]')]
+      .filter(_isRecordIdField).map(f=>f.id+'='+(f.value||''));
+    const js=Object.keys(window).filter(k=>/^_editing|^_rndDraftId$/.test(k))
+      .map(k=>k+'='+(window[k]||''));
+    return ids.concat(js).sort().join('|');
+  }catch(e){return '';}
+}
 function saveModalDraft(modalId){
   try{
     const el=document.getElementById(modalId);if(!el)return;
     const data={};
     el.querySelectorAll('input,select,textarea').forEach(f=>{
-      if(f.id&&f.type!=='file'){
+      if(f.id&&f.type!=='file'&&!_isRecordIdField(f)){
         if(f.type==='checkbox'||f.type==='radio'){if(f.checked)data[f.id]=f.value||'true';}
         else data[f.id]=f.value;
       }
     });
-    if(Object.keys(data).length)localStorage.setItem(_draftKey(modalId),JSON.stringify(data));
+    // Remember which record this draft belongs to, so it is never restored
+    // into a different record (or into a brand-new one).
+    data.__draftCtx=_modalEditCtx(el);
+    if(Object.keys(data).length>1)localStorage.setItem(_draftKey(modalId),JSON.stringify(data));
   }catch(e){}
 }
 function hasDraftData(modalId){try{return !!localStorage.getItem(_draftKey(modalId));}catch(e){return false;}}
@@ -14421,7 +14445,8 @@ function restoreModalDraft(modalId){
     const raw=localStorage.getItem(_draftKey(modalId));if(!raw)return;
     const data=JSON.parse(raw);
     Object.entries(data).forEach(([id,val])=>{
-      const el=document.getElementById(id);if(!el)return;
+      if(id==='__draftCtx')return;
+      const el=document.getElementById(id);if(!el||_isRecordIdField(el))return;
       if(el.type==='checkbox'){el.checked=(val==='true'||el.value===val);}
       else if(el.type==='radio'){if(el.value===val)el.checked=true;}
       else el.value=val;
