@@ -3238,10 +3238,18 @@ const AuditLog = (() => {
   async function log(event, details={}){
     if(!supa||!currentUser) return;
     try{
+      const d={...details};
+      try{
+        if(d.client_id&&!d.client_name){const c=(window.clients||[]).find(x=>x.id===d.client_id);if(c)d.client_name=c.first+' '+c.last;}
+        if(d.caregiver_id&&!d.caregiver_name){const g=(window.caregivers||[]).find(x=>x.id===d.caregiver_id);if(g)d.caregiver_name=g.first+' '+g.last;}
+        d.actor=d.actor||currentProfile?.full_name||window.currentProfile?.full_name||currentUser.email||'';
+        d.actor_email=currentUser.email||'';
+        if(typeof _shortDevice==='function')d.device=_shortDevice(navigator.userAgent);
+      }catch(e){}
       await supa.from('audit_log').insert({
         user_id: currentUser.id,
         event,
-        details: JSON.stringify(details),
+        details: JSON.stringify(d),
         user_agent: navigator.userAgent.substring(0,256),
         created_at: new Date().toISOString()
       });
@@ -3252,6 +3260,267 @@ const AuditLog = (() => {
   }
   return { log };
 })();
+
+// ══════════════════════════════════════════════════
+// ACTIVITY HISTORY
+// Every change to a client or caregiver is written to audit_log with WHO made
+// it, from WHICH device, WHEN, and EXACTLY what changed (old value → new value).
+// History is shown in: Client profile › History, Client Management › History,
+// Caregiver profile › History and Caregivers › History.
+// ══════════════════════════════════════════════════
+const CLIENT_FIELD_LABELS={first:'First name',last:'Last name',dob:'Date of birth',gender:'Gender',dshsId:'DSHS ID',acesId:'ACES ID',medicaid:'Medicaid / ProviderOne #',address:'Address',facilityName:'Facility',caregiverName:'Assigned caregiver',status:'Status',rnStartDate:'RN start date',isNewClient:'New client',reassess1:'1st reassessment',reassess2:'2nd reassessment',reassess3:'3rd reassessment',isSpecialCase:'Special case',specialCaseType:'Special case type',specialCaseNotes:'Special case notes',specialReassessDates:'Special reassessment dates',diagnosis:'Diagnosis',diagnosisSecondary:'Secondary diagnosis',allergies:'Allergies',medications:'Medications',pharmacy:'Pharmacy',pharmacyPhone:'Pharmacy phone',medNotes:'Medication notes',carePlan:'Care plan',delegationReq:'Delegated tasks',physician:'Physician',physicianPhone:'Physician phone',physicianAddress:'Physician address',emergencyName:'Emergency contact',emergencyRel:'Emergency contact relationship',emergencyPhone:'Emergency phone',guardian:'Guardian'};
+const CAREGIVER_FIELD_LABELS={first:'First name',last:'Last name',phone:'Phone',email:'Email',address:'Address',cred_type:'Credential type',cert_num:'Certificate #',cert_issued:'Certificate issued',cert_expiry:'Certificate expiry',training_status:'Training status',cpr_issued:'CPR issued',cpr_expiry:'CPR expiry',cpr_provider:'CPR provider',training_date:'Core training date',inservice:'In-service',training_notes:'Training notes',facility_name:'Facility',status:'Status',delegation_eligible:'Delegation eligible'};
+
+function _histNorm(v){
+  if(v==null)return '';
+  if(Array.isArray(v))return v.filter(x=>x!=null&&x!=='').join(', ');
+  if(typeof v==='boolean')return v?'Yes':'No';
+  const s=String(v).trim();
+  return (s==='—'||s==='-'||s==='[]')?'':s;
+}
+// Field-by-field comparison of two records → [{field,label,from,to}]
+function _diffRecords(oldObj,newObj,labels){
+  const out=[];
+  Object.entries(labels).forEach(([k,label])=>{
+    let ov=oldObj?oldObj[k]:undefined, nv=newObj?newObj[k]:undefined;
+    // an unset flag and "No" mean the same thing — don't report it as a change
+    if(typeof nv==='boolean'&&(ov==null||ov===''))ov=false;
+    if(typeof ov==='boolean'&&(nv==null||nv===''))nv=false;
+    const a=_histNorm(ov), b=_histNorm(nv);
+    if(a!==b) out.push({field:k,label,from:a,to:b});
+  });
+  return out;
+}
+function _shortDevice(ua){
+  try{const p=_parseUA(ua||navigator.userAgent);return p.browser+' on '+p.os;}catch(e){return '';}
+}
+
+window._auditCache=null;
+async function _loadAuditEvents(force){
+  if(window._auditCache&&!force&&Date.now()-window._auditCache.t<30000)return window._auditCache.rows;
+  initSupa(); if(!supa||!currentUser)return [];
+  const {data,error}=await supa.from('audit_log').select('event,details,user_agent,created_at')
+    .eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(5000);
+  if(error){console.warn('[History] audit_log read failed:',error.message);window._auditLoadError=error.message;return [];}
+  window._auditLoadError=null;
+  const rows=(data||[]).map(r=>{let d={};try{d=typeof r.details==='string'?JSON.parse(r.details||'{}'):(r.details||{});}catch(e){}return {...r,d};});
+  window._auditCache={t:Date.now(),rows};
+  return rows;
+}
+async function _ensureHistorySources(){
+  initSupa(); if(!supa||!currentUser)return;
+  if(!(window.formDrafts&&window.formDrafts.length)){
+    const {data}=await supa.from('form_drafts').select('id,form_id,form_name,client_id,client_name,caregiver_id,caregiver_name,status,created_at,updated_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    if(data)window.formDrafts=data;
+  }
+  if(!(window.signedDocs&&window.signedDocs.length)){
+    const {data}=await supa.from('signed_documents').select('id,form_id,form_name,client_id,client_name,caregiver_id,caregiver_name,status,signed_method,draft_id,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    if(data)window.signedDocs=data;
+  }
+}
+
+const _HIST_EVENT_TITLES={
+  'client.created':'Client added','client.updated':'Client details changed','client.deleted':'Client removed',
+  'caregiver.created':'Caregiver added','caregiver.updated':'Caregiver details changed','caregiver.deleted':'Caregiver removed',
+  'delegation_case.created':'Delegation case created','delegation_case.updated':'Delegation case updated','delegation_case.deleted':'Delegation case removed',
+  'form.generated':'Form generated','document.uploaded':'Signed document uploaded','document.printed':'Form printed',
+  'document.deleted':'Draft deleted','signed_document.deleted':'Signed document removed','record.merged':'Duplicate profiles merged',
+  'record.readded':'Profile re-added'
+};
+function _nameKey(s){return String(s||'').toLowerCase().replace(/[^a-z]/g,'');}
+function _sameName(a,first,last){const k=_nameKey(a);return !!k&&(k===_nameKey(first+last)||k===_nameKey(last+first));}
+
+// Build a unified, newest-first list of history items.
+// scope: {kind:'client'|'caregiver', id} for one profile, or {kind:'clients'|'caregivers'} for the whole page.
+function _buildHistoryItems(events,scope){
+  const items=[];
+  const one=scope.id?((scope.kind==='client'?window.clients:window.caregivers)||[]).find(x=>x.id===scope.id):null;
+  const isMine=(d)=>{
+    if(scope.kind==='client'){
+      if(d.client_id) return d.client_id===scope.id;
+      return one?_sameName(d.client_name,one.first,one.last):false;
+    }
+    if(scope.kind==='caregiver'){
+      if(d.caregiver_id===scope.id||(d.caregiver_ids||[]).includes(scope.id))return true;
+      return one?_sameName(d.caregiver_name,one.first,one.last):false;
+    }
+    return true;
+  };
+  // 1) audit events (changes)
+  events.forEach(r=>{
+    const ev=r.event||'';
+    if(/\.viewed$/.test(ev)||ev.startsWith('auth.')||ev==='form.generated')return;
+    const d=r.d||{};
+    const clientish=ev.startsWith('client.')||!!d.client_id||!!(d.client_name&&d.client_name!=='—');
+    const cgish=ev.startsWith('caregiver.')||!!d.caregiver_id||!!(d.caregiver_ids&&d.caregiver_ids.length);
+    if(scope.kind==='clients'&&!clientish)return;
+    if(scope.kind==='caregivers'&&!cgish)return;
+    if((scope.kind==='client'||scope.kind==='caregiver')&&!isMine(d))return;
+    if(scope.kind==='client'&&ev.startsWith('caregiver.'))return;
+    // On a caregiver's history, client edits only matter when they assign/unassign this caregiver
+    if(scope.kind==='caregiver'&&ev.startsWith('client.')&&ev==='client.updated'&&!(d.changes||[]).some(c=>c.field==='caregiverName'))return;
+    const subject=ev.startsWith('caregiver.')?(d.caregiver_name||''):(d.client_name||d.caregiver_name||'');
+    items.push({when:r.created_at,type:'change',title:_HIST_EVENT_TITLES[ev]||ev.replace(/[._]/g,' '),
+      subject,who:d.actor||d.actor_email||'',device:d.device||_shortDevice(r.user_agent),
+      changes:d.changes||null,info:d.form_name?('Form: '+d.form_name):(d.note||d.action||''),
+      legacy:!d.changes&&(ev.endsWith('.updated')||ev.endsWith('.created'))});
+  });
+  // 1b) profile record timestamps (covers records made before detailed tracking existed)
+  const recs=scope.kind==='client'||scope.kind==='clients'?(window.clients||[]):(window.caregivers||[]);
+  const createdLogged=new Set(events.filter(r=>/\.created$/.test(r.event||'')).map(r=>(r.d||{}).client_id||(r.d||{}).caregiver_id));
+  recs.forEach(rec=>{
+    if(scope.id&&rec.id!==scope.id)return;
+    const nm=rec.first+' '+rec.last, ca=rec.created_at||rec.createdAt, ua=rec.updated_at||rec.updatedAt;
+    if(ca&&!createdLogged.has(rec.id))items.push({when:ca,type:'change',title:'Profile created',subject:nm,who:'',device:'',info:'Record first saved'});
+    if(ua&&ca&&(new Date(ua)-new Date(ca))>60000&&!events.some(r=>((r.d||{}).client_id===rec.id||(r.d||{}).caregiver_id===rec.id)&&Math.abs(new Date(r.created_at)-new Date(ua))<120000))
+      items.push({when:ua,type:'change',title:'Profile last saved',subject:nm,who:'',device:'',info:'Most recent save of this record',legacy:true});
+  });
+  // 2) forms (drafts)
+  (window.formDrafts||[]).forEach(f=>{
+    let mine=false;
+    if(scope.kind==='client')mine=f.client_id===scope.id;
+    else if(scope.kind==='caregiver')mine=f.caregiver_id===scope.id||(one&&String(f.caregiver_name||'').split(',').some(n=>_sameName(n,one.first,one.last)));
+    else if(scope.kind==='clients')mine=!!f.client_id;
+    else if(scope.kind==='caregivers')mine=f.form_id==='form-10-217'||(!!f.caregiver_id&&!f.client_id);
+    if(!mine)return;
+    const subject=scope.kind==='caregivers'?(f.caregiver_name||''):(f.client_name||'');
+    items.push({when:f.created_at,type:'form',title:'Form created',subject,who:'',device:'',
+      info:f.form_name,status:f.status,draftId:f.id,extra:{Caregiver:f.caregiver_name,Status:f.status}});
+    if(f.updated_at&&f.created_at&&(new Date(f.updated_at)-new Date(f.created_at))>60000)
+      items.push({when:f.updated_at,type:'form',title:'Form edited',subject,who:'',device:'',info:f.form_name,status:f.status,draftId:f.id,extra:{Status:f.status}});
+  });
+  // 3) signed documents
+  (window.signedDocs||[]).forEach(s=>{
+    let mine=false;
+    if(scope.kind==='client')mine=s.client_id===scope.id;
+    else if(scope.kind==='caregiver')mine=s.caregiver_id===scope.id;
+    else if(scope.kind==='clients')mine=!!s.client_id;
+    else if(scope.kind==='caregivers')mine=s.form_id==='form-10-217';
+    if(!mine)return;
+    items.push({when:s.created_at,type:'doc',title:(s.signed_method==='electronic'?'Form signed electronically':'Signed copy filed'),
+      subject:scope.kind==='caregivers'?(s.caregiver_name||''):(s.client_name||''),who:'',device:'',info:s.form_name,extra:{Status:s.status}});
+  });
+  // 4) delegation case timelines
+  (window.delegationCases||[]).forEach(dc=>{
+    let mine=false;
+    if(scope.kind==='client')mine=dc.clientId===scope.id;
+    else if(scope.kind==='caregiver')mine=dc.caregiverId===scope.id;
+    else if(scope.kind==='clients')mine=true;
+    if(!mine)return;
+    (dc.timeline||[]).forEach(t=>{
+      if(!t||!t.date)return;
+      items.push({when:t.date,type:'case',title:t.action||'Delegation case activity',
+        subject:scope.kind==='caregiver'?dc.clientName:(dc.clientName||''),who:t.by||'',device:'',info:'Delegation case'+(dc.caregiverName?(' · caregiver '+dc.caregiverName):'')});
+    });
+  });
+  items.sort((a,b)=>new Date(b.when)-new Date(a.when));
+  return items;
+}
+
+function _histRowHtml(it,i,showSubject){
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const colors={change:'var(--blue)',form:'var(--purple)',doc:'var(--green)',case:'var(--amber)'};
+  const labels={change:'Change',form:'Form',doc:'Document',case:'Case'};
+  const c=colors[it.type]||'var(--text3)';
+  let detail='';
+  if(it.changes&&it.changes.length){
+    detail=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text3);font-weight:600;width:28%">Field</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text3);font-weight:600">From</th>
+      <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text3);font-weight:600">To</th></tr></thead><tbody>
+      ${it.changes.map(ch=>`<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2);font-weight:600;vertical-align:top">${esc(ch.label||ch.field)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border);color:var(--red);vertical-align:top;white-space:pre-wrap;word-break:break-word">${ch.from?esc(ch.from):'<span style="color:var(--text3)">(empty)</span>'}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border);color:var(--green);vertical-align:top;white-space:pre-wrap;word-break:break-word">${ch.to?esc(ch.to):'<span style="color:var(--text3)">(removed)</span>'}</td></tr>`).join('')}
+      </tbody></table>`;
+  } else if(it.changes&&!it.changes.length){
+    detail='<div style="font-size:12px;color:var(--text3)">Saved with no field changes.</div>';
+  } else if(it.legacy){
+    detail='<div style="font-size:12px;color:var(--text3)">Recorded before detailed history tracking was added — the exact fields changed were not saved.</div>';
+  }
+  const extras=it.extra?Object.entries(it.extra).filter(([,v])=>v&&v!=='—').map(([k,v])=>`<div style="font-size:12px"><span style="color:var(--text3)">${esc(k)}:</span> ${esc(v)}</div>`).join(''):'';
+  const openBtn=it.draftId?`<button class="btn btn-ghost btn-sm" style="font-size:11px;margin-top:8px" onclick="event.stopPropagation();showPage('documents');setTimeout(()=>{docsShowTab('Drafts');},200)">Open in Drafts</button>`:'';
+  const body=`${it.info?`<div style="font-size:12px;margin-bottom:6px">${esc(it.info)}</div>`:''}${extras}${detail}${openBtn}
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">${esc(waDateTimeMed(it.when))}${it.who?(' · by '+esc(it.who)):''}${it.device?(' · '+esc(it.device)):''}</div>`;
+  return `<div class="hist-row" style="border-bottom:1px solid var(--border)">
+    <div onclick="_toggleHist(this)" style="display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+      <span style="font-size:10px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.05em;width:64px;flex-shrink:0">${labels[it.type]||''}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title)}${showSubject&&it.subject?` <span style="color:var(--blue);font-weight:600">· ${esc(it.subject)}</span>`:''}${it.changes&&it.changes.length?` <span style="font-size:11px;color:var(--text3);font-weight:400">(${it.changes.length} field${it.changes.length===1?'':'s'})</span>`:''}</div>
+        <div style="font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.info||'')}${it.who?(' · '+esc(it.who)):''}</div>
+      </div>
+      <span style="font-size:11.5px;color:var(--text3);flex-shrink:0;font-family:var(--mono)">${esc(waDateTimeMed(it.when))}</span>
+      <span class="hist-chev" style="color:var(--text3);flex-shrink:0;transition:transform .15s">▸</span>
+    </div>
+    <div class="hist-body" style="display:none;padding:4px 20px 14px 104px">${body}</div>
+  </div>`;
+}
+function _toggleHist(head){
+  const body=head.nextElementSibling;const chev=head.querySelector('.hist-chev');
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(chev)chev.style.transform=open?'':'rotate(90deg)';
+}
+function _histExpandAll(containerId,open){
+  document.querySelectorAll('#'+containerId+' .hist-row').forEach(r=>{
+    const b=r.querySelector('.hist-body'),c=r.querySelector('.hist-chev');
+    if(b)b.style.display=open?'block':'none';if(c)c.style.transform=open?'rotate(90deg)':'';
+  });
+}
+
+window._histState={};
+async function renderHistory(containerId,scope){
+  const el=document.getElementById(containerId);if(!el)return;
+  el.innerHTML='<div style="padding:24px;font-size:13px;color:var(--text3)">Loading history…</div>';
+  await _ensureHistorySources();
+  const events=await _loadAuditEvents(true);
+  const items=_buildHistoryItems(events,scope);
+  window._histState[containerId]={items,scope,q:'',type:'',limit:200};
+  _paintHistory(containerId);
+}
+function _paintHistory(containerId){
+  const st=window._histState[containerId];const el=document.getElementById(containerId);if(!st||!el)return;
+  const showSubject=!st.scope.id;
+  const q=st.q.toLowerCase();
+  const list=st.items.filter(it=>(!st.type||it.type===st.type)&&(!q||[it.title,it.subject,it.info,it.who,...(it.changes||[]).map(c=>c.label+' '+c.from+' '+c.to)].join(' ').toLowerCase().includes(q)));
+  const warn=window._auditLoadError?`<div style="padding:10px 20px;font-size:12px;color:var(--amber);background:var(--amber-dim)">Change history could not be read (${window._auditLoadError}). Forms and documents are still shown.</div>`:'';
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--border)">
+      <input class="form-input" style="flex:1;min-width:180px;padding:7px 12px;font-size:12.5px" placeholder="Search history (name, field, value, form)…" value="${st.q.replace(/"/g,'&quot;')}" oninput="window._histState['${containerId}'].q=this.value;_paintHistory('${containerId}');this.focus();this.setSelectionRange(this.value.length,this.value.length)">
+      <select class="form-input form-select" style="width:auto;padding:7px 34px 7px 12px;font-size:12.5px" onchange="window._histState['${containerId}'].type=this.value;_paintHistory('${containerId}')">
+        ${[['','All activity'],['change','Profile changes'],['form','Forms'],['doc','Signed documents'],['case','Delegation cases']].map(([v,l])=>`<option value="${v}" ${st.type===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="_histExpandAll('${containerId}',true)">Expand all</button>
+      <button class="btn btn-ghost btn-sm" onclick="_histExpandAll('${containerId}',false)">Collapse all</button>
+      <button class="btn btn-ghost btn-sm" onclick="renderHistory('${containerId}',window._histState['${containerId}'].scope)">↻</button>
+    </div>${warn}
+    ${list.length?list.slice(0,st.limit).map((it,i)=>_histRowHtml(it,i,showSubject)).join(''):'<div class="empty-state" style="padding:48px"><h4>No activity found</h4><p>Changes, forms and signed documents will appear here as they happen.</p></div>'}
+    ${list.length>st.limit?`<div style="padding:14px 20px;text-align:center"><button class="btn btn-ghost btn-sm" onclick="window._histState['${containerId}'].limit+=200;_paintHistory('${containerId}')">Show more (${list.length-st.limit} older)</button></div>`:''}
+    <div style="padding:10px 20px;font-size:11px;color:var(--text3)">${list.length} entr${list.length===1?'y':'ies'} · click any entry to expand or collapse</div>`;
+}
+
+// ── Cloud-synced sessions: every device that signs in appears on every device ──
+async function _syncSessionsCloud(localSessions,fp){
+  initSupa(); if(!supa||!currentUser)return localSessions;
+  try{
+    const mine=localSessions.find(s=>s.fp===fp);
+    if(mine){
+      const {isCurrent,...data}=mine;
+      const {error:upErr}=await supa.from('user_sessions').upsert({
+        user_id:currentUser.id,fp,data:{...data,email:currentUser.email||''},
+        first_seen:mine.first_seen||new Date().toISOString(),last_seen:mine.last_seen||new Date().toISOString(),
+        visit_count:mine.count||1},{onConflict:'user_id,fp'});
+      if(upErr){window._sessionsCloudError=upErr.message;return localSessions;}
+    }
+    const {data:rows,error}=await supa.from('user_sessions').select('*').eq('user_id',currentUser.id).order('last_seen',{ascending:false});
+    if(error||!rows){window._sessionsCloudError=error?error.message:'no data';return localSessions;}
+    window._sessionsCloudError=null;
+    const cutoff=Date.now()-30*86400*1000;
+    return rows.filter(r=>new Date(r.last_seen).getTime()>cutoff)
+      .map(r=>({...(r.data||{}),fp:r.fp,first_seen:r.first_seen,last_seen:r.last_seen,count:r.visit_count,isCurrent:r.fp===fp}));
+  }catch(e){window._sessionsCloudError=e.message;return localSessions;}
+}
 
 // ══════════════════════════════════════════════════
 // END SECURITY MODULE
@@ -5702,7 +5971,7 @@ pageRenderers.caregivers = () => {
     </table></div></div>
   </div>
   <div id="cgTabAlerts" style="display:none"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Credential &amp; CPR Expiration Alerts</span></div><div id="cgAlertBody"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No credential alerts</h4><p>Expiring and expired credential alerts will appear here automatically.</p></div></div></div></div>
-  <div id="cgTabHistory" style="display:none"><div class="card"><div class="empty-state" style="padding:56px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 6v5l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No activity history yet</h4><p>Delegation forms, assumptions, rescissions, and medication permissions will be logged here.</p></div></div></div>
+  <div id="cgTabHistory" style="display:none"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Caregiver Activity History</span><span style="font-size:11px;color:var(--text3)">Every change, form and document — newest first</span></div><div id="cgHistoryBody"></div></div></div>
 </div>`;
 };
 
@@ -5728,6 +5997,7 @@ pageRenderers.patients = () => {
     <div class="tab active" onclick="switchClTab(this,'List')">All Clients</div>
     <div class="tab" onclick="switchClTab(this,'Links')">Caregiver Links</div>
     <div class="tab" onclick="switchClTab(this,'Care')">Care Plans</div>
+    <div class="tab" onclick="switchClTab(this,'History')">Activity History</div>
   </div>
   <div id="clTabList"><div class="card"><div class="table-wrap"><table>
     <thead><tr><th>Client Name</th><th>Date of Birth</th><th>Facility</th><th>Diagnosis</th><th>Allergies</th><th>Physician</th><th>Caregiver</th><th>Status</th><th></th></tr></thead>
@@ -5737,6 +6007,7 @@ pageRenderers.patients = () => {
   </table></div></div></div>
   <div id="clTabLinks" style="display:none"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Client ↔ Caregiver Relationships</span></div><div id="clLinksBody"><div class="empty-state" style="padding:56px"><h4>No caregiver links yet</h4><p>Register clients and assign caregivers to establish delegation relationships.</p></div></div></div></div>
   <div id="clTabCare" style="display:none"><div class="card"><div class="empty-state" style="padding:56px"><h4>No care plans on file</h4><p>Care plan summaries linked to registered clients will appear here.</p></div></div></div>
+  <div id="clTabHistory" style="display:none"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Client Activity History</span><span style="font-size:11px;color:var(--text3)">Every change, form and document — newest first</span></div><div id="clHistoryBody"></div></div></div>
   <div id="clientProfileView" style="display:none"></div>
 </div>`;
 };
@@ -7018,8 +7289,8 @@ async function saveCase(){
   initSupa();
   const clientId=document.getElementById('ncClient').value;
   const isEdit=!!document.getElementById('ncEditId')?.value;
-  AuditLog.log(isEdit?'delegation_case.updated':'delegation_case.created',{client_id:clientId});
   const caregiverId=document.getElementById('ncCaregiver').value;
+  if(clientId)AuditLog.log(isEdit?'delegation_case.updated':'delegation_case.created',{client_id:clientId,caregiver_id:caregiverId||null});
   const facilityId=document.getElementById('ncFacility').value;
   const startDate=document.getElementById('ncStartDate').value;
   if(!clientId){alert('Please select a client.');return;}
@@ -8867,7 +9138,6 @@ async function saveCaregiver(){
   initSupa();
   Sanitizer.sanitizeModal('caregiverModal');
   const isEdit=!!document.getElementById('cgEditId')?.value;
-  AuditLog.log(isEdit?'caregiver.updated':'caregiver.created',{action:isEdit?'Updated caregiver record':'Created new caregiver record'});
 
   const firstRes = Sanitizer.fromInput('cgFirst',{type:'name',required:true,label:'First name'});
   if(!firstRes.ok){alert(firstRes.error);return;}
@@ -8945,6 +9215,11 @@ async function saveCaregiver(){
     alert('Save failed: ' + error.message); return;
   }
   const c = { ...row, credType: row.cred_type, certNum: row.cert_num, certIssued: row.cert_issued, certExpiry, trainingStatus: row.training_status, cprIssued: row.cpr_issued, cprExpiry, cprProvider: row.cpr_provider, trainingDate: row.training_date, trainingNotes: row.training_notes, facilityId, facilityName, delegationEligible: row.delegation_eligible, certExpired: cExp<today, cprExpired: cprExp<today, certExpiring: cExp>=today&&(cExp-today)<90*86400000, cprExpiring: cprExp>=today&&(cprExp-today)<90*86400000, assignedClients: [] };
+  try{
+    const prevRow=existingCg?{...existingCg,cred_type:existingCg.cred_type??existingCg.credType,cert_num:existingCg.cert_num??existingCg.certNum,cert_issued:existingCg.cert_issued??existingCg.certIssued,cert_expiry:existingCg.cert_expiry??existingCg.certExpiry,training_status:existingCg.training_status??existingCg.trainingStatus,cpr_issued:existingCg.cpr_issued??existingCg.cprIssued,cpr_expiry:existingCg.cpr_expiry??existingCg.cprExpiry,cpr_provider:existingCg.cpr_provider??existingCg.cprProvider,training_date:existingCg.training_date??existingCg.trainingDate,training_notes:existingCg.training_notes??existingCg.trainingNotes,facility_name:existingCg.facility_name??existingCg.facilityName,delegation_eligible:existingCg.delegation_eligible??existingCg.delegationEligible}:null;
+    const changes=_diffRecords(prevRow||{},row,CAREGIVER_FIELD_LABELS);
+    AuditLog.log(existingCg?'caregiver.updated':'caregiver.created',{caregiver_id:row.id,caregiver_name:first+' '+last,changes});
+  }catch(e){console.warn('history diff failed',e);}
   window.caregivers = window.caregivers.filter(x => x.id !== row.id && x.id !== cgEditId);
   window.caregivers.unshift(c);
   invalidateCaregiverCache();
@@ -9086,7 +9361,9 @@ function buildCaregiverProfileHtml(c){
     <div class="tab" onclick="switchCgProfileTab(this,'Credentials')">Credentials</div>
     <div class="tab" onclick="switchCgProfileTab(this,'Clients')">Assigned Clients</div>
     <div class="tab" onclick="switchCgProfileTab(this,'Cases')">Delegation Cases</div>
+    <div class="tab" onclick="switchCgProfileTab(this,'History')">Activity History</div>
   </div>
+  <div id="cgProfTabHistory" style="display:none" data-cg-id="${c.id}"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Activity History — ${c.first} ${c.last}</span><span style="font-size:11px;color:var(--text3)">Click an entry to see what changed</span></div><div id="cgProfHistoryBody"></div></div></div>
 
   <!-- TAB: INFO -->
   <div id="cgProfTabInfo">
@@ -9194,13 +9471,14 @@ function buildCaregiverProfileHtml(c){
 function switchCgProfileTab(el,tab){
   document.querySelectorAll('#cgProfileTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Info','Credentials','Clients','Cases'].forEach(t=>{const d=document.getElementById('cgProfTab'+t);if(d)d.style.display='none';});
+  ['Info','Credentials','Clients','Cases','History'].forEach(t=>{const d=document.getElementById('cgProfTab'+t);if(d)d.style.display='none';});
   const d=document.getElementById('cgProfTab'+tab);if(d)d.style.display='block';
+  if(tab==='History'&&d)renderHistory('cgProfHistoryBody',{kind:'caregiver',id:d.dataset.cgId});
 }
 async function deleteCaregiver(id){
   if(!confirm('Remove this caregiver? This action is permanent and will be logged.'))return;
   initSupa();
-  AuditLog.log('caregiver.deleted',{caregiver_id:id});
+  {const g=(window.caregivers||[]).find(x=>x.id===id);AuditLog.log('caregiver.deleted',{caregiver_id:id,caregiver_name:g?g.first+' '+g.last:'',changes:g?_diffRecords(g,{},CAREGIVER_FIELD_LABELS):[]});}
   if(supa) await supa.from('caregivers').delete().eq('id', id);
   window.caregivers=window.caregivers.filter(c=>c.id!==id);
   renderCaregiverTable(window.caregivers);
@@ -9249,7 +9527,7 @@ function addCustomCredType(){
   if(inp)inp.value='';
 }
 
-function switchCgTab(el,tab){document.querySelectorAll('#cgTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Alerts','History'].forEach(t=>{const d=document.getElementById('cgTab'+t);if(d)d.style.display='none';});const d=document.getElementById('cgTab'+tab);if(d)d.style.display='block';}
+function switchCgTab(el,tab){document.querySelectorAll('#cgTabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['List','Alerts','History'].forEach(t=>{const d=document.getElementById('cgTab'+t);if(d)d.style.display='none';});const d=document.getElementById('cgTab'+tab);if(d)d.style.display='block';if(tab==='History')renderHistory('cgHistoryBody',{kind:'caregivers'});}
 
 // ── REASSESSMENT DATE HELPERS ─────────────────────
 function addDays(dateStr, days){
@@ -9313,7 +9591,6 @@ async function saveClient(){
   initSupa();
   Sanitizer.sanitizeModal('clientModal');
   const isEdit=!!document.getElementById('clEditId')?.value;
-  AuditLog.log(isEdit?'client.updated':'client.created',{action:isEdit?'Updated client record':'Created new client record'});
 
   const firstRes = Sanitizer.fromInput('clFirst',{type:'name',required:true,label:'First name'});
   if(!firstRes.ok){alert(firstRes.error);return;}
@@ -9418,6 +9695,11 @@ async function saveClient(){
   }
   if(caregiverId){const c=window.caregivers.find(x=>x.id===caregiverId);if(c&&!c.assignedClients.includes(cl.id))c.assignedClients.push(cl.id);}
   cl.created_at = existingCl ? existingCl.created_at : now2;
+  try{
+    const changes=_diffRecords(existingCl||{},cl,CLIENT_FIELD_LABELS);
+    const cgIds=[existingCl?.caregiverId,cl.caregiverId].filter(Boolean);
+    AuditLog.log(existingCl?'client.updated':'client.created',{client_id:cl.id,client_name:first+' '+last,caregiver_id:cl.caregiverId||null,caregiver_ids:[...new Set(cgIds)],changes});
+  }catch(e){console.warn('history diff failed',e);}
   window.clients = window.clients.filter(x => x.id !== cl.id && x.id !== clEditId);
   window.clients.unshift(cl);
   invalidateClientCache();
@@ -9521,7 +9803,7 @@ function renderClientTable(list){
 async function deleteClient(id){
   if(!confirm('Remove this client? This action is permanent and will be logged.'))return;
   initSupa();
-  AuditLog.log('client.deleted',{client_id:id});
+  {const c=(window.clients||[]).find(x=>x.id===id);AuditLog.log('client.deleted',{client_id:id,client_name:c?c.first+' '+c.last:'',caregiver_ids:c&&c.caregiverId?[c.caregiverId]:[],changes:c?_diffRecords(c,{},CLIENT_FIELD_LABELS):[]});}
   if(supa) await supa.from('clients').delete().eq('id', id);
   window.clients=window.clients.filter(c=>c.id!==id);
   renderClientTable(window.clients);
@@ -9541,6 +9823,7 @@ function openClientProfile(id){
   document.getElementById('clTabList').style.display='none';
   document.getElementById('clTabLinks').style.display='none';
   document.getElementById('clTabCare').style.display='none';
+  {const h=document.getElementById('clTabHistory');if(h)h.style.display='none';}
   document.getElementById('clTabs').style.display='none';
   const profileView=document.getElementById('clientProfileView');
   profileView.style.display='block';
@@ -9607,7 +9890,9 @@ function buildClientProfileHtml(c){
     <div class="tab" onclick="switchClientProfileTab(this,'Medications')">Medications</div>
     <div class="tab" onclick="switchClientProfileTab(this,'Cases')">Delegation Cases</div>
     <div class="tab" onclick="switchClientProfileTab(this,'Contacts')">Contacts</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'History')">Activity History</div>
   </div>
+  <div id="cpTabHistory" style="display:none" data-client-id="${c.id}"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Activity History — ${c.first} ${c.last}</span><span style="font-size:11px;color:var(--text3)">Click an entry to see what changed</span></div><div id="cpHistoryBody"></div></div></div>
 
   <!-- TAB: OVERVIEW -->
   <div id="cpTabOverview">
@@ -9864,10 +10149,11 @@ function buildClientProfileHtml(c){
 function switchClientProfileTab(el,tab){
   document.querySelectorAll('#clientProfileTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Overview','Medical','Medications','Cases','Contacts'].forEach(t=>{
+  ['Overview','Medical','Medications','Cases','Contacts','History'].forEach(t=>{
     const d=document.getElementById('cpTab'+t);if(d)d.style.display='none';
   });
   const d=document.getElementById('cpTab'+tab);if(d)d.style.display='block';
+  if(tab==='History'&&d)renderHistory('cpHistoryBody',{kind:'client',id:d.dataset.clientId});
   if(tab==='Medications'){
     const grid=document.querySelector('[id^="medImageGrid-"]');
     if(grid){
@@ -10813,6 +11099,7 @@ async function saveEditedDraft(clientChangeMode){
 
 async function deleteDraft(id){
   if(!confirm('Permanently delete this draft? This cannot be undone.')) return;
+  {const dd=(window.formDrafts||[]).find(x=>x.id===id);if(dd)AuditLog.log('document.deleted',{draft_id:id,form_name:dd.form_name,client_id:dd.client_id||null,client_name:dd.client_name,caregiver_id:dd.caregiver_id||null,caregiver_name:dd.caregiver_name});}
   try {
     initSupa();
     if(supa && currentUser){
@@ -10839,9 +11126,10 @@ function switchClTab(el,tab){
   if(pv) pv.style.display='none';
   document.querySelectorAll('#clTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['List','Links','Care'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});
+  ['List','Links','Care','History'].forEach(t=>{const d=document.getElementById('clTab'+t);if(d)d.style.display='none';});
   const d=document.getElementById('clTab'+tab);if(d)d.style.display='block';
   if(tab==='Links')renderLinksTable();
+  if(tab==='History')renderHistory('clHistoryBody',{kind:'clients'});
   if(tab==='List')renderClientTable(window.clients);
 }
 
@@ -13817,7 +14105,8 @@ async function _recordSession(){
   const cutoff=Date.now()-30*86400*1000;
   sessions=sessions.filter(s=>new Date(s.last_seen).getTime()>cutoff);
   try{localStorage.setItem(key,JSON.stringify(sessions));}catch(e){}
-  return sessions;
+  // Share with every device: store in Supabase and read back ALL devices that signed in
+  return await _syncSessionsCloud(sessions,fp);
 }
 
 function _getSessions(){ 
@@ -13826,11 +14115,24 @@ function _getSessions(){
   return sessions;
 }
 
-function removeStoredSession2(fp){
-  if(!confirm('Remove this session from the list?'))return;
+async function removeStoredSession2(fp){
+  if(!confirm('Remove this device from the list? (It will re-appear the next time that device opens the app.)'))return;
   const key=_getSessionKey();
   let sessions=_getSessions().filter(s=>s.fp!==fp);
   try{localStorage.setItem(key,JSON.stringify(sessions));}catch(e){}
+  try{initSupa();if(supa&&currentUser)await supa.from('user_sessions').delete().eq('user_id',currentUser.id).eq('fp',fp);}catch(e){}
+  renderSessionsPage();
+}
+async function signOutOtherDevices(btn){
+  if(!confirm('Sign out every other device that is signed in to this account? This device stays signed in.'))return;
+  initSupa();if(!supa)return;
+  if(btn){btn.disabled=true;btn.textContent='Signing out…';}
+  const {error}=await supa.auth.signOut({scope:'others'});
+  if(btn){btn.disabled=false;btn.textContent="Sign out others";}
+  if(error){alert('Could not sign out other devices: '+error.message);return;}
+  try{const fp=_buildFingerprint();await supa.from('user_sessions').delete().eq('user_id',currentUser.id).neq('fp',fp);}catch(e){}
+  AuditLog.log('auth.signout_others',{});
+  alert('✅ All other devices have been signed out.');
   renderSessionsPage();
 }
 
@@ -13918,10 +14220,14 @@ async function renderSessionsPage(){
         <div class="card-header">
           <div>
             <span style="font-size:14px;font-weight:600">Active sessions</span>
-            <p style="font-size:11px;color:var(--text3);margin-top:2px">One entry per unique device fingerprint. Refreshing does not create a new session.</p>
+            <p style="font-size:11px;color:var(--text3);margin-top:2px">Every device that has signed in to this account in the last 30 days — shared across all devices.</p>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="refreshSessionsList(this)">↻</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="signOutOtherDevices(this)" title="Sign out all devices except this one">Sign out others</button>
+            <button class="btn btn-ghost btn-sm" onclick="refreshSessionsList(this)">↻</button>
+          </div>
         </div>
+        ${window._sessionsCloudError?`<div style="padding:10px 24px;font-size:12px;color:var(--amber);background:var(--amber-dim)">Showing this device only — the shared device list is not set up yet (${window._sessionsCloudError}). Run the user_sessions SQL in Supabase.</div>`:''}
         <div id="sessionsListEl">${_buildSessionRowsHtml(sessions,currentFp)}</div>
         <div style="padding:12px 24px;font-size:11.5px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);background:var(--bg3)">
           Sessions are identified by a unique device fingerprint combining browser, OS, GPU, screen, CPU cores, and RAM. Two devices on the same WiFi network always appear as separate entries. IP addresses and locations are fetched on first visit and refreshed periodically.
@@ -13951,12 +14257,21 @@ async function renderSessionsPage(){
         </div>
         <div id="changePwPanel" style="display:none;padding:20px 24px;border-top:1px solid var(--border);background:var(--bg3)">
           <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px">Change password</div>
-          <div class="form-group" style="margin-bottom:12px"><label class="form-label">New password</label><input class="form-input" type="password" id="newPwInput" placeholder="At least 8 characters"></div>
-          <div class="form-group" style="margin-bottom:12px"><label class="form-label">Confirm new password</label><input class="form-input" type="password" id="newPwConfirm" placeholder="Repeat new password"></div>
+          <div class="form-group" style="margin-bottom:12px"><label class="form-label">Current password</label><input class="form-input" type="password" id="curPwInput" autocomplete="current-password" placeholder="Your current password" onkeydown="if(event.key==='Enter')submitPasswordChange()"></div>
+          <div class="form-group" style="margin-bottom:6px"><label class="form-label">New password</label>
+            <div style="position:relative"><input class="form-input" type="password" id="newPwInput" autocomplete="new-password" placeholder="12+ characters, uppercase, number, symbol" oninput="_pwHints()" onkeydown="if(event.key==='Enter')submitPasswordChange()" style="padding-right:60px">
+            <button type="button" class="btn btn-ghost btn-sm" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:11px;padding:3px 8px" onclick="_pwToggleShow(this)">Show</button></div>
+          </div>
+          <div id="pwHints" style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;margin-bottom:12px">
+            <span data-r="len">○ 12+ characters</span><span data-r="up">○ Uppercase letter</span><span data-r="num">○ Number</span><span data-r="sym">○ Symbol</span><span data-r="match">○ Passwords match</span>
+          </div>
+          <div class="form-group" style="margin-bottom:12px"><label class="form-label">Confirm new password</label><input class="form-input" type="password" id="newPwConfirm" autocomplete="new-password" placeholder="Repeat new password" oninput="_pwHints()" onkeydown="if(event.key==='Enter')submitPasswordChange()"></div>
+          <div class="form-group" id="pwMfaGroup" style="margin-bottom:12px;display:none"><label class="form-label">2FA code</label><input class="form-input" id="pwMfaCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code from your authenticator app" onkeydown="if(event.key==='Enter')submitPasswordChange()"></div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;cursor:pointer"><input type="checkbox" id="pwSignOutOthers" checked> Sign out all other devices after changing</label>
           <div id="pwChangeError" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:10px"></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-primary btn-sm" onclick="submitPasswordChange()">Update password</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('changePwPanel').style.display='none'">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="pwSubmitBtn" onclick="submitPasswordChange()">Update password</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeChangePasswordPanel()">Cancel</button>
           </div>
         </div>
       </div>
@@ -14229,15 +14544,34 @@ function open2FASetupPanel(){
   }
 }
 
-function openChangePasswordPanel(){
-  const p=document.getElementById('changePwPanel');
-  if(p)p.style.display=p.style.display==='none'?'block':'none';
-}
-
-function openChangePasswordPanel(){
-  const p=document.getElementById('changePwPanel');
-  if(p)p.style.display=p.style.display==='none'?'block':'none';
+async function openChangePasswordPanel(){
+  const p=document.getElementById('changePwPanel');if(!p)return;
+  const opening=p.style.display==='none';
+  p.style.display=opening?'block':'none';
   const tp=document.getElementById('twofaPanel');if(tp)tp.style.display='none';
+  if(!opening)return;
+  ['curPwInput','newPwInput','newPwConfirm','pwMfaCode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const err=document.getElementById('pwChangeError');if(err){err.textContent='';err.style.color='var(--red)';}
+  _pwHints();
+  setTimeout(()=>{document.getElementById('curPwInput')?.focus();p.scrollIntoView({behavior:'smooth',block:'nearest'});},50);
+  // Ask for a 2FA code only when this account has a verified authenticator
+  try{initSupa();const {data}=await supa.auth.mfa.listFactors();const f=(data?.totp||[]).find(x=>x.status==='verified');
+    window._pwMfaFactor=f?f.id:null;const g=document.getElementById('pwMfaGroup');if(g)g.style.display=f?'block':'none';}catch(e){window._pwMfaFactor=null;}
+}
+function closeChangePasswordPanel(){
+  const p=document.getElementById('changePwPanel');if(p)p.style.display='none';
+  ['curPwInput','newPwInput','newPwConfirm','pwMfaCode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+}
+function _pwToggleShow(btn){
+  const show=btn.textContent==='Show';
+  ['newPwInput','newPwConfirm'].forEach(id=>{const e=document.getElementById(id);if(e)e.type=show?'text':'password';});
+  btn.textContent=show?'Hide':'Show';
+}
+function _pwHints(){
+  const v=document.getElementById('newPwInput')?.value||'',c=document.getElementById('newPwConfirm')?.value||'';
+  const ok={len:v.length>=12,up:/[A-Z]/.test(v),num:/[0-9]/.test(v),sym:/[^A-Za-z0-9]/.test(v),match:!!v&&v===c};
+  document.querySelectorAll('#pwHints [data-r]').forEach(el=>{const g=ok[el.dataset.r];el.style.color=g?'var(--green)':'var(--text3)';el.textContent=(g?'✓ ':'○ ')+el.textContent.replace(/^[✓○] /,'');});
+  return ok;
 }
 
 function tfa2FAStep(n){
@@ -14383,23 +14717,57 @@ async function unenrollTotp(factorId){
 }
 
 async function submitPasswordChange(){
+  if(window._pwBusy)return;
+  const curPw=document.getElementById('curPwInput')?.value||'';
   const newPw=document.getElementById('newPwInput')?.value||'';
-  const confirm=document.getElementById('newPwConfirm')?.value||'';
+  const confirmPw=document.getElementById('newPwConfirm')?.value||'';
+  const code=(document.getElementById('pwMfaCode')?.value||'').replace(/\D/g,'');
   const errEl=document.getElementById('pwChangeError');
+  const btn=document.getElementById('pwSubmitBtn');
+  const fail=(m)=>{if(errEl){errEl.style.color='var(--red)';errEl.textContent=m;}};
   if(errEl)errEl.textContent='';
-  if(newPw.length<12){if(errEl)errEl.textContent='Password must be at least 12 characters.';return;}
-  if(!/[A-Z]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one uppercase letter.';return;}
-  if(!/[0-9]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one number.';return;}
-  if(!/[^A-Za-z0-9]/.test(newPw)){if(errEl)errEl.textContent='Password must contain at least one special character.';return;}
-  if(newPw!==confirm){if(errEl)errEl.textContent='Passwords do not match.';return;}
+  if(!curPw)return fail('Enter your current password.');
+  const ok=_pwHints();
+  if(!ok.len)return fail('New password must be at least 12 characters.');
+  if(!ok.up)return fail('New password must contain at least one uppercase letter.');
+  if(!ok.num)return fail('New password must contain at least one number.');
+  if(!ok.sym)return fail('New password must contain at least one symbol (e.g. ! @ # $).');
+  if(!ok.match)return fail('New passwords do not match.');
+  if(newPw===curPw)return fail('New password must be different from the current one.');
+  if(window._pwMfaFactor&&code.length!==6)return fail('Enter the 6-digit code from your authenticator app.');
   initSupa();
-  if(!supa){alert('Not connected.');return;}
-  const {error}=await supa.auth.updateUser({password:newPw});
-  if(error){if(errEl)errEl.textContent=error.message;return;}
-  alert('✅ Password updated successfully. You will need to sign in again on other devices.');
-  document.getElementById('changePwPanel').style.display='none';
-  document.getElementById('newPwInput').value='';
-  document.getElementById('newPwConfirm').value='';
+  if(!supa||!currentUser)return fail('Not connected — please refresh the page and try again.');
+  window._pwBusy=true;
+  if(btn){btn.disabled=true;btn.textContent='Updating…';}
+  try{
+    // 1. Confirm the current password
+    const {error:authErr}=await supa.auth.signInWithPassword({email:currentUser.email,password:curPw});
+    if(authErr)return fail(/invalid/i.test(authErr.message)?'Current password is incorrect.':authErr.message);
+    // 2. 2FA accounts must re-verify (password change needs a 2FA-level session)
+    if(window._pwMfaFactor){
+      const {error:mfaErr}=await supa.auth.mfa.challengeAndVerify({factorId:window._pwMfaFactor,code});
+      if(mfaErr)return fail('2FA code was not accepted: '+mfaErr.message);
+    }
+    // 3. Update
+    const {error}=await supa.auth.updateUser({password:newPw});
+    if(error)return fail(error.message);
+    AuditLog.log('auth.password_changed',{});
+    let othersMsg='';
+    if(document.getElementById('pwSignOutOthers')?.checked){
+      const {error:soErr}=await supa.auth.signOut({scope:'others'});
+      othersMsg=soErr?' (Could not sign out other devices: '+soErr.message+')':' All other devices have been signed out.';
+      if(!soErr){try{await supa.from('user_sessions').delete().eq('user_id',currentUser.id).neq('fp',_buildFingerprint());}catch(e){}}
+    }
+    ['curPwInput','newPwInput','newPwConfirm','pwMfaCode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    _pwHints();
+    if(errEl){errEl.style.color='var(--green)';errEl.textContent='✓ Password updated.'+othersMsg;}
+    setTimeout(()=>{const p=document.getElementById('changePwPanel');if(p&&errEl&&errEl.style.color.includes('green'))p.style.display='none';},4000);
+  }catch(e){
+    fail('Something went wrong: '+(e.message||e));
+  }finally{
+    window._pwBusy=false;
+    if(btn){btn.disabled=false;btn.textContent='Update password';}
+  }
 }
 
 // ── MODAL DRAFT PERSISTENCE ───────────────────────
