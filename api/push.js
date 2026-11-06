@@ -93,12 +93,12 @@ module.exports = async (req, res) => {
     };
 
     // RLS guarantees the caller is a chat member and the message exists
-    const msgs = await get(`chat_messages?id=eq.${encodeURIComponent(body.message_id)}&select=id,sender_id,body,attachments,deleted_at`);
+    const msgs = await get(`rn_chat_messages?id=eq.${encodeURIComponent(body.message_id)}&select=id,sender_id,body,attachments,deleted_at`);
     const msg = msgs[0];
     if (!msg) return res.status(404).json({ error: 'Message not found' });
-    const members = await get('chat_members?select=user_id,display_name');
+    const members = await get('rn_chat_members?select=user_id,display_name');
     const sender = members.find((m) => m.user_id === msg.sender_id);
-    const subs = await get(`chat_push_subs?user_id=neq.${msg.sender_id}&select=endpoint,p256dh,auth`);
+    const subs = await get(`rn_chat_push_subs?user_id=neq.${msg.sender_id}&select=endpoint,p256dh,auth`);
 
     const n = Array.isArray(msg.attachments) ? msg.attachments.length : 0;
     let text = (msg.body || '').trim();
@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
     const gone = [];
     results.forEach((r, i) => { if (r.status === 'fulfilled' && (r.value === 404 || r.value === 410)) gone.push(subs[i].endpoint); });
     for (const ep of gone) {
-      await fetch(`${supaUrl}/rest/v1/chat_push_subs?endpoint=eq.${encodeURIComponent(ep)}`, { method: 'DELETE', headers: h }).catch(() => {});
+      await fetch(`${supaUrl}/rest/v1/rn_chat_push_subs?endpoint=eq.${encodeURIComponent(ep)}`, { method: 'DELETE', headers: h }).catch(() => {});
     }
     return res.status(200).json({
       sent: results.filter((r) => r.status === 'fulfilled' && r.value >= 200 && r.value < 300).length,

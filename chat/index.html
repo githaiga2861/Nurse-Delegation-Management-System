@@ -595,10 +595,10 @@ async function signOut() {
 
 async function start(session) {
   S.session = session; S.user = session.user;
-  const { data: members, error } = await S.supa.from('chat_members').select('user_id,display_name');
+  const { data: members, error } = await S.supa.from('rn_chat_members').select('user_id,display_name');
   if (error || !members || !members.some(m => m.user_id === S.user.id)) {
     show('denied');
-    $('deniedMsg').textContent = error && /chat_members/.test(error.message || '') ? 'Messages is not set up yet. Run the chat setup SQL in Supabase.' : 'This account (' + S.user.email + ") isn't part of Messages.";
+    $('deniedMsg').textContent = error && /rn_chat_members/.test(error.message || '') ? 'Messages is not set up yet. Run the chat setup SQL in Supabase.' : 'This account (' + S.user.email + ") isn't part of Messages.";
     return;
   }
   S.members = members;
@@ -685,7 +685,7 @@ async function signedUrl(path, download) {
   const c = S.urlCache.get(k);
   if (c && c.exp > Date.now()) return c.url;
   const opts = download ? { download: typeof download === 'string' ? download : true } : undefined;
-  const { data, error } = await S.supa.storage.from('chat-files').createSignedUrl(path, 3600, opts);
+  const { data, error } = await S.supa.storage.from('rn-chat-files').createSignedUrl(path, 3600, opts);
   if (error) throw error;
   S.urlCache.set(k, { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 });
   return data.signedUrl;
@@ -694,7 +694,7 @@ async function primeUrls(paths) {
   const need = [...new Set(paths)].filter(p => !(S.urlCache.get(p)?.exp > Date.now()));
   for (let i = 0; i < need.length; i += 100) {
     const chunk = need.slice(i, i + 100);
-    const { data } = await S.supa.storage.from('chat-files').createSignedUrls(chunk, 3600);
+    const { data } = await S.supa.storage.from('rn-chat-files').createSignedUrls(chunk, 3600);
     (data || []).forEach(d => { if (d.signedUrl) S.urlCache.set(d.path, { url: d.signedUrl, exp: Date.now() + 50 * 60 * 1000 }); });
   }
 }
@@ -717,7 +717,7 @@ async function downloadFile(path, name) {
 const PAGE = 60;
 const Chat = {
   async loadLatest() {
-    const { data, error } = await S.supa.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(PAGE);
+    const { data, error } = await S.supa.from('rn_chat_messages').select('*').order('created_at', { ascending: false }).limit(PAGE);
     if (error) { toast('Could not load messages: ' + error.message); return; }
     const rows = (data || []).reverse();
     S.hasOlder = (data || []).length === PAGE;
@@ -731,7 +731,7 @@ const Chat = {
     if (!S.hasOlder || this._loadingOlder) return;
     this._loadingOlder = true;
     const box = $('msgs'); const prevH = box.scrollHeight, prevTop = box.scrollTop;
-    let q = S.supa.from('chat_messages').select('*').order('created_at', { ascending: false });
+    let q = S.supa.from('rn_chat_messages').select('*').order('created_at', { ascending: false });
     q = untilDate ? q.lt('created_at', S.oldest).gte('created_at', untilDate) : q.lt('created_at', S.oldest).limit(PAGE);
     const { data } = await q;
     const rows = data || [];
@@ -840,7 +840,7 @@ const Chat = {
   },
   async jumpTo(id) {
     if (!S.msgs.has(id)) {
-      const { data } = await S.supa.from('chat_messages').select('created_at').eq('id', id).maybeSingle();
+      const { data } = await S.supa.from('rn_chat_messages').select('created_at').eq('id', id).maybeSingle();
       if (!data) { toast('Message not found'); return; }
       await this.loadOlder(data.created_at);
     }
@@ -879,7 +879,7 @@ const Chat = {
         }, local);
       }
       const clean = atts.map(a => ({ path: a.path, name: a.name, size: a.size, mime: a.mime }));
-      const { data, error } = await S.supa.from('chat_messages').insert({ id, body: local.body, attachments: clean, reply_to: local.reply_to }).select().single();
+      const { data, error } = await S.supa.from('rn_chat_messages').insert({ id, body: local.body, attachments: clean, reply_to: local.reply_to }).select().single();
       if (error) throw error;
       if (clean.length) {
         const t = local._tags || {};
@@ -888,7 +888,7 @@ const Chat = {
           category: t.category || null, client_id: t.client_id || null, client_name: t.client_name || null,
           caregiver_id: t.caregiver_id || null, caregiver_name: t.caregiver_name || null,
         }));
-        const { data: fr, error: fe } = await S.supa.from('chat_files').upsert(rows, { onConflict: 'path' }).select();
+        const { data: fr, error: fe } = await S.supa.from('rn_chat_files').upsert(rows, { onConflict: 'path' }).select();
         if (fe) toast('Files sent, but could not add them to Shared Files: ' + fe.message);
         (fr || []).forEach(f => S.files.set(f.id, f));
         Files.render();
@@ -927,13 +927,13 @@ const Chat = {
     const m = S.editing; const body = $('input').value.trim();
     if (!m) return;
     if (!body && !(m.attachments || []).length) { toast('Message cannot be empty'); return; }
-    const { data, error } = await S.supa.from('chat_messages').update({ body: body || null, edited_at: new Date().toISOString() }).eq('id', m.id).select().single();
+    const { data, error } = await S.supa.from('rn_chat_messages').update({ body: body || null, edited_at: new Date().toISOString() }).eq('id', m.id).select().single();
     if (error) { toast('Could not edit: ' + error.message); return; }
     S.msgs.set(m.id, data); this.updateRow(m.id); this.cancelEdit();
   },
   async remove(id) {
     if (!confirm('Delete this message for everyone? Shared files stay in Shared Files.')) return;
-    const { data, error } = await S.supa.from('chat_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id).select().single();
+    const { data, error } = await S.supa.from('rn_chat_messages').update({ deleted_at: new Date().toISOString() }).eq('id', id).select().single();
     if (error) { toast('Could not delete: ' + error.message); return; }
     S.msgs.set(id, data); this.updateRow(id);
   },
@@ -945,7 +945,7 @@ const Chat = {
     if (!unread.length) return;
     const now = new Date().toISOString();
     unread.forEach(m => { m.read_at = now; });
-    await S.supa.from('chat_messages').update({ read_at: now }).is('read_at', null).neq('sender_id', S.user.id);
+    await S.supa.from('rn_chat_messages').update({ read_at: now }).is('read_at', null).neq('sender_id', S.user.id);
   },
 };
 
@@ -959,7 +959,7 @@ const Uploader = {
       const { data } = await S.supa.auth.getSession();
       const token = data.session?.access_token;
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${S.url}/storage/v1/object/chat-files/${path.split('/').map(encodeURIComponent).join('/')}`);
+      xhr.open('POST', `${S.url}/storage/v1/object/rn-chat-files/${path.split('/').map(encodeURIComponent).join('/')}`);
       xhr.setRequestHeader('Authorization', 'Bearer ' + token);
       xhr.setRequestHeader('apikey', S.key);
       xhr.setRequestHeader('x-upsert', 'false');
@@ -1062,7 +1062,7 @@ const Files = {
   async load() {
     const all = []; let from = 0;
     for (;;) {
-      const { data, error } = await S.supa.from('chat_files').select('*').order('created_at', { ascending: false }).range(from, from + 999);
+      const { data, error } = await S.supa.from('rn_chat_files').select('*').order('created_at', { ascending: false }).range(from, from + 999);
       if (error) break;
       all.push(...(data || [])); if (!data || data.length < 1000) break; from += 1000;
     }
@@ -1153,7 +1153,7 @@ const Files = {
       patch.organised = $('tgDone').checked;
       patch.organised_by = patch.organised ? S.user.id : null; patch.organised_at = patch.organised ? new Date().toISOString() : null;
       $('tgSave').disabled = true;
-      const { data, error } = await S.supa.from('chat_files').update(patch).in('id', ids).select();
+      const { data, error } = await S.supa.from('rn_chat_files').update(patch).in('id', ids).select();
       if (error) { toast('Could not save: ' + error.message); $('tgSave').disabled = false; return; }
       (data || []).forEach(f => S.files.set(f.id, f));
       $('layer').innerHTML = ''; this.sel.clear(); this.render(); Viewer.refreshSide();
@@ -1315,8 +1315,8 @@ const Search = {
     if (q.length < 2) { box.classList.add('hidden'); return; }
     const like = '%' + q.replace(/[%_]/g, (c) => '\\' + c) + '%';
     const [msgs, files] = await Promise.all([
-      S.supa.from('chat_messages').select('id,body,created_at,sender_id').ilike('body', like).is('deleted_at', null).order('created_at', { ascending: false }).limit(40),
-      S.supa.from('chat_files').select('id,name,message_id,created_at,client_name').or(['name','client_name','caregiver_name','note'].map(c => `${c}.ilike.${like.replace(/[,()]/g, ' ')}`).join(',')).order('created_at', { ascending: false }).limit(20),
+      S.supa.from('rn_chat_messages').select('id,body,created_at,sender_id').ilike('body', like).is('deleted_at', null).order('created_at', { ascending: false }).limit(40),
+      S.supa.from('rn_chat_files').select('id,name,message_id,created_at,client_name').or(['name','client_name','caregiver_name','note'].map(c => `${c}.ilike.${like.replace(/[,()]/g, ' ')}`).join(',')).order('created_at', { ascending: false }).limit(20),
     ]);
     const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
     const hi = (t) => esc(t).replace(re, '<mark>$1</mark>');
@@ -1337,7 +1337,7 @@ let _st; $('searchInput').addEventListener('input', (e) => { clearTimeout(_st); 
 const Realtime = {
   start() {
     const ch = S.supa.channel('gy-chat', { config: { presence: { key: S.user.id }, broadcast: { self: false } } });
-    ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async ({ new: m }) => {
+    ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rn_chat_messages' }, async ({ new: m }) => {
       if (S.msgs.get(m.id) && !S.msgs.get(m.id)._local) return;
       if (S.msgs.get(m.id)?._local) return; // our own message — handled by sender path
       await primeUrls((m.attachments || []).filter(a => canPreviewImg(a.name, a.mime)).map(a => a.path));
@@ -1348,11 +1348,11 @@ const Realtime = {
         else { S.unseen++; UI.badge(); Sound.play(); }
       }
     });
-    ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, ({ new: m }) => {
+    ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rn_chat_messages' }, ({ new: m }) => {
       const cur = S.msgs.get(m.id); if (!cur || cur._local) return;
       S.msgs.set(m.id, m); Chat.updateRow(m.id);
     });
-    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'chat_files' }, ({ new: f }) => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rn_chat_files' }, ({ new: f }) => {
       if (!f || !f.id) return; S.files.set(f.id, f); clearTimeout(this._fr); this._fr = setTimeout(() => Files.render(), 150);
     });
     ch.on('broadcast', { event: 'typing' }, ({ payload }) => {
@@ -1376,9 +1376,9 @@ const Realtime = {
   async catchUp() {
     const last = S.order.map(id => S.msgs.get(id)).filter(m => !m._local).pop();
     const since = last ? last.created_at : new Date(Date.now() - 864e5).toISOString();
-    const { data } = await S.supa.from('chat_messages').select('*').gte('created_at', since).order('created_at');
+    const { data } = await S.supa.from('rn_chat_messages').select('*').gte('created_at', since).order('created_at');
     (data || []).forEach(m => S.msgs.set(m.id, m));
-    const { data: upd } = await S.supa.from('chat_messages').select('*').in('id', S.order.slice(-80).filter(id => !S.msgs.get(id)?._local));
+    const { data: upd } = await S.supa.from('rn_chat_messages').select('*').in('id', S.order.slice(-80).filter(id => !S.msgs.get(id)?._local));
     (upd || []).forEach(m => S.msgs.set(m.id, m));
     Chat.reorder(); Chat.renderAll(); if (Chat.nearBottom()) Chat.scrollBottom(false);
     await Files.load(); Files.render();
@@ -1454,14 +1454,14 @@ const Push = {
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes });
     const j = sub.toJSON();
     const device = (this.isIOS ? 'iPhone/iPad' : /android/i.test(navigator.userAgent) ? 'Android' : /mac/i.test(navigator.userAgent) ? 'Mac' : /win/i.test(navigator.userAgent) ? 'Windows' : 'Device') + (this.standalone ? ' app' : ' browser');
-    const { error } = await S.supa.from('chat_push_subs').upsert({ endpoint: j.endpoint, user_id: S.user.id, p256dh: j.keys.p256dh, auth: j.keys.auth, device }, { onConflict: 'endpoint' });
+    const { error } = await S.supa.from('rn_chat_push_subs').upsert({ endpoint: j.endpoint, user_id: S.user.id, p256dh: j.keys.p256dh, auth: j.keys.auth, device }, { onConflict: 'endpoint' });
     if (error) throw error;
     return sub;
   },
   async unsubscribeThisDevice() {
     const reg = await navigator.serviceWorker?.getRegistration('/chat/');
     const sub = await reg?.pushManager.getSubscription();
-    if (sub) { await S.supa.from('chat_push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+    if (sub) { await S.supa.from('rn_chat_push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
   },
   async notify(messageId) {
     try {
@@ -1474,7 +1474,7 @@ const Push = {
     } catch (e) {}
   },
   async test() {
-    const { data, error } = await S.supa.from('chat_push_subs').select('device,created_at').eq('user_id', S.other.user_id || '00000000-0000-0000-0000-000000000000');
+    const { data, error } = await S.supa.from('rn_chat_push_subs').select('device,created_at').eq('user_id', S.other.user_id || '00000000-0000-0000-0000-000000000000');
     toast(error ? 'Could not check: ' + error.message : (data || []).length ? `${S.other.display_name} gets notifications on: ${data.map(d => d.device).join(', ')}` : `${S.other.display_name} hasn't turned on notifications yet`, 5000);
   },
 };
@@ -1489,7 +1489,7 @@ const Settings = {
     if ($('setPanel').classList.contains('hidden')) return;
     const perm = 'Notification' in window ? Notification.permission : 'unsupported';
     let mine = [];
-    try { const { data } = await S.supa.from('chat_push_subs').select('device,created_at').eq('user_id', S.user.id); mine = data || []; } catch (e) {}
+    try { const { data } = await S.supa.from('rn_chat_push_subs').select('device,created_at').eq('user_id', S.user.id); mine = data || []; } catch (e) {}
     const state = Push.isIOS && !Push.standalone ? 'Install the app first (see below)' : perm === 'granted' ? 'On for this device' : perm === 'denied' ? 'Blocked in browser settings' : perm === 'unsupported' ? 'Not supported here' : 'Off';
     $('setBody').innerHTML = `
       <div class="set-row"><div class="t"><b>Notifications on this device</b><span>${esc(state)}</span></div>
