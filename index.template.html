@@ -779,10 +779,10 @@ if('serviceWorker' in navigator){
           <svg viewBox="0 0 16 16" fill="none"><path d="M9 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7L9 2z" stroke="currentColor" stroke-width="1.5"/><path d="M9 2v5h5" stroke="currentColor" stroke-width="1.5"/></svg>
           Documents
         </div>
-        <a class="nav-item" href="/chat/" target="_blank" rel="noopener" style="text-decoration:none">
+        <div class="nav-item" onclick="showPage('messages')">
           <svg viewBox="0 0 16 16" fill="none"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v6a1.5 1.5 0 0 1-1.5 1.5H7l-3.5 3v-3h0A1.5 1.5 0 0 1 2 9.5v-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          Messages
-        </a>
+          Messages App
+        </div>
       </div>
       <div class="sidebar-section">
         <span class="sidebar-section-label">Oversight</span>
@@ -828,6 +828,7 @@ if('serviceWorker' in navigator){
       <div id="page-patients"   style="display:none"></div>
       <div id="page-visits"     style="display:none"></div>
       <div id="page-documents"  style="display:none"></div>
+      <div id="page-messages"  style="display:none"></div>
       <div id="page-compliance" style="display:none"></div>
       <div id="page-alerts"     style="display:none"></div>
       <div id="page-archive"     style="display:none"></div>
@@ -6046,6 +6047,23 @@ pageRenderers.visits = () => `
   </div>
   <div class="card"><div class="empty-state" style="padding:64px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 2v3M15 2v3M3 9h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No nursing visits recorded</h4><p>Schedule a supervision nursing visit to begin tracking competency reviews and observations.</p><button class="btn btn-primary btn-sm" style="margin-top:16px">+ Schedule Visit</button></div></div>
 </div>`;
+
+pageRenderers.messages = () => {
+  const APK='https://github.com/githaiga2861/Nurse-Delegation-Management-System/releases/download/messages-android/gy-messages.apk';
+  const ua=navigator.userAgent, isAndroid=/android/i.test(ua), isIOS=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const card=(on,icon,title,body)=>`<div class="card" style="padding:20px;border-radius:14px;${on?'border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)':''}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:22px">${icon}</span><h4 style="margin:0">${title}</h4>${on?'<span style="margin-left:auto;font-size:11px;color:var(--gold)">This device</span>':''}</div>${body}</div>`;
+  const step=(t)=>`<li style="margin:6px 0;font-size:13.5px;line-height:1.5">${t}</li>`;
+  return `
+<div class="topbar"><div class="topbar-title">Messages App</div></div>
+<div class="page-content" style="max-width:980px">
+  <p style="font-size:14px;margin:0 0 18px">A private app for you and Jose only: chat, screenshots and bulk document sharing, with notifications. It's a separate app — install it once on each device.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px">
+    ${card(isAndroid,'🤖','Android',`<a class="btn btn-primary" href="${APK}" style="display:inline-flex;text-decoration:none;margin-bottom:10px">⬇ Download Android app (APK)</a><ol style="padding-left:18px;margin:0">${step('Open the downloaded <b>gy-messages.apk</b>. If asked, allow installing from this source.')+step('Open <b>GY Messages</b>, sign in, and tap <b>Allow</b> for notifications.')+step('Messages arrive instantly, even when the app is closed.')}</ol>`)}
+    ${card(isIOS,'📱','iPhone / iPad',`<ol style="padding-left:18px;margin:0">${step('Open <a href="/chat/" target="_blank" rel="noopener" style="color:var(--gold)">this link</a> in <b>Safari</b>.')+step('Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.')+step('Open <b>GY Messages</b> from the home screen, sign in, then turn on notifications in its Settings.')}</ol><div style="font-size:12px;color:var(--text3);margin-top:8px">iPhone only delivers notifications to apps opened from the home screen (iOS 16.4 or newer).</div>`)}
+    ${card(!isAndroid&&!isIOS,'💻','Computer',`<a class="btn btn-primary" href="/chat/" target="_blank" rel="noopener" style="display:inline-flex;text-decoration:none;margin-bottom:10px">Open Messages</a><ol style="padding-left:18px;margin:0">${step('In Chrome or Edge, click the <b>Install</b> icon at the right of the address bar.')+step('It opens in its own window. Allow notifications when asked.')+step('Drag and drop files or whole folders straight into the chat.')}</ol>`)}
+  </div>
+</div>`;
+};
 
 pageRenderers.documents = () => {
   setTimeout(()=>{ docsShowTab('All'); loadDraftsList(); loadSignedList(); }, 0);

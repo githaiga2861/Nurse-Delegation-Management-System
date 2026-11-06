@@ -68,6 +68,19 @@ select.form-input{appearance:none;-webkit-appearance:none;background-image:linea
 .chip.gold{background:var(--gold-dim);color:var(--gold-light);border-color:#d9a44140}
 .chip.green{background:var(--green-dim);color:var(--green);border-color:#2dba7a40}
 .chip.amber{background:#2e1f0a;color:var(--amber);border-color:#d4873a40}
+.stbtn{display:inline-flex;align-items:center;gap:6px;font:700 12.5px/1.2 inherit;padding:6px 12px;border-radius:99px;border:1.5px solid;cursor:pointer;white-space:nowrap;letter-spacing:.1px}
+.stbtn .car{opacity:.7;font-size:10px}
+.stbtn.sm{font-size:11.5px;padding:4px 10px}
+.st-new{color:#ff7070;background:#3a1212;border-color:#e05252}
+.st-processing{color:#f2a65a;background:#33220c;border-color:#d4873a}
+.st-added{color:#3fd58f;background:#0f2e20;border-color:#2dba7a}
+.stbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px}
+.stbar .sum{font-size:11.5px;color:var(--text2)}
+.stdot{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:1.5px solid;box-shadow:0 1px 4px #0008}
+.stseg{display:flex;gap:6px;flex-wrap:wrap}
+.ctx button.stbtn{width:100%;padding:9px 12px;border-radius:99px;border:1.5px solid;font-weight:700}
+.ctx button.st-new{color:#ff7070;background:#3a1212;border-color:#e05252}.ctx button.st-processing{color:#f2a65a;background:#33220c;border-color:#d4873a}.ctx button.st-added{color:#3fd58f;background:#0f2e20;border-color:#2dba7a}
+.stseg .stbtn{opacity:.45}.stseg .stbtn.on{opacity:1;box-shadow:0 0 0 2px #fff2}
 .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#1a1206;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;position:relative}
 .avatar .dot{position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:var(--text3);border:2px solid var(--bg1)}
 .avatar .dot.on{background:var(--green)}
@@ -423,8 +436,9 @@ mark{background:var(--gold-dim);color:var(--gold-light);border-radius:3px;paddin
       </div>
       <div class="panel-body">
         <div class="tabs" id="fileTabs">
-          <button data-t="todo" class="on">To organise <span class="c" id="tcTodo"></span></button>
-          <button data-t="done">Organised <span class="c" id="tcDone"></span></button>
+          <button data-t="new" class="on">Not yet in system <span class="c" id="tcTodo"></span></button>
+          <button data-t="processing">Processing <span class="c" id="tcProc"></span></button>
+          <button data-t="added">Added <span class="c" id="tcDone"></span></button>
           <button data-t="all">All <span class="c" id="tcAll"></span></button>
         </div>
         <div class="filters">
@@ -439,7 +453,10 @@ mark{background:var(--gold-dim);color:var(--gold-light);border-radius:3px;paddin
         <div class="bulkbar hidden" id="bulkBar">
           <span class="n" id="bulkN">0 selected</span>
           <button class="btn btn-ghost btn-sm" onclick="Files.selectAll()">All</button>
-          <button class="btn btn-ghost btn-sm" onclick="Files.openTagger()">Tag / Organise</button>
+          <button class="btn btn-ghost btn-sm" onclick="Files.openTagger()">Tag</button>
+          <button class="stbtn sm st-new" onclick="Status.set([...Files.sel],'new')">⚠ Not in system</button>
+          <button class="stbtn sm st-processing" onclick="Status.set([...Files.sel],'processing')">⏳ Processing</button>
+          <button class="stbtn sm st-added" onclick="Status.set([...Files.sel],'added')">✓ Added</button>
           <button class="btn btn-ghost btn-sm" onclick="Files.downloadSelected()">Download</button>
         </div>
         <div class="flist" id="fList"></div>
@@ -507,6 +524,13 @@ const CATEGORIES = [
   'Assessments / care plans', 'Visit notes', 'Billing', 'Other'
 ];
 const RN_ID = '2049c438-a281-416e-b244-e0c1081a6cae';
+const ST = { new: { label: 'Not yet in system', icon: '!' }, processing: { label: 'Processing', icon: '…' }, added: { label: 'Added to system', icon: '✓' } };
+const ST_ORDER = ['new', 'processing', 'added'];
+function stOf(f) { return (f && f.sys_status) || (f && f.organised ? 'added' : 'new'); }
+function stBtn(ids, st, extra = '', sm = false) {
+  const idl = ids.map(i => `'${i}'`).join(',');
+  return `<button class="stbtn${sm ? ' sm' : ''} st-${st}" onclick="event.stopPropagation();Status.menu([${idl}],event)" title="Change system status">${st === 'added' ? '✓ ' : st === 'processing' ? '⏳ ' : '⚠ '}${esc(ST[st].label)}${extra}<span class="car">▼</span></button>`;
+}
 const MAX_FILE = 50 * 1024 * 1024;
 const PER_MESSAGE = 30;
 
@@ -781,6 +805,7 @@ const Chat = {
         inner += `<div class="quote" onclick="Chat.jumpTo('${esc(m.reply_to)}')"><b>${esc(who)}</b>${esc(qt).slice(0, 160)}</div>`;
       }
       inner += this.attHtml(m);
+      if (!m._local) inner += this.stBar(m);
       if (m.body) inner += `<div class="text">${linkify(m.body)}</div>`;
     }
     const tick = mine ? (m._pending ? CLOCK : m.read_at ? TICK2(true) : TICK2(false)) : '';
@@ -808,16 +833,25 @@ const Chat = {
     if (others.length) {
       h += '<div class="att-files">' + others.map(x => {
         const prog = x.a._progress != null && x.a._progress < 100 ? `<div class="prog"><i style="width:${x.a._progress}%"></i></div>` : '';
-        return `<div class="fcard" onclick="Viewer.openMsg('${m.id}',${x.i})">${ficon(x.a.name, x.a.mime)}<div class="fx"><div class="fn">${esc(x.a.name)}</div><div class="fs">${esc(fmtSize(x.a.size))} · ${esc(extLabel(x.a.name))}${this.tagText(x.a.path)}</div>${prog}</div>${m._local ? '' : `<button class="icon-btn dl" style="width:30px;height:30px" title="Download" onclick="event.stopPropagation();downloadFile('${esc(x.a.path)}','${esc(x.a.name).replace(/'/g, '&#39;')}')"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`}</div>`;
+        return `<div class="fcard" onclick="Viewer.openMsg('${m.id}',${x.i})">${ficon(x.a.name, x.a.mime)}<div class="fx"><div class="fn">${esc(x.a.name)}</div><div class="fs">${esc(fmtSize(x.a.size))} · ${esc(extLabel(x.a.name))}${this.tagText(x.a.path)}</div>${prog}${(m.attachments || []).length > 1 && Files.byPath(x.a.path) ? `<div style="margin-top:5px">${stBtn([Files.byPath(x.a.path).id], stOf(Files.byPath(x.a.path)), '', true)}</div>` : ''}</div>${m._local ? '' : `<button class="icon-btn dl" style="width:30px;height:30px" title="Download" onclick="event.stopPropagation();downloadFile('${esc(x.a.path)}','${esc(x.a.name).replace(/'/g, '&#39;')}')"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3v10m0 0l-4-4m4 4l4-4M4 16h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`}</div>`;
       }).join('') + '</div>';
     }
     return h;
   },
-  tagDot(path) { const f = Files.byPath(path); return f && f.organised ? '<span class="tagdot chip green">✓</span>' : ''; },
+  tagDot(path) { const f = Files.byPath(path); if (!f) return ''; const st = stOf(f); return `<span class="stdot st-${st}" title="${esc(ST[st].label)}">${ST[st].icon}</span>`; },
+  stBar(m) {
+    const fs = (m.attachments || []).map(a => Files.byPath(a.path)).filter(Boolean);
+    if (!fs.length) return '';
+    const ids = fs.map(f => f.id); const c = { new: 0, processing: 0, added: 0 }; fs.forEach(f => c[stOf(f)]++);
+    const kinds = ST_ORDER.filter(k => c[k]);
+    if (fs.length === 1) return `<div class="stbar">${stBtn(ids, kinds[0])}</div>`;
+    if (kinds.length === 1) return `<div class="stbar">${stBtn(ids, kinds[0], ` · all ${fs.length}`)}</div>`;
+    return `<div class="stbar"><span class="sum">${ST_ORDER.filter(k => c[k]).map(k => `${c[k]} ${ST[k].label.toLowerCase()}`).join(' · ')}</span><button class="stbtn sm st-new" style="background:var(--surface2);color:var(--text);border-color:var(--border2)" onclick="event.stopPropagation();Status.menu([${ids.map(i => `'${i}'`).join(',')}],event)">Set all ${fs.length} <span class="car">▼</span></button></div>`;
+  },
   tagText(path) {
     const f = Files.byPath(path); if (!f) return '';
     const t = [f.client_name, f.caregiver_name, f.category].filter(Boolean).join(' · ');
-    return t ? ' · <span style="color:var(--gold-light)">' + esc(t) + '</span>' : (f.organised ? ' · <span style="color:var(--green)">organised</span>' : '');
+    return t ? ' · <span style="color:var(--gold-light)">' + esc(t) + '</span>' : '';
   },
   updateRow(id) {
     const m = S.msgs.get(id); const el = $('m-' + id);
@@ -1058,7 +1092,7 @@ async function filesFromDataTransfer(dt) {
 // Files organiser
 // ════════════════════════════════════════════════════════════════
 const Files = {
-  tab: 'todo', selecting: false, sel: new Set(), _pathIdx: new Map(),
+  tab: 'new', selecting: false, sel: new Set(), _pathIdx: new Map(),
   async load() {
     const all = []; let from = 0;
     for (;;) {
@@ -1071,10 +1105,11 @@ const Files = {
   },
   reindex() { this._pathIdx = new Map([...S.files.values()].map(f => [f.path, f])); },
   byPath(p) { return this._pathIdx.get(p); },
-  todoCount() { let n = 0; S.files.forEach(f => { if (!f.organised) n++; }); return n; },
+  todoCount() { let n = 0; S.files.forEach(f => { if (stOf(f) === 'new') n++; }); return n; },
+  procCount() { let n = 0; S.files.forEach(f => { if (stOf(f) === 'processing') n++; }); return n; },
   counts() {
     const all = S.files.size, todo = this.todoCount();
-    $('tcAll').textContent = all; $('tcTodo').textContent = todo; $('tcDone').textContent = all - todo;
+    const proc = this.procCount(); $('tcAll').textContent = all; $('tcTodo').textContent = todo; $('tcProc').textContent = proc; $('tcDone').textContent = all - todo - proc;
     $('navUnorg').textContent = todo; $('navUnorg').classList.toggle('hidden', !todo);
     UI.badge();
   },
@@ -1084,8 +1119,7 @@ const Files = {
   filtered() {
     const q = $('fSearch').value.trim().toLowerCase(), cat = $('fCat').value, type = $('fType').value, cl = $('fClient').value, from = $('fFrom').value;
     return [...S.files.values()].filter(f => {
-      if (this.tab === 'todo' && f.organised) return false;
-      if (this.tab === 'done' && !f.organised) return false;
+      if (this.tab !== 'all' && stOf(f) !== this.tab) return false;
       if (cat && f.category !== cat) return false;
       if (cl === '__none' && f.client_id) return false;
       if (cl && cl !== '__none' && String(f.client_id) !== cl) return false;
@@ -1104,7 +1138,7 @@ const Files = {
       const k = kindOf(f.name, f.mime);
       const th = canPreviewImg(f.name, f.mime) ? `<img data-path="${esc(f.path)}" alt="" loading="lazy">` : ficon(f.name, f.mime);
       const tags = [
-        f.organised ? '<span class="chip green">✓ Organised</span>' : '<span class="chip amber">To organise</span>',
+        stBtn([f.id], stOf(f), '', true),
         f.category ? `<span class="chip">${esc(f.category)}</span>` : '',
         f.client_name ? `<span class="chip gold">👤 ${esc(f.client_name)}</span>` : '',
         f.caregiver_name ? `<span class="chip gold">🩺 ${esc(f.caregiver_name)}</span>` : '',
@@ -1115,7 +1149,7 @@ const Files = {
         <div class="thumb">${th}</div>
         <div class="fx"><div class="fn">${esc(f.name)}</div><div class="fm">${esc(fmtSize(f.size))} · ${esc(who(f.uploaded_by))} · ${esc(fmtDate(f.created_at))}</div><div class="tags">${tags}</div></div>
       </div>`;
-    }).join('') : `<div class="empty-chat" style="padding:30px 10px">${this.tab === 'todo' ? '🎉 Nothing left to organise.' : 'No files match.'}</div>`;
+    }).join('') : `<div class="empty-chat" style="padding:30px 10px">${this.tab === 'new' ? '🎉 Everything shared is in the system or being processed.' : 'No files match.'}</div>`;
     hydrateImages($('fList'));
     this.bulkPaint();
     Chat.renderAll();
@@ -1140,7 +1174,7 @@ const Files = {
         <label class="label">Client</label><select class="form-input" id="tgClient" style="margin-bottom:10px">${(ids.length > 1 ? '<option value="__keep">— Keep as is —</option><option value="">— None —</option>' : '<option value="">— None —</option>') + S.clients.map(c => `<option value="${esc(c.id)}"${one && String(one.client_id) === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
         <label class="label">Caregiver</label><select class="form-input" id="tgCg" style="margin-bottom:10px">${(ids.length > 1 ? '<option value="__keep">— Keep as is —</option><option value="">— None —</option>' : '<option value="">— None —</option>') + S.caregivers.map(c => `<option value="${esc(c.id)}"${one && String(one.caregiver_id) === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
         <label class="label">Note</label><input class="form-input" id="tgNote" placeholder="${ids.length > 1 ? 'Leave blank to keep notes' : 'e.g. Added to system 11/6'}" value="${esc(one?.note || '')}" style="margin-bottom:12px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="tgDone" ${!one || one.organised || true ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--gold)"> Mark as organised</label>
+        <label class="label">System status</label><select class="form-input" id="tgSt" style="margin-bottom:14px">${ids.length > 1 ? '<option value="">— Keep as is —</option>' : ''}${ST_ORDER.map(k => `<option value="${k}"${one && stOf(one) === k ? ' selected' : ''}>${ST[k].label}</option>`).join('')}</select>
         <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="$('layer').innerHTML=''">Cancel</button><button class="btn btn-primary" id="tgSave">Save</button></div>
       </div>`;
     if (ids.length > 1) { $('tgClient').value = '__keep'; $('tgCg').value = '__keep'; }
@@ -1150,8 +1184,7 @@ const Files = {
       const cv = $('tgClient').value; if (cv !== '__keep') { const c = S.clients.find(x => x.id === cv); patch.client_id = c?.id || null; patch.client_name = c?.name || null; }
       const gv = $('tgCg').value; if (gv !== '__keep') { const c = S.caregivers.find(x => x.id === gv); patch.caregiver_id = c?.id || null; patch.caregiver_name = c?.name || null; }
       const note = $('tgNote').value.trim(); if (ids.length === 1 || note) patch.note = note || null;
-      patch.organised = $('tgDone').checked;
-      patch.organised_by = patch.organised ? S.user.id : null; patch.organised_at = patch.organised ? new Date().toISOString() : null;
+      const stv = $('tgSt').value; if (stv) Object.assign(patch, Status.patch(stv));
       $('tgSave').disabled = true;
       const { data, error } = await S.supa.from('rn_chat_files').update(patch).in('id', ids).select();
       if (error) { toast('Could not save: ' + error.message); $('tgSave').disabled = false; return; }
@@ -1184,6 +1217,28 @@ const Files = {
       const a = document.createElement('a'); a.href = URL.createObjectURL(out); a.download = 'Shared files ' + new Date().toISOString().slice(0, 10) + '.zip';
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     } catch (e) { toast('Download failed: ' + (e.message || e)); }
+  },
+};
+const Status = {
+  patch(st) { const now = new Date().toISOString(); return { sys_status: st, sys_status_by: S.user.id, sys_status_at: now, organised: st === 'added', organised_by: st === 'added' ? S.user.id : null, organised_at: st === 'added' ? now : null }; },
+  menu(ids, ev) {
+    ids = (ids || []).filter(Boolean); if (!ids.length) return;
+    const layer = $('layer');
+    const x = Math.min((ev && ev.clientX) || innerWidth / 2, innerWidth - 230), y = Math.min((ev && ev.clientY) || innerHeight / 2, innerHeight - 190);
+    layer.innerHTML = `<div class="scrim" style="background:transparent" onclick="$('layer').innerHTML=''"></div><div class="ctx" style="left:${Math.max(8, x)}px;top:${Math.max(8, y)}px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:210px">
+      <div style="font-size:11.5px;color:var(--text3)">${ids.length === 1 ? 'Set system status' : `Set status for ${ids.length} files`}</div>
+      ${ST_ORDER.map(k => `<button class="stbtn st-${k}" style="justify-content:flex-start" onclick="$('layer').innerHTML='';Status.set([${ids.map(i => `'${i}'`).join(',')}],'${k}')">${k === 'added' ? '✓ ' : k === 'processing' ? '⏳ ' : '⚠ '}${ST[k].label}</button>`).join('')}</div>`;
+  },
+  async set(ids, st) {
+    ids = (ids || []).filter(Boolean); if (!ids.length) { toast('Select files first'); return; }
+    const before = ids.map(id => S.files.get(id)).filter(Boolean).map(f => ({ ...f }));
+    const p = this.patch(st);
+    ids.forEach(id => { const f = S.files.get(id); if (f) S.files.set(id, { ...f, ...p }); });
+    Files.render(); Viewer.refreshSide();
+    const { data, error } = await S.supa.from('rn_chat_files').update(p).in('id', ids).select();
+    if (error) { before.forEach(f => S.files.set(f.id, f)); Files.render(); Viewer.refreshSide(); toast('Could not save: ' + error.message); return; }
+    (data || []).forEach(f => S.files.set(f.id, f)); Files.sel.clear(); Files.render(); Viewer.refreshSide();
+    toast(`${ids.length === 1 ? 'File' : ids.length + ' files'} → ${ST[st].label}`);
   },
 };
 document.querySelectorAll('#fileTabs button').forEach(b => b.onclick = () => {
@@ -1244,15 +1299,16 @@ const Viewer = {
     if (!$('viewer')) return;
     const a = this.cur(); const f = a && Files.byPath(a.path);
     const html = f ? `
-      <div style="font-weight:600;font-size:13px">Organise</div>
-      <div>${f.organised ? '<span class="chip green">✓ Organised</span>' : '<span class="chip amber">To organise</span>'}</div>
+      <div style="font-weight:600;font-size:13px">System status</div>
+      <div class="stseg" style="flex-direction:column;align-items:flex-start">${ST_ORDER.map(k => `<button class="stbtn st-${k}${stOf(f) === k ? ' on' : ''}" onclick="Status.set(['${f.id}'],'${k}')">${k === 'added' ? '✓ ' : k === 'processing' ? '⏳ ' : '⚠ '}${ST[k].label}</button>`).join('')}</div>
+      ${f.sys_status_at ? `<div style="font-size:11px;color:var(--text3)">Updated ${esc(fmtDate(f.sys_status_at))} ${esc(fmtTime(f.sys_status_at))} by ${esc(f.sys_status_by === S.user.id ? 'you' : (S.members.find(m => m.user_id === f.sys_status_by)?.display_name || '—'))}</div>` : ''}
       <div><span class="label">Category</span>${esc(f.category || '—')}</div>
       <div><span class="label">Client</span>${esc(f.client_name || '—')}</div>
       <div><span class="label">Caregiver</span>${esc(f.caregiver_name || '—')}</div>
       <div><span class="label">Note</span>${esc(f.note || '—')}</div>
       <button class="btn btn-primary" onclick="Viewer.tag()">Edit tags</button>` : '<div style="color:var(--text3);font-size:12px">This file is not in Shared Files.</div>';
     $('vSide').innerHTML = html;
-    $('vFoot').innerHTML = f ? `${f.organised ? '<span class="chip green">✓ Organised</span>' : '<span class="chip amber">To organise</span>'}${f.category ? `<span class="chip">${esc(f.category)}</span>` : ''}${f.client_name ? `<span class="chip gold">👤 ${esc(f.client_name)}</span>` : ''}${f.caregiver_name ? `<span class="chip gold">🩺 ${esc(f.caregiver_name)}</span>` : ''}<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="Viewer.tag()">Organise</button>` : '';
+    $('vFoot').innerHTML = f ? `<div class="stseg">${ST_ORDER.map(k => `<button class="stbtn sm st-${k}${stOf(f) === k ? ' on' : ''}" onclick="Status.set(['${f.id}'],'${k}')">${k === 'added' ? '✓ ' : k === 'processing' ? '⏳ ' : '⚠ '}${ST[k].label}</button>`).join('')}</div>${f.category ? `<span class="chip">${esc(f.category)}</span>` : ''}${f.client_name ? `<span class="chip gold">👤 ${esc(f.client_name)}</span>` : ''}${f.caregiver_name ? `<span class="chip gold">🩺 ${esc(f.caregiver_name)}</span>` : ''}<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="Viewer.tag()">Tags</button>` : '';
   },
   go(d) { const n = this.i + d; if (n < 0 || n >= this.list.length) return; this.i = n; this.paint(); },
   tag() { const f = Files.byPath(this.cur()?.path); if (f) Files.openTagger([f.id]); else toast('This file is not in Shared Files'); },
@@ -1571,7 +1627,7 @@ function wireInputs() {
   }, { passive: true });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') { Chat.markRead(); if (S.channel && Realtime._wasDown) Realtime.catchUp(); }
+    if (document.visibilityState === 'visible') { Chat.markRead(); if (S.channel) Realtime.catchUp(); }
     else Typing.stop();
   });
   window.addEventListener('focus', () => Chat.markRead());
@@ -1580,6 +1636,8 @@ function wireInputs() {
   if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (Chat.nearBottom()) Chat.scrollBottom(false); });
   // Refresh signed URLs occasionally on long sessions
   setInterval(() => { S.urlCache.clear(); }, 45 * 60 * 1000);
+  // Safety net: if the live connection silently drops, pick up new messages within seconds
+  setInterval(() => { if (document.visibilityState === 'visible' && S.channel && S.channel.state !== 'joined') { Realtime._wasDown = true; Realtime.catchUp(); } }, 8000);
 }
 
 boot().catch((e) => { show('denied'); $('deniedMsg').textContent = 'Something went wrong: ' + (e.message || e); });

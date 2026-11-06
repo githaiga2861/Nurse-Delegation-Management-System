@@ -1,0 +1,29 @@
+# Builds the Android app (GY Messages) and publishes the APK to the
+# "messages-android" GitHub release, downloadable at:
+# https://github.com/githaiga2861/Nurse-Delegation-Management-System/releases/download/messages-android/gy-messages.apk
+name: Build Android Messages app
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Build APK
+        working-directory: android
+        run: gradle --no-daemon assembleRelease
+      - name: Publish APK
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk gy-messages.apk
+          gh release view messages-android >/dev/null 2>&1 || gh release create messages-android --title "GY Messages (Android)" --notes "Install gy-messages.apk on Android. Updated automatically."
+          gh release upload messages-android gy-messages.apk --clobber
