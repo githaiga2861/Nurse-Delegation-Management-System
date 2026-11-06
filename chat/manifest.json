@@ -1,0 +1,15 @@
+{
+  "name": "Golden Years Messages",
+  "short_name": "GY Messages",
+  "description": "Private messages and document sharing for Golden Years nurse delegation.",
+  "id": "/chat/",
+  "start_url": "/chat/",
+  "scope": "/chat/",
+  "display": "standalone",
+  "background_color": "#080a0f",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "/chat/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/chat/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
