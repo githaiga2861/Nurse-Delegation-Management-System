@@ -9013,7 +9013,9 @@ function buildFacilityProfileHtml(f){
     <div class="tab" onclick="switchFacTab(this,'Clients')">Clients</div>
     <div class="tab" onclick="switchFacTab(this,'Caregivers')">Caregivers</div>
     <div class="tab" onclick="switchFacTab(this,'Cases')">Delegation Cases</div>
+    <div class="tab" onclick="switchFacTab(this,'Documents')">Documents</div>
   </div>
+  <div id="facTabDocuments" style="display:none" data-fac-id="${f.id}"><div id="facDocsBody"></div></div>
 
   <!-- TAB: INFO -->
   <div id="facTabInfo">
@@ -9057,7 +9059,11 @@ function buildFacilityProfileHtml(f){
     <div class="card">
       <div class="card-header">
         <span style="font-size:13px;font-weight:600">Clients at ${f.name}</span>
-        <span class="chip">${clients.length} client${clients.length===1?'':'s'}</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${clients.length?`<input type="month" id="facMarMonth-${f.id}" value="${_marDefaultMonth()}" class="form-input" style="width:150px;padding:5px 8px;font-size:12px" title="MAR month">
+          <button class="btn btn-primary btn-sm" onclick="downloadMar([${clients.map(c=>`'${c.id}'`).join(',')}],document.getElementById('facMarMonth-${f.id}').value,'MARs ${esc(f.name)} '+document.getElementById('facMarMonth-${f.id}').value)">⬇ Download MARs (all clients)</button>`:''}
+          <span class="chip">${clients.length} client${clients.length===1?'':'s'}</span>
+        </div>
       </div>
       ${clients.length===0?`<div class="empty-state" style="padding:48px"><div class="empty-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M2 18c0-4 3.6-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No clients at this facility</h4><p>Add a client and assign them to this facility.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openClientModal();setTimeout(()=>{const s=document.getElementById('clFacility');if(s)s.value='${f.id}';},200)">+ Add Client</button></div>`
       :`<div class="table-wrap"><table>
@@ -9129,11 +9135,220 @@ function buildFacilityProfileHtml(f){
   </div>`;
 }
 
+
+/* ===================== PROFILE DOCUMENTS TAB (clients / caregivers / facilities) ===================== */
+async function _pdocEnsureLoaded(force){
+  initSupa();
+  if(!supa||!currentUser) return;
+  if(force||!Array.isArray(window.formDrafts)||!window._pdocDraftsLoaded){
+    const {data}=await supa.from('form_drafts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    window.formDrafts=data||[]; window._pdocDraftsLoaded=true;
+  }
+  if(force||!window._pdocSignedLoaded){
+    const {data}=await supa.from('signed_documents').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+    const merged=[...(data||[])];
+    (window.signedDocs||[]).forEach(l=>{ if(!l._deleted&&!merged.find(x=>x.id===l.id)) merged.push(l); });
+    window.signedDocs=merged; window._pdocSignedLoaded=true;
+  }
+}
+function _pdocNorm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+function _pdocMatch(kind,id,doc,fd){
+  id=String(id);
+  if(kind==='client') return String(doc.client_id||'')===id;
+  if(kind==='caregiver'){
+    if(String(doc.caregiver_id||'')===id) return true;
+    const g=(window.caregivers||[]).find(x=>String(x.id)===id); if(!g) return false;
+    const nm=_pdocNorm(g.first+' '+g.last);
+    fd=fd||{};
+    const rows=[].concat(Array.isArray(fd.ltcwRows)?fd.ltcwRows:[],Array.isArray(fd.ltcwRowsPg2)?fd.ltcwRowsPg2:[],Array.isArray(fd.caregivers)?fd.caregivers:[]);
+    if(rows.some(r=>_pdocNorm(r&&r.name)===nm)) return true;
+    return _pdocNorm(fd.ltcwName)===nm;
+  }
+  if(kind==='facility'){
+    if(String(doc.facility_id||'')===id) return true;
+    const c=(window.clients||[]).find(x=>String(x.id)===String(doc.client_id||''));
+    if(c&&String(c.facilityId||'')===id) return true;
+    const g=(window.caregivers||[]).find(x=>String(x.id)===String(doc.caregiver_id||''));
+    return !!(g&&String(g.facilityId||'')===id);
+  }
+  return false;
+}
+function _pdocFormDate(fd,fallback){
+  fd=fd||{};
+  const v=fd.visitDate||fd.dateDelegated||fd.rescindDate||fd.dateVerified||fd.date||fallback;
+  return v?_fmtPrintDate(v):'—';
+}
+function _pdocSortKey(s){ const m=String(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m?`${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`:''; }
+function _pdocCgNames(d,fd){
+  fd=fd||{};
+  const rows=[].concat(Array.isArray(fd.ltcwRows)?fd.ltcwRows:[],Array.isArray(fd.ltcwRowsPg2)?fd.ltcwRowsPg2:[]).map(r=>r&&r.name).filter(Boolean);
+  if(rows.length) return rows.join(', ');
+  if(fd.ltcwName) return fd.ltcwName;
+  return (d.caregiver_name&&d.caregiver_name!=='—')?d.caregiver_name:'—';
+}
+async function renderProfileDocs(kind,id,bodyId){
+  const el=document.getElementById(bodyId); if(!el) return;
+  el.dataset.kind=kind; el.dataset.pid=id;
+  el.innerHTML='<div class="card"><div style="padding:24px;font-size:12.5px;color:var(--text3)">Loading documents…</div></div>';
+  try{ await _pdocEnsureLoaded(); }catch(e){ console.warn(e); }
+  const signedDocs=(window.signedDocs||[]).filter(s=>!s._deleted);
+  const signedDraftIds=new Set(signedDocs.map(s=>String(s.draft_id||'')).filter(Boolean));
+  const drafts=(window.formDrafts||[]).filter(d=>{
+    if(signedDraftIds.has(String(d.id))) return false;
+    if(String(d.status||'').toLowerCase().includes('signed')&&!String(d.status||'').toLowerCase().includes('awaiting')) return false;
+    return _pdocMatch(kind,id,d,d.form_data);
+  }).map(d=>({d,date:_pdocFormDate(d.form_data,d.created_at)}));
+  const signed=signedDocs.filter(s=>{
+    const dr=(window.formDrafts||[]).find(x=>String(x.id)===String(s.draft_id||''));
+    return _pdocMatch(kind,id,s,dr&&dr.form_data);
+  }).map(s=>{const dr=(window.formDrafts||[]).find(x=>String(x.id)===String(s.draft_id||''));return {s,dr,date:_pdocFormDate(dr&&dr.form_data,s.created_at)};});
+  drafts.sort((a,b)=>_pdocSortKey(b.date).localeCompare(_pdocSortKey(a.date)));
+  signed.sort((a,b)=>_pdocSortKey(b.date).localeCompare(_pdocSortKey(a.date)));
+  window._pdocSub=window._pdocSub||{};
+  const sub=window._pdocSub[bodyId]||'drafts';
+  const btn=(key,label,n,col)=>`<button class="btn btn-sm ${sub===key?'btn-primary':'btn-ghost'}" onclick="window._pdocSub['${bodyId}']='${key}';renderProfileDocs('${kind}','${id}','${bodyId}')">${label} <span style="opacity:.75;margin-left:4px">${n}</span></button>`;
+  const head=`<thead><tr><th>Form</th><th>Form date</th>${kind!=='client'?'<th>Client</th>':''}<th>Caregiver(s)</th><th>Status</th><th></th></tr></thead>`;
+  const draftRow=x=>{const d=x.d;const nsig=d.form_data&&d.form_data._signatures?Object.keys(d.form_data._signatures).length:0;return `<tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${esc(d.form_name||d.form_id)}</td>
+      <td style="font-family:var(--mono);font-size:11.5px">${esc(x.date)}</td>
+      ${kind!=='client'?`<td style="font-size:12.5px">${esc(d.client_name||'—')}</td>`:''}
+      <td style="font-size:12px;color:var(--text2);max-width:260px">${esc(_pdocCgNames(d,d.form_data))}</td>
+      <td><span class="status status-pending" style="font-size:10px"><span class="status-dot"></span>${nsig?`Partly signed (${nsig})`:'Awaiting signature'}</span></td>
+      <td style="white-space:nowrap"><div style="display:flex;gap:6px">
+        ${d.form_id!=='form-06-200'?`<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:var(--blue-dim)" onclick="openSignModal('${d.id}')">✍ Sign</button>`:''}
+        <button class="btn btn-primary btn-sm" onclick="printDraft('${d.id}')">Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="editDraft('${d.id}')">Edit</button>
+      </div></td></tr>`;};
+  const signedRow=x=>{const s=x.s;const isE=s.signed_method==='electronic';
+    const view=isE?`<button class="btn btn-ghost btn-sm" onclick="viewElectronicSigned('${s.id}')">View</button>`
+      :(s.file_url?`<a href="${esc(s.file_url)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">View</a>`:(x.dr?`<button class="btn btn-ghost btn-sm" onclick="printDraft('${x.dr.id}')">Print</button>`:''));
+    return `<tr>
+      <td style="font-weight:600;color:var(--text);font-size:12.5px">${esc(s.form_name||s.form_id)}</td>
+      <td style="font-family:var(--mono);font-size:11.5px">${esc(x.date)}</td>
+      ${kind!=='client'?`<td style="font-size:12.5px">${esc(s.client_name||'—')}</td>`:''}
+      <td style="font-size:12px;color:var(--text2);max-width:260px">${esc(_pdocCgNames(s,x.dr&&x.dr.form_data))}</td>
+      <td><span class="status ${isE?'status-reassess':'status-active'}" style="font-size:10px"><span class="status-dot"></span>${isE?'Electronically signed':'Signed &amp; filed'}</span></td>
+      <td style="white-space:nowrap">${view}</td></tr>`;};
+  const list=sub==='drafts'?drafts:signed;
+  const empty=sub==='drafts'?'No drafts waiting for signature.':'No signed documents yet.';
+  el.innerHTML=`<div class="card">
+    <div class="card-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('drafts','Drafts',drafts.length)}${btn('signed','Signed',signed.length)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="(async()=>{await _pdocEnsureLoaded(true);renderProfileDocs('${kind}','${id}','${bodyId}')})()">↻ Refresh</button>
+    </div>
+    ${list.length?`<div class="table-wrap"><table>${head}<tbody>${list.map(sub==='drafts'?draftRow:signedRow).join('')}</tbody></table></div>`
+      :`<div class="empty-state" style="padding:48px"><h4>${empty}</h4></div>`}
+  </div>`;
+}
+
+/* ===================== MAR (Medication Administration Record) ===================== */
+function _marTimes(s){
+  const t=String(s||'');
+  if(/\b(prn|as needed|as-needed)\b/i.test(t)&&!/\b(daily|bid|tid|qid|twice|every morning|at bedtime|qhs|hs)\b/i.test(t)) return {prn:true,times:['PRN']};
+  const ex=[]; t.replace(/\b(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?\s*[Mm]\b/g,(m,h,mi,ap)=>{const v=`${parseInt(h,10)}:${mi||'00'} ${ap.toUpperCase()}M`; if(!ex.includes(v)) ex.push(v); return m;});
+  if(ex.length) return {prn:false,times:ex};
+  if(/\b(qid|four times|4 times)\b/i.test(t)) return {prn:false,times:['8:00 AM','12:00 PM','4:00 PM','8:00 PM']};
+  if(/\b(tid|three times|3 times)\b/i.test(t)) return {prn:false,times:['8:00 AM','2:00 PM','8:00 PM']};
+  if(/\b(bid|twice|two times|2 times)\b/i.test(t)) return {prn:false,times:['8:00 AM','8:00 PM']};
+  if(/\b(once a week|weekly|q ?week|every week|1\s*q\s*w|qw)\b/i.test(t)) return {prn:false,times:['Weekly']};
+  if(/\b(qhs|hs|bedtime|at night|nightly)\b/i.test(t)) return {prn:false,times:['9:00 PM']};
+  if(/\b(evening|pm)\b/i.test(t)&&!/\b(am|morning)\b/i.test(t)) return {prn:false,times:['5:00 PM']};
+  if(/\b(qam|q am|every morning|morning|am|daily|once a day|qd|q\.d\.|1 tab po)\b/i.test(t)) return {prn:false,times:['8:00 AM']};
+  return {prn:false,times:['']};
+}
+function _marParse(text){
+  let lines=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(lines.length===1&&lines[0].length>140&&/;/.test(lines[0])) lines=lines[0].split(/;\s*/);
+  const out=[]; let prnSection=false;
+  lines.forEach(raw=>{
+    let l=raw.replace(/^[-•*•]+\s*/,'').replace(/^\d{1,2}[.)]\s+/,'').trim();
+    if(!l) return;
+    if(/^(source|note|per [a-z]+ \d{4}|discontinued)\b/i.test(l)&&l.length<220&&!/\d\s?(mg|mcg|ml|units?)/i.test(l)) return;
+    if(/^(prn|as needed)( medications?)?\s*:?\s*$/i.test(l)){prnSection=true;return;}
+    if(/^(routine|scheduled)( medications?)?.*:\s*$/i.test(l)){prnSection=false;return;}
+    if(/discontinued|do not give/i.test(l)) return;
+    l=l.replace(/^(routine|prn)\s*(\([^)]*\))?\s*:\s*/i,m=>{if(/prn/i.test(m))prnSection=true;return '';});
+    const tm=_marTimes(l);
+    out.push({text:l,prn:tm.prn||prnSection&&!/\b(daily|bid|tid|qid)\b/i.test(l),times:(prnSection&&!tm.times[0])?['PRN']:tm.times});
+  });
+  return out;
+}
+function _marPage(c,ym){
+  const [Y,M]=ym.split('-').map(Number);
+  const days=new Date(Y,M,0).getDate();
+  const monthName=new Date(Y,M-1,1).toLocaleString('en-US',{month:'long',year:'numeric'});
+  const meds=_marParse(c.medications);
+  const sched=meds.filter(m=>!m.prn), prn=meds.filter(m=>m.prn);
+  const dayHead=Array.from({length:days},(_,i)=>`<th class="d">${i+1}</th>`).join('');
+  const blanks=Array.from({length:days},()=>'<td class="d"></td>').join('');
+  const medRows=list=>list.map(m=>{
+    const times=m.prn?['PRN']:m.times;
+    return times.map((t,i)=>`<tr>${i===0?`<td class="med" rowspan="${times.length}">${esc(m.text)}</td>`:''}<td class="tm">${esc(t)}</td>${blanks}</tr>`).join('');
+  }).join('');
+  const extra=Array.from({length:3},()=>`<tr><td class="med">&nbsp;</td><td class="tm"></td>${blanks}</tr>`).join('');
+  const info=(l,v)=>`<div class="kv"><span>${l}</span><b>${esc(v||'—')}</b></div>`;
+  return `<section class="mar">
+    <div class="top"><div><div class="title">MEDICATION ADMINISTRATION RECORD (MAR)</div><div class="sub">${esc(monthName)} · Nurse delegation — RND: Rose Mbote</div></div>
+      <div class="month">${esc(monthName)}</div></div>
+    <div class="grid">
+      ${info('Client',`${c.last||''}, ${c.first||''}`)}${info('DOB',_fmtPrintDate(c.dob))}${info('ACES ID',c.acesId)}${info('Setting',c.facilityName)}
+      ${info('Diagnosis',[c.diagnosis,c.diagnosisSecondary].filter(Boolean).join('; '))}${info('Allergies',c.allergies||'Not on file')}
+      ${info('Prescriber',[c.physician,c.physicianPhone].filter(Boolean).join(' · '))}${info('Pharmacy',[c.pharmacy,c.pharmacyPhone].filter(Boolean).join(' · '))}
+    </div>
+    <table class="g"><thead><tr><th class="med">Medication · dose · route · instructions</th><th class="tm">Time</th>${dayHead}</tr></thead>
+      <tbody>${sched.length?medRows(sched):''}${extra}</tbody></table>
+    ${prn.length?`<div class="h">PRN (as needed)</div><table class="g"><thead><tr><th class="med">Medication · dose · route · reason</th><th class="tm">Time</th>${dayHead}</tr></thead><tbody>${medRows(prn)}</tbody></table>`:''}
+    ${c.medNotes?`<div class="note"><b>Medication notes:</b> ${esc(c.medNotes)}</div>`:''}
+    <div class="legend"><b>Codes:</b> Initial each dose given. Circle initials and use a code if not given — R = Refused · H = Held (parameters) · A = Away from home · N = Not available · S = Sleeping · X = Discontinued. Report every code to the RND; explain on the PRN/notes log.</div>
+    <div class="two">
+      <table class="log"><thead><tr><th>Date</th><th>Time</th><th>Medication &amp; dose</th><th>Reason / code</th><th>Result</th><th>Init.</th></tr></thead><tbody>${Array.from({length:8},()=>'<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</tbody></table>
+      <table class="log sig"><thead><tr><th>Init.</th><th>Caregiver name / signature</th><th>Cred.</th></tr></thead><tbody>${Array.from({length:8},()=>'<tr><td></td><td></td><td></td></tr>').join('')}</tbody></table>
+    </div>
+    <div class="foot">Medications listed from the client's record in the Nurse Delegation System on ${esc(_fmtPrintDate(new Date().toISOString()))}. Always check each dose against the pharmacy label and current orders.</div>
+  </section>`;
+}
+function buildMarHtml(list,ym,title){
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+    @page{size:letter landscape;margin:8mm}
+    *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;font-size:9px}
+    .mar{page-break-after:always} .mar:last-child{page-break-after:auto}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:4px;margin-bottom:5px}
+    .title{font-size:14px;font-weight:700;letter-spacing:.3px} .sub{font-size:9px;color:#444;margin-top:2px} .month{font-size:13px;font-weight:700}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 10px;margin-bottom:6px}
+    .kv{display:flex;gap:4px;border-bottom:1px solid #ccc;padding:2px 0;min-width:0} .kv span{color:#555;white-space:nowrap} .kv b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+    table.g{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:5px} table.g thead{display:table-header-group}
+    table.g th,table.g td{border:1px solid #555;padding:1px 2px;height:15px} table.g th{background:#eee;font-size:8px}
+    table.g .med{width:2.55in;text-align:left;font-size:8.2px;line-height:1.15;vertical-align:top;word-wrap:break-word} table.g .tm{width:.52in;font-size:8px;text-align:center}
+    table.g .d{text-align:center;font-size:7.5px} table.g tr{page-break-inside:avoid}
+    .h{font-weight:700;font-size:10px;margin:4px 0 2px}
+    .note{border:1px solid #999;padding:3px 5px;margin:3px 0;white-space:pre-wrap}
+    .legend{margin:4px 0;font-size:8.5px}
+    .two{display:grid;grid-template-columns:2fr 1fr;gap:8px} table.log{width:100%;border-collapse:collapse} table.log th,table.log td{border:1px solid #555;height:15px;padding:1px 3px;font-size:8px} table.log th{background:#eee}
+    .foot{margin-top:4px;font-size:7.5px;color:#555}
+  </style></head><body>${list.map(c=>_marPage(c,ym)).join('')}</body></html>`;
+}
+function downloadMar(clientIds,ym,title){
+  const list=(clientIds||[]).map(id=>(window.clients||[]).find(c=>String(c.id)===String(id))).filter(Boolean);
+  if(!list.length){alert('No client found.');return;}
+  if(!/^\d{4}-\d{2}$/.test(ym||'')){const n=new Date();ym=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+  const noMeds=list.filter(c=>!String(c.medications||'').trim());
+  if(noMeds.length===list.length){alert('No medications on file to put on the MAR.');return;}
+  let html=buildMarHtml(list.filter(c=>String(c.medications||'').trim()),ym,title);
+  html=html.replace('</body>',`<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},400);});<\/script></body>`);
+  const w=window.open('','_blank','width=1100,height=850');
+  if(!w){alert('Popup blocked. Allow popups for this site to download the MAR.');return;}
+  w.document.write(html); w.document.close();
+  if(noMeds.length) setTimeout(()=>alert('Skipped (no medications on file): '+noMeds.map(c=>c.first+' '+c.last).join(', ')),300);
+  try{AuditLog.log('mar.downloaded',{client_ids:list.map(c=>c.id),month:ym,note:title});}catch(e){}
+}
+function _marDefaultMonth(){const n=new Date();return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+
 function switchFacTab(el,tab){
   document.querySelectorAll('#facProfileTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Info','Clients','Caregivers','Cases'].forEach(t=>{const d=document.getElementById('facTab'+t);if(d)d.style.display='none';});
+  ['Info','Clients','Caregivers','Cases','Documents'].forEach(t=>{const d=document.getElementById('facTab'+t);if(d)d.style.display='none';});
   const d=document.getElementById('facTab'+tab);if(d)d.style.display='block';
+  if(tab==='Documents'&&d)renderProfileDocs('facility',d.dataset.facId,'facDocsBody');
 }
 async function deleteFacility(id){
   if(!confirm('Remove this facility?'))return;
@@ -9399,8 +9614,10 @@ function buildCaregiverProfileHtml(c){
     <div class="tab" onclick="switchCgProfileTab(this,'Credentials')">Credentials</div>
     <div class="tab" onclick="switchCgProfileTab(this,'Clients')">Assigned Clients</div>
     <div class="tab" onclick="switchCgProfileTab(this,'Cases')">Delegation Cases</div>
+    <div class="tab" onclick="switchCgProfileTab(this,'Documents')">Documents</div>
     <div class="tab" onclick="switchCgProfileTab(this,'History')">Activity History</div>
   </div>
+  <div id="cgProfTabDocuments" style="display:none" data-cg-id="${c.id}"><div id="cgProfDocsBody"></div></div>
   <div id="cgProfTabHistory" style="display:none" data-cg-id="${c.id}"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Activity History — ${c.first} ${c.last}</span><span style="font-size:11px;color:var(--text3)">Click an entry to see what changed</span></div><div id="cgProfHistoryBody"></div></div></div>
 
   <!-- TAB: INFO -->
@@ -9509,9 +9726,10 @@ function buildCaregiverProfileHtml(c){
 function switchCgProfileTab(el,tab){
   document.querySelectorAll('#cgProfileTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Info','Credentials','Clients','Cases','History'].forEach(t=>{const d=document.getElementById('cgProfTab'+t);if(d)d.style.display='none';});
+  ['Info','Credentials','Clients','Cases','Documents','History'].forEach(t=>{const d=document.getElementById('cgProfTab'+t);if(d)d.style.display='none';});
   const d=document.getElementById('cgProfTab'+tab);if(d)d.style.display='block';
   if(tab==='History'&&d)renderHistory('cgProfHistoryBody',{kind:'caregiver',id:d.dataset.cgId});
+  if(tab==='Documents'&&d)renderProfileDocs('caregiver',d.dataset.cgId,'cgProfDocsBody');
 }
 async function deleteCaregiver(id){
   if(!confirm('Remove this caregiver? This action is permanent and will be logged.'))return;
@@ -9928,8 +10146,10 @@ function buildClientProfileHtml(c){
     <div class="tab" onclick="switchClientProfileTab(this,'Medications')">Medications</div>
     <div class="tab" onclick="switchClientProfileTab(this,'Cases')">Delegation Cases</div>
     <div class="tab" onclick="switchClientProfileTab(this,'Contacts')">Contacts</div>
+    <div class="tab" onclick="switchClientProfileTab(this,'Documents')">Documents</div>
     <div class="tab" onclick="switchClientProfileTab(this,'History')">Activity History</div>
   </div>
+  <div id="cpTabDocuments" style="display:none" data-client-id="${c.id}"><div id="cpDocsBody"></div></div>
   <div id="cpTabHistory" style="display:none" data-client-id="${c.id}"><div class="card"><div class="card-header"><span style="font-size:13px;font-weight:600">Activity History — ${c.first} ${c.last}</span><span style="font-size:11px;color:var(--text3)">Click an entry to see what changed</span></div><div id="cpHistoryBody"></div></div></div>
 
   <!-- TAB: OVERVIEW -->
@@ -10042,7 +10262,11 @@ function buildClientProfileHtml(c){
       <div class="card" style="grid-column:span 2">
         <div class="card-header">
           <span style="font-size:13px;font-weight:600">Current Medications (Free Text)</span>
-          <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="marMonth-${c.id}" value="${_marDefaultMonth()}" class="form-input" style="width:150px;padding:5px 8px;font-size:12px" title="MAR month">
+            <button class="btn btn-primary btn-sm" onclick="downloadMar(['${c.id}'],document.getElementById('marMonth-${c.id}').value,'MAR ${esc((c.last||'')+' '+(c.first||''))} '+document.getElementById('marMonth-${c.id}').value)">⬇ Download MAR</button>
+            <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
+          </div>
         </div>
         <div class="card-body" style="padding:16px 24px">
           ${c.medications?`<div style="background:var(--bg1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.8">${c.medications}</div>`
@@ -10187,11 +10411,12 @@ function buildClientProfileHtml(c){
 function switchClientProfileTab(el,tab){
   document.querySelectorAll('#clientProfileTabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  ['Overview','Medical','Medications','Cases','Contacts','History'].forEach(t=>{
+  ['Overview','Medical','Medications','Cases','Contacts','Documents','History'].forEach(t=>{
     const d=document.getElementById('cpTab'+t);if(d)d.style.display='none';
   });
   const d=document.getElementById('cpTab'+tab);if(d)d.style.display='block';
   if(tab==='History'&&d)renderHistory('cpHistoryBody',{kind:'client',id:d.dataset.clientId});
+  if(tab==='Documents'&&d)renderProfileDocs('client',d.dataset.clientId,'cpDocsBody');
   if(tab==='Medications'){
     const grid=document.querySelector('[id^="medImageGrid-"]');
     if(grid){
