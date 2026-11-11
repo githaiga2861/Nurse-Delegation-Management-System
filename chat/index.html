@@ -140,6 +140,21 @@ select.form-input{appearance:none;-webkit-appearance:none;background-image:linea
 .row.grp-start:not(.mine) .bubble{border-top-left-radius:4px}
 .row.grp-start.mine .bubble{border-top-right-radius:4px}
 .bubble .text{white-space:pre-wrap;font-size:14px;line-height:1.45;padding:1px 2px}
+.quiz{margin:4px 0 6px;min-width:min(440px,70vw)}
+.quiz .qh{font-weight:700;font-size:13.5px;margin:2px 2px 8px;display:flex;align-items:center;gap:6px}
+.quiz .qq{background:#0003;border:1px solid var(--border2);border-radius:10px;padding:9px 10px;margin-bottom:8px}
+.quiz .qt{font-size:13.5px;font-weight:600;margin-bottom:7px;line-height:1.4}
+.quiz .opt{display:flex;align-items:flex-start;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13.5px;line-height:1.35;border:1px solid transparent;user-select:none}
+.quiz .opt:hover{background:#ffffff0a}
+.quiz .opt.on{background:var(--gold-glow);border-color:var(--gold-dim)}
+.quiz .box{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--text2);display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:12px;font-weight:900;color:#1a1306}
+.quiz .opt.on .box{background:var(--gold);border-color:var(--gold)}
+.quiz .ro .opt{cursor:default}.quiz .ro .opt:hover{background:transparent}.quiz .ro .opt.on:hover{background:var(--gold-glow)}
+.quiz input.other{width:100%;margin:4px 0 2px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:8px 10px;font:inherit;font-size:13.5px}
+.quiz .qf{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-top:4px}
+.quiz .qs{font-size:11.5px;color:var(--text2)}.quiz .qs.ok{color:var(--green)}
+.quiz .save{background:var(--gold);color:#1a1306;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}
+.quiz .save:disabled{opacity:.5;cursor:default}
 .bubble .text a{color:var(--gold-light);text-decoration:underline}
 .bubble .meta{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:10.5px;color:var(--text3);margin-top:1px;float:right;margin-left:10px;position:relative;top:4px}
 .bubble .meta .ticks{width:16px;height:11px}
@@ -543,7 +558,7 @@ const S = {
   msgs: new Map(), order: [], oldest: null, hasOlder: true,
   files: new Map(), clients: [], caregivers: [],
   urlCache: new Map(), online: false, typing: false, channel: null,
-  unseen: 0, reply: null, editing: null,
+  unseen: 0, reply: null, editing: null, quizAns: new Map(),
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -631,7 +646,8 @@ async function start(session) {
   UI.paintPeople();
   show('app');
   buildSelects();
-  await Promise.all([Chat.loadLatest(), Files.load(), loadDirectory()]);
+  await Promise.all([Quiz.load(), Files.load(), loadDirectory()]);
+  await Chat.loadLatest();
   buildSelects();
   Realtime.start();
   Chat.markRead();
@@ -807,6 +823,7 @@ const Chat = {
       inner += this.attHtml(m);
       if (!m._local) inner += this.stBar(m);
       if (m.body) inner += `<div class="text">${linkify(m.body)}</div>`;
+      if (m.quiz && Array.isArray(m.quiz.questions)) inner += Quiz.html(m);
     }
     const tick = mine ? (m._pending ? CLOCK : m.read_at ? TICK2(true) : TICK2(false)) : '';
     const meta = `<span class="meta">${m.edited_at && !m.deleted_at ? '<span class="edited">edited</span>' : ''}${esc(fmtTime(m.created_at))}${tick}</span><div class="clear"></div>`;
@@ -1408,6 +1425,11 @@ const Realtime = {
       const cur = S.msgs.get(m.id); if (!cur || cur._local) return;
       S.msgs.set(m.id, m); Chat.updateRow(m.id);
     });
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rn_chat_quiz_answers' }, ({ new: a }) => {
+      if (!a || !a.message_id) return;
+      if (a.user_id === S.user.id && Quiz._dirty.has(String(a.message_id))) return; // our own typing in progress
+      S.quizAns.set(String(a.message_id) + '|' + a.user_id, a); Chat.updateRow(String(a.message_id));
+    });
     ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rn_chat_files' }, ({ new: f }) => {
       if (!f || !f.id) return; S.files.set(f.id, f); clearTimeout(this._fr); this._fr = setTimeout(() => Files.render(), 150);
     });
@@ -1438,9 +1460,86 @@ const Realtime = {
     (upd || []).forEach(m => S.msgs.set(m.id, m));
     Chat.reorder(); Chat.renderAll(); if (Chat.nearBottom()) Chat.scrollBottom(false);
     await Files.load(); Files.render();
+    await Quiz.load(); Chat.renderAll();
     Chat.markRead();
   },
 };
+const Quiz = {
+  _dirty: new Set(), _timers: {},
+  async load() {
+    const { data, error } = await S.supa.from('rn_chat_quiz_answers').select('*');
+    if (error) return;
+    (data || []).forEach(a => S.quizAns.set(String(a.message_id) + '|' + a.user_id, a));
+  },
+  key(mid, uid) { return String(mid) + '|' + uid; },
+  html(m) {
+    const qz = m.quiz, mine = m.sender_id === S.user.id;
+    const responder = mine ? S.other.user_id : S.user.id;
+    const ans = S.quizAns.get(this.key(m.id, responder)) || null;
+    const a = (ans && ans.answers) || {};
+    const L = 'ABCDEFGHIJ';
+    const qs = qz.questions.map((q, qi) => {
+      const qid = q.id || ('q' + (qi + 1));
+      const cur = a[qid] || {};
+      const opts = (q.options || []).map((o, oi) => {
+        const on = cur.choice === oi;
+        return `<div class="opt${on ? ' on' : ''}" ${mine ? '' : `onclick="Quiz.pick('${m.id}','${qid}',${oi})"`}><span class="box">${on ? '✓' : ''}</span><span><b>${L[oi]})</b> ${esc(o)}</span></div>`;
+      }).join('');
+      const oi = (q.options || []).length, onO = cur.choice === 'other';
+      const other = q.other === false ? '' : `<div class="opt${onO ? ' on' : ''}" ${mine ? '' : `onclick="Quiz.pick('${m.id}','${qid}','other')"`}><span class="box">${onO ? '✓' : ''}</span><span><b>${L[oi]})</b> ${esc(q.otherLabel || 'Write your own answer')}</span></div>`
+        + (onO ? (mine ? `<div class="qt" style="font-weight:400;margin:2px 0 0 35px">“${esc(cur.other || '')}”</div>`
+                       : `<input class="other" placeholder="Type your answer…" value="${esc(cur.other || '')}" oninput="Quiz.type('${m.id}','${qid}',this.value)">`) : '');
+      return `<div class="qq"><div class="qt">${qi + 1}. ${esc(q.text)}</div>${opts}${other}</div>`;
+    }).join('');
+    const n = qz.questions.length;
+    const done = qz.questions.filter((q, qi) => { const c = a[q.id || ('q' + (qi + 1))]; return c && (c.choice !== undefined && c.choice !== null) && (c.choice !== 'other' || (c.other || '').trim()); }).length;
+    let st;
+    if (ans && ans.submitted_at && new Date(ans.updated_at) <= new Date(ans.submitted_at)) st = `<span class="qs ok">✓ Saved ${esc(fmtTime(ans.submitted_at))}${mine ? ' by ' + esc(S.other.display_name) : ''}</span>`;
+    else if (ans && done) st = `<span class="qs">${mine ? esc(S.other.display_name) + ' answered ' + done + ' of ' + n + ' (auto-saved, not yet confirmed)' : 'Auto-saved · ' + done + ' of ' + n + ' answered'}</span>`;
+    else st = `<span class="qs">${mine ? 'Waiting for ' + esc(S.other.display_name) + ' to answer' : 'Tap your answers — they save automatically'}</span>`;
+    const btn = mine ? '' : `<button class="save" onclick="Quiz.save('${m.id}')"${done ? '' : ' disabled'}>Save answers</button>`;
+    return `<div class="quiz${mine ? ' ro' : ''}">${qz.title ? `<div class="qh">📋 ${esc(qz.title)}</div>` : ''}${qs}<div class="qf">${st}${btn}</div></div>`;
+  },
+  _cur(mid) {
+    const k = this.key(mid, S.user.id);
+    const row = S.quizAns.get(k) || { message_id: String(mid), user_id: S.user.id, answers: {}, submitted_at: null, updated_at: null };
+    S.quizAns.set(k, row); return row;
+  },
+  pick(mid, qid, choice) {
+    const row = this._cur(mid);
+    const prev = row.answers[qid] || {};
+    row.answers = { ...row.answers, [qid]: { choice, other: choice === 'other' ? (prev.other || '') : '' } };
+    row.updated_at = new Date().toISOString();
+    Chat.updateRow(String(mid));
+    if (choice === 'other') { const el = document.querySelector(`#m-${CSS.escape(String(mid))} input.other`); if (el) el.focus(); }
+    this.queue(mid, 300);
+  },
+  type(mid, qid, val) {
+    const row = this._cur(mid);
+    row.answers = { ...row.answers, [qid]: { choice: 'other', other: val } };
+    row.updated_at = new Date().toISOString();
+    this._dirty.add(String(mid));
+    this.queue(mid, 900);
+  },
+  queue(mid, ms) { clearTimeout(this._timers[mid]); this._timers[mid] = setTimeout(() => { delete this._timers[mid]; this.persist(mid, false); }, ms); },
+  async persist(mid, submit) {
+    const row = this._cur(mid);
+    const now = new Date().toISOString();
+    const payload = { message_id: String(mid), user_id: S.user.id, answers: row.answers, updated_at: now };
+    if (submit) payload.submitted_at = now;
+    const { data, error } = await S.supa.from('rn_chat_quiz_answers').upsert(payload, { onConflict: 'message_id,user_id' }).select().single();
+    this._dirty.delete(String(mid));
+    if (error) { toast('Could not save answers: ' + error.message); return; }
+    S.quizAns.set(this.key(mid, S.user.id), data);
+    if (submit || !document.activeElement || !document.activeElement.classList.contains('other')) Chat.updateRow(String(mid));
+    if (submit) toast('Answers saved ✓');
+  },
+  save(mid) { clearTimeout(this._timers[mid]); this.persist(mid, true); },
+};
+// Save any pending answers if the app is closed or hidden
+window.addEventListener('pagehide', () => { Object.keys(Quiz._timers).forEach(mid => { clearTimeout(Quiz._timers[mid]); Quiz.persist(mid, false); }); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') Object.keys(Quiz._timers).forEach(mid => { clearTimeout(Quiz._timers[mid]); Quiz.persist(mid, false); }); });
+
 const Typing = {
   _last: 0, _on: false,
   ping() {
