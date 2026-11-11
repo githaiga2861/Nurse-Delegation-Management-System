@@ -16416,5 +16416,32 @@ function injectSignatures(html,draft){
   sidebar.querySelectorAll('.nav-item').forEach(function(n){n.addEventListener('click',close);});
 })();
 </script>
+<script>
+/* Update notice: shows "Update now" when a newer version of the app has been deployed */
+(function(){
+  var base=null, shown=false;
+  function show(){
+    if(shown) return; shown=true;
+    var d=document.createElement('div'); d.id='gyUpdate';
+    d.setAttribute('style','position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;background:#1b2234;color:#fff;border:1.5px solid #d9a441;border-radius:12px;padding:10px 12px 10px 16px;box-shadow:0 8px 30px #000a;font:600 13.5px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:calc(100vw - 24px)');
+    d.innerHTML='<span>✨ A new version of the app is ready.</span><button style="background:#d9a441;color:#1a1306;border:0;border-radius:8px;padding:8px 14px;font:800 13px system-ui,sans-serif;cursor:pointer;white-space:nowrap">Update now</button>';
+    d.querySelector('button').onclick=function(){
+      try{ if(navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){try{r.update();}catch(e){}});}); }catch(e){}
+      location.reload();
+    };
+    document.body.appendChild(d);
+  }
+  function check(){
+    fetch('/api/version',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      if(!j||!j.v) return;
+      if(base===null){ base=j.v; return; }
+      if(j.v!==base) show();
+    }).catch(function(){});
+  }
+  check(); setInterval(check,120000);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(); });
+  window.addEventListener('focus',check);
+})();
+</script>
 </body>
 </html>
