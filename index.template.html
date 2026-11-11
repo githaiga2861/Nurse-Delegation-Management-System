@@ -2693,7 +2693,11 @@ if('serviceWorker' in navigator){
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
         <div class="label" style="margin-bottom:12px">Facility &amp; Caregiver Assignment</div>
         <div class="form-row"><div class="form-group"><label class="form-label">Assigned Facility *</label><select class="form-input form-select" id="clFacility"><option value="">Select facility…</option></select></div><div class="form-group"><label class="form-label">Assigned Caregiver</label><select class="form-input form-select" id="clCaregiver"><option value="">Select caregiver…</option></select></div></div>
-        <div class="form-group" style="margin-bottom:0"><label class="form-label">Client Status</label><select class="form-input form-select" id="clStatus"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Discharged">Discharged</option></select></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Client Status</label><select class="form-input form-select" id="clStatus" onchange="onClStatusChange(this.value)"><option value="Active">Active</option><option value="On Hold">On Hold</option><option value="Hospitalized">Hospitalized</option><option value="Inactive">Inactive</option><option value="Transferred">Transferred</option><option value="Discharged">Discharged</option><option value="Released by RN">Released by RN</option><option value="Deceased">Deceased</option></select></div>
+      </div>
+      <div class="form-row" id="clStatusExtra" style="display:none;margin-top:12px">
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Status Date</label><input class="form-input" type="date" id="clStatusDate"></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Reason / Notes</label><input class="form-input" id="clStatusReason" placeholder="e.g. passed away at home, discharged to family, RN ended services"></div>
       </div>
 
       <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)">
@@ -3288,7 +3292,7 @@ const AuditLog = (() => {
 // History is shown in: Client profile › History, Client Management › History,
 // Caregiver profile › History and Caregivers › History.
 // ══════════════════════════════════════════════════
-const CLIENT_FIELD_LABELS={first:'First name',last:'Last name',dob:'Date of birth',gender:'Gender',dshsId:'DSHS ID',acesId:'ACES ID',medicaid:'Medicaid / ProviderOne #',address:'Address',facilityName:'Facility',caregiverName:'Assigned caregiver',status:'Status',rnStartDate:'RN start date',isNewClient:'New client',reassess1:'1st reassessment',reassess2:'2nd reassessment',reassess3:'3rd reassessment',isSpecialCase:'Special case',specialCaseType:'Special case type',specialCaseNotes:'Special case notes',specialReassessDates:'Special reassessment dates',diagnosis:'Diagnosis',diagnosisSecondary:'Secondary diagnosis',allergies:'Allergies',medications:'Medications',pharmacy:'Pharmacy',pharmacyPhone:'Pharmacy phone',medNotes:'Medication notes',carePlan:'Care plan',delegationReq:'Delegated tasks',physician:'Physician',physicianPhone:'Physician phone',physicianAddress:'Physician address',emergencyName:'Emergency contact',emergencyRel:'Emergency contact relationship',emergencyPhone:'Emergency phone',guardian:'Guardian'};
+const CLIENT_FIELD_LABELS={first:'First name',last:'Last name',dob:'Date of birth',gender:'Gender',dshsId:'DSHS ID',acesId:'ACES ID',medicaid:'Medicaid / ProviderOne #',address:'Address',facilityName:'Facility',caregiverName:'Assigned caregiver',status:'Status',statusDate:'Status date',statusReason:'Status reason',rnStartDate:'RN start date',isNewClient:'New client',reassess1:'1st reassessment',reassess2:'2nd reassessment',reassess3:'3rd reassessment',isSpecialCase:'Special case',specialCaseType:'Special case type',specialCaseNotes:'Special case notes',specialReassessDates:'Special reassessment dates',diagnosis:'Diagnosis',diagnosisSecondary:'Secondary diagnosis',allergies:'Allergies',medications:'Medications',pharmacy:'Pharmacy',pharmacyPhone:'Pharmacy phone',medNotes:'Medication notes',carePlan:'Care plan',delegationReq:'Delegated tasks',physician:'Physician',physicianPhone:'Physician phone',physicianAddress:'Physician address',emergencyName:'Emergency contact',emergencyRel:'Emergency contact relationship',emergencyPhone:'Emergency phone',guardian:'Guardian'};
 const CAREGIVER_FIELD_LABELS={first:'First name',last:'Last name',phone:'Phone',email:'Email',address:'Address',cred_type:'Credential type',cert_num:'Certificate #',cert_issued:'Certificate issued',cert_expiry:'Certificate expiry',training_status:'Training status',cpr_issued:'CPR issued',cpr_expiry:'CPR expiry',cpr_provider:'CPR provider',training_date:'Core training date',inservice:'In-service',training_notes:'Training notes',facility_name:'Facility',status:'Status',delegation_eligible:'Delegation eligible'};
 
 function _histNorm(v){
@@ -3658,6 +3662,7 @@ async function loadAllDataThenShow(){
     caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
     dshsId: c.dshs_id, acesId: c.aces_id,
     rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+    statusDate: c.status_date||'', statusReason: c.status_reason||'',
     diagnosisSecondary: c.diagnosis_secondary,
     pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
     carePlan: c.care_plan, delegationReq: c.delegation_req,
@@ -3883,6 +3888,7 @@ async function loadAllData(forceRefresh=false){
       caregiverId: c.caregiver_id, caregiverName: c.caregiver_name,
       dshsId: c.dshs_id, acesId: c.aces_id,
       rnStartDate: c.rn_start_date, isNewClient: c.is_new_client,
+    statusDate: c.status_date||'', statusReason: c.status_reason||'',
       diagnosisSecondary: c.diagnosis_secondary,
       pharmacyPhone: c.pharmacy_phone, medNotes: c.med_notes,
       carePlan: c.care_plan, delegationReq: c.delegation_req,
@@ -6020,7 +6026,15 @@ pageRenderers.patients = () => {
     <div class="tab" onclick="switchClTab(this,'Care')">Care Plans</div>
     <div class="tab" onclick="switchClTab(this,'History')">Activity History</div>
   </div>
-  <div id="clTabList"><div class="card"><div class="table-wrap"><table>
+  <div id="clTabList"><div class="card">
+    <div class="card-header" style="flex-wrap:wrap;gap:8px"><span style="font-size:13px;font-weight:600">Clients</span>
+      <div style="display:flex;gap:8px;align-items:center"><span id="clStatusFilterCount" style="font-size:11px;color:var(--text3)"></span>
+        <select id="clStatusFilter" class="form-input form-select" style="width:auto;padding:5px 28px 5px 10px;font-size:12px" onchange="setClientStatusFilter(this.value)">
+          <option value="All">All statuses</option><option value="Current">Current (not ended)</option><option value="Ended">Ended (discharged, released, transferred, deceased)</option>
+          <option value="Active">Active</option><option value="On Hold">On Hold</option><option value="Hospitalized">Hospitalized</option><option value="Inactive">Inactive</option>
+          <option value="Transferred">Transferred</option><option value="Discharged">Discharged</option><option value="Released by RN">Released by RN</option><option value="Deceased">Deceased</option>
+        </select></div></div>
+    <div class="table-wrap"><table>
     <thead><tr><th>Client Name</th><th>Date of Birth</th><th>Facility</th><th>Diagnosis</th><th>Allergies</th><th>Physician</th><th>Caregiver</th><th>Status</th><th></th></tr></thead>
     <tbody id="clientTableBody">
       <tr id="clientEmptyRow"><td colspan="9"><div class="empty-state" style="padding:64px"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M3 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><h4>No clients registered</h4><p>Add client profiles to begin managing delegation cases, care plans, and caregiver assignments.</p><button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="openClientModal()">+ Add First Client</button></div></td></tr>
@@ -7268,7 +7282,7 @@ function openNewCaseModal(editId){
   ['ncEditId','ncRn','ncNotes','ncInstructions','ncPrecautions','ncEscalation'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['ncClient','ncCaregiver','ncFacility'].forEach(id=>{
     const sel=document.getElementById(id);if(!sel)return;
-    if(id==='ncClient'){sel.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>sel.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+    if(id==='ncClient'){sel.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>sel.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
     else if(id==='ncCaregiver'){sel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>sel.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
     else if(id==='ncFacility'){sel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>sel.insertAdjacentHTML('beforeend',`<option value="${f.id}">${f.name}</option>`));}
   });
@@ -8074,7 +8088,7 @@ function openGenerateFromCase13678a(caseId){
 function openMedDelegationModal(caseId, editId){
   // Populate client select
   const cs=document.getElementById('medDelClient');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   // Populate caregiver select
   const cgs=document.getElementById('medDelCaregiver');
   if(cgs){cgs.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
@@ -8280,7 +8294,7 @@ function addSpecialReassessDate(caseId){
 function open14484Modal(){
   // populate client select
   const cs=document.getElementById('nv_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   // reset header
   ['nv_acesId','nv_dob','nv_tasks','nv_tasksRelated','nv_notes','nv_chk_other_text','nv_ros_other','nv_rndSig','nv_visitDate','nv_returnDate','nv_pg2_notesText','nv_rndSig2','nv_visitDate2','nv_returnDate2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('nv_setting').value='AFH';
@@ -8544,7 +8558,7 @@ async function submitGenerate14484(clientChangeMode){
 function open13678aModal(){
   // populate client select
   const cs=document.getElementById('prn_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   // reset all fields
   ['prn_acesId','prn_dob'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('prn_setting').value='AFH';
@@ -9073,7 +9087,7 @@ function buildFacilityProfileHtml(f){
           <td style="font-family:var(--mono);font-size:11.5px">${c.dob||'—'}</td>
           <td style="font-size:12px">${c.diagnosis||'—'}</td>
           <td style="font-size:12px">${c.caregiverName||'—'}</td>
-          <td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
+          <td><span class="status ${clStatusClass(c.status)}" style="font-size:10px"><span class="status-dot"></span>${c.status}</span></td>
           <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('patients');setTimeout(()=>openClientProfile('${c.id}'),150)">View →</button></td>
         </tr>`).join('')}</tbody>
       </table></div>`}
@@ -9688,7 +9702,7 @@ function buildCaregiverProfileHtml(c){
           <td style="font-family:var(--mono);font-size:11.5px">${cl.dob||'—'}</td>
           <td style="font-size:12px">${cl.facilityName||'—'}</td>
           <td style="font-size:12px">${cl.diagnosis||'—'}</td>
-          <td><span class="status ${cl.status==='Active'?'status-active':cl.status==='Discharged'?'status-closed':'status-suspended'}" style="font-size:10px"><span class="status-dot"></span>${cl.status}</span></td>
+          <td><span class="status ${clStatusClass(cl.status)}" style="font-size:10px"><span class="status-dot"></span>${cl.status}</span></td>
           <td><button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation();showPage('patients');setTimeout(()=>openClientProfile('${cl.id}'),150)">View →</button></td>
         </tr>`).join('')}</tbody>
       </table></div>`}
@@ -9819,6 +9833,21 @@ function onClSpecialCaseChange(checked){
   document.getElementById('clSpecialCasePanel').style.display=checked?'block':'none';
 }
 
+// ── CLIENT STATUS (saved tags) ─────────────────────
+const CLIENT_STATUSES=['Active','On Hold','Hospitalized','Inactive','Transferred','Discharged','Released by RN','Deceased'];
+const CLIENT_STATUS_CLOSED=['Transferred','Discharged','Released by RN','Deceased'];
+function clStatusClass(st){ return st==='Active'?'status-active':CLIENT_STATUS_CLOSED.includes(st)?'status-closed':'status-suspended'; }
+function clStatusColor(st){ return st==='Active'?'var(--green)':CLIENT_STATUS_CLOSED.includes(st)?'var(--text3)':'var(--amber)'; }
+function onClStatusChange(v){ const x=document.getElementById('clStatusExtra'); if(x) x.style.display=(v&&v!=='Active')?'':'none'; }
+function setClientStatusFilter(v){ window._clStatusFilter=v; try{localStorage.setItem('clStatusFilter',v);}catch(e){} renderClientTable(window.clients||[]); }
+function _clStatusPass(c){
+  let f=window._clStatusFilter; if(!f){ try{ f=localStorage.getItem('clStatusFilter')||'All'; }catch(e){ f='All'; } }
+  if(f==='All') return true;
+  if(f==='Current') return !CLIENT_STATUS_CLOSED.includes(c.status||'Active');
+  if(f==='Ended') return CLIENT_STATUS_CLOSED.includes(c.status);
+  return (c.status||'Active')===f;
+}
+
 // ── CLIENT FUNCTIONS ──────────────────────────────
 function openClientModal(editId){
   ['clFirst','clLast','clDob','clGender','clDshsId','clAcesId','clMedicaid','clAddress','clDiagnosis','clDiagnosisSecondary','clAllergies','clMedications','clPharmacy','clPharmacyPhone','clMedNotes','clCarePlan','clDelegationReq','clPhysician','clPhysicianPhone','clPhysicianAddress','clEmergencyName','clEmergencyRel','clEmergencyPhone','clGuardian'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -9828,6 +9857,7 @@ function openClientModal(editId){
   if(fSel){fSel.innerHTML='<option value="">Select facility…</option>';window.facilities.forEach(f=>fSel.insertAdjacentHTML('beforeend','<option value="'+f.id+'">'+f.name+'</option>'));}
   if(cgSel){cgSel.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgSel.insertAdjacentHTML('beforeend','<option value="'+c.id+'">'+c.first+' '+c.last+'</option>'));}
   document.getElementById('clStatus').value='Active';
+  {const a=document.getElementById('clStatusDate'),b=document.getElementById('clStatusReason');if(a)a.value='';if(b)b.value='';}
   document.getElementById('clRnStartDate').value='';
   document.getElementById('clIsNew').value='';
   document.getElementById('clNewClientPanel').style.display='none';
@@ -9840,7 +9870,9 @@ function openClientModal(editId){
   document.getElementById('clSpecialCaseNotes').value='';
   ['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('clModalTitle').textContent=editId?'Edit Client Profile':'Add Client Profile';
-  if(editId){const cl=window.clients.find(x=>x.id===editId);if(cl){Object.keys(cl).forEach(k=>{const el=document.getElementById('cl'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=cl[k]||'';});}}
+  if(editId){const cl=window.clients.find(x=>x.id===editId);if(cl){Object.keys(cl).forEach(k=>{const el=document.getElementById('cl'+k.charAt(0).toUpperCase()+k.slice(1));if(el)el.value=cl[k]||'';});
+    const st=document.getElementById('clStatus'); if(st&&cl.status&&![...st.options].some(o=>o.value===cl.status)) st.insertAdjacentHTML('beforeend',`<option value="${esc(cl.status)}">${esc(cl.status)}</option>`); if(st) st.value=cl.status||'Active';}}
+  onClStatusChange(document.getElementById('clStatus').value);
   openModal('clientModal');
 }
 async function saveClient(){
@@ -9892,7 +9924,7 @@ async function saveClient(){
   const specialReassessDates=['clSpecialReassess1','clSpecialReassess2','clSpecialReassess3','clSpecialReassess4'].map(id=>document.getElementById(id).value).filter(Boolean);
   const clEditId=document.getElementById('clEditId')?.value;
   const existingCl=clEditId?window.clients.find(x=>x.id===clEditId):null;
-  const cl={id:existingCl?existingCl.id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
+  const cl={id:existingCl?existingCl.id:Date.now().toString(),first,last,dob,gender:document.getElementById('clGender').value,dshsId:document.getElementById('clDshsId').value,acesId:document.getElementById('clAcesId').value,medicaid:document.getElementById('clMedicaid').value,address:document.getElementById('clAddress').value,facilityId,facilityName,caregiverId,caregiverName,status:document.getElementById('clStatus').value,statusDate:(document.getElementById('clStatus').value==='Active'?'':(document.getElementById('clStatusDate')?.value||'')),statusReason:(document.getElementById('clStatus').value==='Active'?'':(document.getElementById('clStatusReason')?.value||'').trim()),rnStartDate,isNewClient,reassess1,reassess2,reassess3,isSpecialCase,specialCaseType,specialCaseNotes,specialReassessDates,diagnosis:document.getElementById('clDiagnosis').value,diagnosisSecondary:document.getElementById('clDiagnosisSecondary').value,allergies,medications:document.getElementById('clMedications').value,pharmacy:document.getElementById('clPharmacy').value,pharmacyPhone:document.getElementById('clPharmacyPhone').value,medNotes:document.getElementById('clMedNotes').value,carePlan:document.getElementById('clCarePlan').value,delegationReq:document.getElementById('clDelegationReq').value,physician,physicianPhone:document.getElementById('clPhysicianPhone').value,physicianAddress:document.getElementById('clPhysicianAddress').value,emergencyName,emergencyRel:document.getElementById('clEmergencyRel').value,emergencyPhone,guardian:document.getElementById('clGuardian').value};  const now2=new Date().toISOString();
   // Core columns — always present in every clients table
   const nd = v => (v && v.toString().trim() !== '') ? v : null;
   const row2={
@@ -9938,10 +9970,18 @@ async function saveClient(){
     special_case_type:    t(cl.specialCaseType),
     special_case_notes:   t(cl.specialCaseNotes),
     special_reassess_dates: JSON.stringify(cl.specialReassessDates||[]),
+    status_date:          d(cl.statusDate),
+    status_reason:        t(cl.statusReason),
   };
   // Attempt save with all columns first; if it fails due to missing
   // schema columns, fall back to core-only row so the save never blocks
   let { error: clErr } = await supa.from('clients').upsert({...row2, ...extended});
+  if(clErr && /status_(date|reason)/i.test(clErr.message||'')){
+    // status columns not added yet: save everything else, warn once
+    const {status_date, status_reason, ...ext2}=extended;
+    ({ error: clErr } = await supa.from('clients').upsert({...row2, ...ext2}));
+    if(!clErr && (cl.statusDate||cl.statusReason)) alert('Saved. Note: the status date/reason could not be stored yet — run client_status_columns.sql in Supabase.');
+  }
   if(clErr && clErr.message && clErr.message.toLowerCase().includes('column')){
     console.warn('Extended columns not yet in schema, saving core fields only:', clErr.message);
     const { error: clErr2 } = await supa.from('clients').upsert(row2);
@@ -10036,6 +10076,8 @@ async function saveClient(){
 }
 function renderClientTable(list){
   const tbody=document.getElementById('clientTableBody');if(!tbody)return;
+  {const sel=document.getElementById('clStatusFilter');let f=window._clStatusFilter;if(!f){try{f=localStorage.getItem('clStatusFilter')||'All';}catch(e){f='All';}}if(sel&&sel.value!==f)sel.value=f;
+   const all=(list||[]);list=all.filter(_clStatusPass);const cnt=document.getElementById('clStatusFilterCount');if(cnt)cnt.textContent=list.length+' of '+all.length;}
   const empty=document.getElementById('clientEmptyRow');
   tbody.querySelectorAll('tr:not(#clientEmptyRow)').forEach(r=>r.remove());
   if(!list.length){if(empty)empty.style.display='';return;}
@@ -10049,7 +10091,7 @@ function renderClientTable(list){
       <td style="font-size:12px">${c.allergies}</td>
       <td style="font-size:12px">${c.physician||'—'}</td>
       <td style="font-size:12px">${c.caregiverName}</td>
-      <td><span class="status ${c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended'}"><span class="status-dot"></span>${c.status}</span></td>
+      <td><span class="status ${clStatusClass(c.status)}"><span class="status-dot"></span>${c.status}</span></td>
       <td onclick="event.stopPropagation()">
         <button class="btn btn-ghost btn-sm" onclick="openClientModal('${c.id}')">Edit</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteClient('${c.id}')" style="color:var(--red)">Delete</button>
@@ -10095,8 +10137,8 @@ function closeClientProfile(){
 
 function buildClientProfileHtml(c){
   const age=c.dob?Math.floor((new Date()-new Date(c.dob))/31557600000):'—';
-  const statusColor=c.status==='Active'?'var(--green)':c.status==='Discharged'?'var(--text3)':'var(--red)';
-  const statusClass=c.status==='Active'?'status-active':c.status==='Discharged'?'status-closed':'status-suspended';
+  const statusColor=clStatusColor(c.status);
+  const statusClass=clStatusClass(c.status);
 
   // Linked delegation cases
   const linkedCases=(window.delegationCases||[]).filter(dc=>dc.clientId===c.id);
@@ -10126,7 +10168,7 @@ function buildClientProfileHtml(c){
         <div>
           <h3 style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:4px">${c.first} ${c.last}</h3>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span class="status ${statusClass}"><span class="status-dot"></span>${c.status}</span>
+            <span class="status ${statusClass}"><span class="status-dot"></span>${c.status}</span>${c.status&&c.status!=='Active'&&(c.statusDate||c.statusReason)?`<span style="font-size:11.5px;color:var(--text3);margin-left:6px">${c.statusDate?esc(_fmtPrintDate(c.statusDate)):''}${c.statusDate&&c.statusReason?' · ':''}${esc(c.statusReason||'')}</span>`:''}
             ${c.dob?`<span style="font-size:12px;color:var(--text3)">${age} years old · DOB: ${c.dob}</span>`:''}
             ${c.facilityName&&c.facilityName!=='—'?`<span style="font-size:12px;color:var(--text3)">📍 ${c.facilityName}</span>`:''}
           </div>
@@ -11496,7 +11538,7 @@ function openGenerateModal(formId, formName){
   generateFormId=formId; generateFormName=formName;
   // populate selects
   const cs=document.getElementById('genClient'),cgs=document.getElementById('genCaregiver');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   if(cgs){cgs.innerHTML='<option value="">Select caregiver…</option>';window.caregivers.filter(c=>c.status==='Active').forEach(c=>cgs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   document.getElementById('genFormTitle').textContent=formName;
   // reset fields
@@ -12926,7 +12968,7 @@ async function upsertCaseFromForm({clientId, caregiverId, formId, formData}){
 // ── 13-678B ASSUMPTION OF DELEGATION ─────────────
 function open13678bModal(){
   const cs=document.getElementById('asmp_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['asmp_acesId','asmp_dob','asmp_facilityName','asmp_facilityPhone','asmp_reason','asmp_rndSig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('asmp_setting').value='';
   document.getElementById('asmp_date').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
@@ -13349,7 +13391,7 @@ function build10217PrintHtml(fd, draft){
 // ── MISSING MODAL OPENERS ─────────────────────────
 function open13678ConsentModal(){
   const cs=document.getElementById('con_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['con_acesId','con_dob','con_address','con_clientPhone','con_diagnosis','con_allergies','con_facilityContact','con_facilityPhone','con_facilityFax','con_facilityEmail','con_hcpName','con_hcpPhone','con_clientSig','con_sigPhone','con_sigDate','con_verbalFrom','con_verbalRel','con_verbalDate','con_rnName','con_rnPhone','con_rnSig','con_rnDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('input[name="con_setting"]').forEach(r=>r.checked=false);
   document.getElementById('con_sigDate').value=new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ});
@@ -13448,7 +13490,7 @@ async function submitGenerate13678Consent(clientChangeMode){
 
 function open13680Modal(){
   const cs=document.getElementById('rsc_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['rsc_acesId','rsc_dob','rsc_facilityName','rsc_facilityPhone','rsc_rK','rsc_caseManager','rsc_notifyDate','rsc_altPlan','rsc_rndSig','rsc_date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('rsc_setting').value='AFH';
   ['rsc_rA','rsc_rB','rsc_rC','rsc_rD','rsc_rE','rsc_rF','rsc_rG','rsc_rH','rsc_rI','rsc_rJ'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
@@ -13559,7 +13601,7 @@ async function submitGenerate13680(clientChangeMode){
 
 function open13681Modal(){
   const cs=document.getElementById('chg_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['chg_acesId','chg_dob','chg_notifyDate','chg_byWhom','chg_effectiveDate','chg_verifyName','chg_verifyTitle','chg_verifyDate','chg_taskOrder','chg_dateOrdered','chg_medName','chg_startDate','chg_stopDate','chg_dose','chg_frequency','chg_route','chg_notExceed','chg_medReason','chg_steps','chg_expectedOutcome','chg_rndName','chg_rndPhone','chg_whatRnd','chg_hcpName','chg_hcpPhone','chg_whatHcp','chg_whatEmergency','chg_rndSig','chg_date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('chg_setting').value='AFH';
   ['chg_newMed','chg_changeMed','chg_newTask','chg_changeTask','chg_taskNewSheet','chg_taskUpdated','chg_taskNoChange','chg_teachingAid'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
@@ -15218,7 +15260,7 @@ async function signOut(){
 // ── 01-212 NURSE DELEGATION: REFERRAL AND COMMUNICATION ──────────
 function open01212Modal(){
   const cs=document.getElementById('ref_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['ref_authNum','ref_rnProviderOne','ref_dateReferral','ref_nurseDelegator','ref_nursePhone','ref_nurseFax','ref_nurseEmail',
    'ref_crmName','ref_crmEmail','ref_crmPhone','ref_crmFax','ref_guardianName','ref_acesId','ref_dob','ref_clientPhone',
    'ref_address','ref_ltcwName','ref_ltcwPhone','ref_ltcwFax','ref_clientEmail','ref_primaryLang','ref_diagnosis',
@@ -15658,7 +15700,7 @@ ${pageHeader('Instructions for Completing','Page 3 of 3')}
 // ── 13-893 NURSE DELEGATION: REQUEST FOR ADDITIONAL UNITS ────────
 function open13893Modal(){
   const cs=document.getElementById('rau_client');
-  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>c.status==='Active').forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
+  if(cs){cs.innerHTML='<option value="">Select client…</option>';window.clients.filter(c=>!CLIENT_STATUS_CLOSED.includes(c.status)).forEach(c=>cs.insertAdjacentHTML('beforeend',`<option value="${c.id}">${c.first} ${c.last}</option>`));}
   ['rau_rndName','rau_rndPhone','rau_rndEmail','rau_acesId','rau_dob',
    'rau_cmName','rau_cmPhone','rau_cmEmail','rau_unitsNeeded','rau_month',
    'rau_monthTotal','rau_monthTotal2','rau_comments',
