@@ -15992,7 +15992,7 @@ function openSignModal(draftId){
       </div>
       <div class="form-group" style="margin-bottom:8px">
         <label class="form-label">Date signed</label>
-        <input class="form-input" type="date" id="signDate_${i}" value="${sig?.signedDate||new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ})}">
+        <input class="form-input" type="date" id="signDate_${i}" value="${sig?.signedDate||(d.form_data&&d.form_data.signDateDefault)||new Date().toLocaleDateString('en-CA',{timeZone:WA_TZ})}">
       </div>
       <div style="position:relative;border:1px dashed var(--border2);border-radius:var(--radius-sm);background:var(--bg1)">
         <canvas id="signPad_${i}" data-key="${esc(f.key)}" style="width:100%;height:150px;display:block;touch-action:none;border-radius:var(--radius-sm);cursor:crosshair"></canvas>
